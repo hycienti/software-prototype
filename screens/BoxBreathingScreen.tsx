@@ -2,455 +2,253 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import Animated, {
   useAnimatedStyle,
-  withRepeat,
   withTiming,
   useSharedValue,
-  withSequence,
   Easing,
   interpolate,
   Extrapolate,
 } from 'react-native-reanimated';
 import { Icon } from '@/components/ui/Icon';
-import { cn } from '@/utils/cn';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const BOX_SIZE = Math.min(320, SCREEN_WIDTH - 48);
-const BOX_RADIUS = 32; // rounded-[2rem] = 32px
-const DOT_SIZE = 12; // w-3 h-3 = 12px
-const BOX_PERIMETER = (BOX_SIZE - DOT_SIZE) * 4; // Approximate perimeter
 
-interface BoxBreathingScreenProps {
-  onBack?: () => void;
-}
+const BOX_SIZE = Math.min(380, SCREEN_WIDTH - 48);
+const BOX_RADIUS = 32;
+const DOT_SIZE = 12;
 
 type BreathingPhase = 'inhale' | 'hold1' | 'exhale' | 'hold2';
 
-const PHASE_DURATIONS = {
+const PHASE_DURATIONS: Record<BreathingPhase, number> = {
   inhale: 4000,
   hold1: 4000,
   exhale: 4000,
   hold2: 4000,
 };
 
-export const BoxBreathingScreen: React.FC<BoxBreathingScreenProps> = ({
-  onBack,
-}) => {
+export const BoxBreathingScreen: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
   const [isPaused, setIsPaused] = useState(false);
   const [currentPhase, setCurrentPhase] = useState<BreathingPhase>('inhale');
   const [count, setCount] = useState(4);
   const [cycle, setCycle] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
-  const [totalCycles] = useState(5);
-  const [remainingTime, setRemainingTime] = useState(270); // 4:30 in seconds
+  const totalCycles = 5;
+  const [remainingTime, setRemainingTime] = useState(270);
+
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Breathing orb scale animation
   const orbScale = useSharedValue(1);
-  // Dot position around the box (0-4 represents the 4 sides)
   const dotProgress = useSharedValue(0);
-  // Active path progress (0-1)
   const pathProgress = useSharedValue(0);
-  // Phase progress (0-1 for current phase)
-  const phaseProgress = useSharedValue(0);
 
-  // Start breathing cycle on mount
-  useEffect(() => {
-    startBreathingCycle();
-  }, []);
+  /* ---------------------- Breathing Logic ---------------------- */
 
   useEffect(() => {
-    if (!isPaused) {
-      startBreathingCycle();
-    }
-  }, [isPaused, currentPhase]);
+    if (!isPaused) startPhase();
+  }, [currentPhase, isPaused]);
 
-  const startBreathingCycle = () => {
+  const startPhase = () => {
     const duration = PHASE_DURATIONS[currentPhase];
-    const isInhale = currentPhase === 'inhale';
-    const isExhale = currentPhase === 'exhale';
 
-    // Orb breathing animation
-    if (isInhale) {
-      orbScale.value = withTiming(1.3, {
-        duration,
-        easing: Easing.inOut(Easing.ease),
-      });
-    } else if (isExhale) {
-      orbScale.value = withTiming(0.85, {
-        duration,
-        easing: Easing.inOut(Easing.ease),
-      });
+    if (currentPhase === 'inhale') {
+      orbScale.value = withTiming(1.3, { duration, easing: Easing.inOut(Easing.ease) });
+    } else if (currentPhase === 'exhale') {
+      orbScale.value = withTiming(0.85, { duration, easing: Easing.inOut(Easing.ease) });
     } else {
-      // Hold phases - maintain current scale
       orbScale.value = withTiming(orbScale.value, { duration });
     }
 
-    // Dot movement around box (0 = top start, 1 = top end, 2 = right end, 3 = bottom end, 4 = left end)
-    const phaseIndex = currentPhase === 'inhale' ? 0 : currentPhase === 'hold1' ? 1 : currentPhase === 'exhale' ? 2 : 3;
-    const startProgress = phaseIndex;
-    const targetProgress = phaseIndex + 1;
-    
-    dotProgress.value = startProgress;
-    dotProgress.value = withTiming(targetProgress, {
+    const phaseIndex =
+      currentPhase === 'inhale'
+        ? 0
+        : currentPhase === 'hold1'
+          ? 1
+          : currentPhase === 'exhale'
+            ? 2
+            : 3;
+
+    dotProgress.value = withTiming(phaseIndex + 1, {
       duration,
       easing: Easing.linear,
     });
 
-    // Path progress (reset and animate)
     pathProgress.value = 0;
-    pathProgress.value = withTiming(1, {
-      duration,
-      easing: Easing.linear,
-    });
+    pathProgress.value = withTiming(1, { duration, easing: Easing.linear });
 
-    // Countdown timer
-    let currentCount = 4;
+    let c = 4;
     setCount(4);
-    const countInterval = setInterval(() => {
+    const timer = setInterval(() => {
       if (!isPaused) {
-        currentCount--;
-        if (currentCount > 0) {
-          setCount(currentCount);
-        } else {
-          clearInterval(countInterval);
-        }
+        c -= 1;
+        if (c > 0) setCount(c);
       }
     }, 1000);
 
-    // Phase transition
-    const phaseTimeout = setTimeout(() => {
+    const timeout = setTimeout(() => {
+      clearInterval(timer);
       if (!isPaused) {
-        const nextPhase: BreathingPhase =
+        const next: BreathingPhase =
           currentPhase === 'inhale'
             ? 'hold1'
             : currentPhase === 'hold1'
-            ? 'exhale'
-            : currentPhase === 'exhale'
-            ? 'hold2'
-            : 'inhale';
+              ? 'exhale'
+              : currentPhase === 'exhale'
+                ? 'hold2'
+                : 'inhale';
 
-        if (nextPhase === 'inhale') {
-          setCycle((prev) => Math.min(prev + 1, totalCycles));
+        if (next === 'inhale') {
+          setCycle((p) => Math.min(p + 1, totalCycles));
         }
 
-        setCurrentPhase(nextPhase);
-        setCount(4);
+        setCurrentPhase(next);
       }
     }, duration);
 
     return () => {
-      clearInterval(countInterval);
-      clearTimeout(phaseTimeout);
+      clearTimeout(timeout);
+      clearInterval(timer);
     };
   };
 
-  // Remaining time countdown
+  /* ---------------------- Remaining Time ---------------------- */
+
   useEffect(() => {
     if (!isPaused && remainingTime > 0) {
       intervalRef.current = setInterval(() => {
-        setRemainingTime((prev) => Math.max(0, prev - 1));
+        setRemainingTime((t) => Math.max(0, t - 1));
       }, 1000);
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
     }
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [isPaused, remainingTime]);
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-  };
+  /* ---------------------- Animated Styles ---------------------- */
 
-  const getPhaseText = () => {
-    switch (currentPhase) {
-      case 'inhale':
-        return 'Breathe In';
-      case 'hold1':
-        return 'Hold';
-      case 'exhale':
-        return 'Breathe Out';
-      case 'hold2':
-        return 'Hold';
-      default:
-        return 'Breathe In';
-    }
-  };
+  const orbStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: orbScale.value }],
+  }));
 
-  // Orb animation style
-  const orbAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ scale: orbScale.value }],
-    };
-  });
-
-  // Dot position animation (moves around box perimeter)
-  const dotAnimatedStyle = useAnimatedStyle(() => {
+  const dotStyle = useAnimatedStyle(() => {
     const side = Math.floor(dotProgress.value);
-    const progressOnSide = dotProgress.value - side;
-    const halfSize = BOX_SIZE / 2;
-    const borderWidth = 2; // Match border-2
+    const progress = dotProgress.value - side;
+    const half = BOX_SIZE / 2;
 
     let x = 0;
     let y = 0;
 
-    // Top side (0-1): left to right
     if (side === 0) {
-      x = interpolate(
-        progressOnSide,
-        [0, 1],
-        [-halfSize + borderWidth, halfSize - borderWidth],
-        Extrapolate.CLAMP
-      );
-      y = -halfSize - DOT_SIZE / 2;
-    }
-    // Right side (1-2): top to bottom
-    else if (side === 1) {
-      x = halfSize + DOT_SIZE / 2;
-      y = interpolate(
-        progressOnSide,
-        [0, 1],
-        [-halfSize + borderWidth, halfSize - borderWidth],
-        Extrapolate.CLAMP
-      );
-    }
-    // Bottom side (2-3): right to left
-    else if (side === 2) {
-      x = interpolate(
-        progressOnSide,
-        [0, 1],
-        [halfSize - borderWidth, -halfSize + borderWidth],
-        Extrapolate.CLAMP
-      );
-      y = halfSize + DOT_SIZE / 2;
-    }
-    // Left side (3-4): bottom to top
-    else if (side === 3) {
-      x = -halfSize - DOT_SIZE / 2;
-      y = interpolate(
-        progressOnSide,
-        [0, 1],
-        [halfSize - borderWidth, -halfSize + borderWidth],
-        Extrapolate.CLAMP
-      );
+      x = interpolate(progress, [0, 1], [-half, half], Extrapolate.CLAMP);
+      y = -half - DOT_SIZE / 2;
+    } else if (side === 1) {
+      x = half + DOT_SIZE / 2;
+      y = interpolate(progress, [0, 1], [-half, half], Extrapolate.CLAMP);
+    } else if (side === 2) {
+      x = interpolate(progress, [0, 1], [half, -half], Extrapolate.CLAMP);
+      y = half + DOT_SIZE / 2;
+    } else {
+      x = -half - DOT_SIZE / 2;
+      y = interpolate(progress, [0, 1], [half, -half], Extrapolate.CLAMP);
     }
 
-    return {
-      transform: [{ translateX: x }, { translateY: y }],
-    };
+    return { transform: [{ translateX: x }, { translateY: y }] };
   });
 
-  // Active path animation - only highlight the current side being performed
-  const pathAnimatedStyleTop = useAnimatedStyle(() => {
-    const side = Math.floor(dotProgress.value);
-    // Only show top side when on top (0)
-    return { opacity: side === 0 ? 1 : 0 };
-  });
+  /* ---------------------- Helpers ---------------------- */
 
-  const pathAnimatedStyleRight = useAnimatedStyle(() => {
-    const side = Math.floor(dotProgress.value);
-    // Only show right side when on right (1)
-    return { opacity: side === 1 ? pathProgress.value : 0 };
-  });
+  const formatTime = (s: number) =>
+    `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
-  const pathAnimatedStyleBottom = useAnimatedStyle(() => {
-    const side = Math.floor(dotProgress.value);
-    // Only show bottom side when on bottom (2)
-    return { opacity: side === 2 ? 1 : 0 };
-  });
+  const phaseText =
+    currentPhase === 'inhale' ? 'Breathe In' : currentPhase === 'exhale' ? 'Breathe Out' : 'Hold';
 
-  const pathAnimatedStyleLeft = useAnimatedStyle(() => {
-    const side = Math.floor(dotProgress.value);
-    // Only show left side when on left (3)
-    return { opacity: side === 3 ? pathProgress.value : 0 };
-  });
-
-  // Reset function
-  const handleReset = () => {
-    setIsPaused(true);
-    setCurrentPhase('inhale');
-    setCount(4);
-    setCycle(1);
-    dotProgress.value = 0;
-    pathProgress.value = 0;
-    orbScale.value = 1;
-    setTimeout(() => {
-      setIsPaused(false);
-    }, 100);
-  };
-
-  // Toggle mute function
-  const handleToggleMute = () => {
-    setIsMuted(!isMuted);
-  };
+  /* ---------------------- Render ---------------------- */
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Background Gradients */}
-      <LinearGradient
-        colors={['rgba(25, 179, 230, 0.05)', 'transparent']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={styles.topGradient}
-      />
-      <LinearGradient
-        colors={['transparent', '#111d21', '#111d21']}
-        locations={[0, 0.5, 1]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={styles.bottomGradient}
-      />
+      {/* Ambient Background */}
+      <LinearGradient colors={['rgba(25,179,230,0.05)', 'transparent']} style={styles.topGlow} />
+      <LinearGradient colors={['transparent', '#111d21']} style={styles.bottomGlow} />
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={onBack}
-          style={styles.headerButton}
-          activeOpacity={0.7}
-        >
+        <TouchableOpacity onPress={onBack} style={styles.headerBtn}>
           <Icon name="close" size={28} color="rgba(255,255,255,0.8)" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Box Breathing</Text>
-        <TouchableOpacity style={styles.headerButton} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.headerBtn}>
           <Icon name="settings" size={28} color="rgba(255,255,255,0.8)" />
         </TouchableOpacity>
       </View>
 
-      {/* Main Content: Breathing Visualization */}
-      <View style={styles.mainContent}>
-        <View style={[styles.boxContainer, { width: BOX_SIZE, height: BOX_SIZE }]}>
-          {/* The Path Trace (Subtle Square Border) */}
+      {/* Main */}
+      <View style={styles.main}>
+        <View style={[styles.box, { width: BOX_SIZE, height: BOX_SIZE }]}>
           <View style={styles.boxBorder} />
 
-          {/* Active Path Indicator - Simple border highlight on current side */}
-          {/* Top */}
-          <Animated.View style={[styles.activePathTop, pathAnimatedStyleTop]}>
-            <View style={styles.activePathBorderTop} />
-          </Animated.View>
-          {/* Right */}
-          <Animated.View style={[styles.activePathRight, pathAnimatedStyleRight]}>
-            <View style={styles.activePathBorderRight} />
-          </Animated.View>
-          {/* Bottom */}
-          <Animated.View style={[styles.activePathBottom, pathAnimatedStyleBottom]}>
-            <View style={styles.activePathBorderBottom} />
-          </Animated.View>
-          {/* Left */}
-          <Animated.View style={[styles.activePathLeft, pathAnimatedStyleLeft]}>
-            <View style={styles.activePathBorderLeft} />
-          </Animated.View>
-
-          {/* The Traveller Dot */}
-          <Animated.View style={[styles.travelerDot, dotAnimatedStyle]}>
+          <Animated.View style={[styles.travelerDot, dotStyle]}>
             <View style={styles.dotGlow} />
           </Animated.View>
 
-          {/* The Breathing Orb */}
-          <View style={styles.orbContainer}>
-            <Animated.View style={[styles.breathingOrb, orbAnimatedStyle]}>
+          <View style={styles.orbWrapper}>
+            <Animated.View style={[styles.orb, orbStyle]}>
               <LinearGradient
-                colors={[
-                  'rgba(25, 179, 230, 0.2)',
-                  'rgba(25, 179, 230, 0.1)',
-                  'rgba(52, 211, 153, 0.05)',
-                ]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+                colors={['rgba(25,179,230,0.2)', 'rgba(25,179,230,0.1)', 'rgba(52,211,153,0.05)']}
                 style={StyleSheet.absoluteFill}
               />
-              {/* Inner Core Glow */}
-              <View style={styles.innerGlow}>
-                <LinearGradient
-                  colors={['rgba(25, 179, 230, 0.3)', 'rgba(52, 211, 153, 0.2)']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={StyleSheet.absoluteFill}
-                />
-              </View>
-              {/* Text Content */}
+              <View style={styles.innerGlow} />
+
               <View style={styles.orbContent}>
-                <Text style={styles.phaseText}>{getPhaseText()}</Text>
-                <View style={styles.countContainer}>
-                  <Text style={styles.countText}>{count}</Text>
-                  <Text style={styles.countUnit}>s</Text>
+                <Text style={styles.phaseText}>{phaseText}</Text>
+                <View style={styles.countRow}>
+                  <Text style={styles.count}>{count}</Text>
+                  <Text style={styles.unit}>s</Text>
                 </View>
               </View>
             </Animated.View>
           </View>
 
-          {/* Label Hints for the Box */}
-          <Text style={[styles.boxLabel, styles.labelTop]}>INHALE</Text>
-          <Text style={[styles.boxLabel, styles.labelRight]}>HOLD</Text>
-          <Text style={[styles.boxLabel, styles.labelBottom]}>EXHALE</Text>
-          <Text style={[styles.boxLabel, styles.labelLeft]}>HOLD</Text>
+          <Text style={[styles.label, styles.labelTop]}>INHALE</Text>
+          <Text style={[styles.label, styles.labelRight]}>HOLD</Text>
+          <Text style={[styles.label, styles.labelBottom]}>EXHALE</Text>
+          <Text style={[styles.label, styles.labelLeft]}>HOLD</Text>
         </View>
       </View>
 
-      {/* Footer: Progress & Controls */}
+      {/* Footer */}
       <View style={styles.footer}>
-        <LinearGradient
-          colors={['#111d21', 'rgba(17, 29, 33, 0.8)', 'transparent']}
-          locations={[0, 0.5, 1]}
-          style={StyleSheet.absoluteFill}
-        />
-        {/* Progress Section */}
-        <View style={styles.progressSection}>
+        <View style={styles.progressBlock}>
           <View style={styles.progressHeader}>
-            <Text style={styles.progressLabel}>
+            <Text style={styles.progressText}>
               Cycle {cycle} of {totalCycles}
             </Text>
-            <Text style={styles.timeRemaining}>{formatTime(remainingTime)} remaining</Text>
+            <Text style={styles.time}>{formatTime(remainingTime)} remaining</Text>
           </View>
-          {/* Progress Bar */}
-          <View style={styles.progressBarContainer}>
+
+          <View style={styles.progressBar}>
             <LinearGradient
               colors={['#19b3e6', '#34d399']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={[styles.progressBarFill, { width: `${(cycle / totalCycles) * 100}%` }]}
+              style={[styles.progressFill, { width: `${(cycle / totalCycles) * 100}%` }]}
             />
           </View>
         </View>
 
-        {/* Controls */}
         <View style={styles.controls}>
-          <TouchableOpacity 
-            onPress={handleReset}
-            style={styles.controlButton} 
-            activeOpacity={0.7}
-          >
+          <TouchableOpacity style={styles.iconBtn}>
             <Icon name="restart_alt" size={28} color="rgba(255,255,255,0.4)" />
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setIsPaused(!isPaused)}
-            style={styles.playPauseButton}
-            activeOpacity={0.8}
-          >
-            <View style={styles.playPauseGlow} />
-            <Icon
-              name={isPaused ? 'play_arrow' : 'pause'}
-              size={40}
-              color="#ffffff"
-            />
+
+          <TouchableOpacity style={styles.playBtn} onPress={() => setIsPaused(!isPaused)}>
+            {!isPaused && <View style={styles.playGlow} />}
+            <Icon name={isPaused ? 'play_arrow' : 'pause'} size={40} color="#fff" />
           </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={handleToggleMute}
-            style={styles.controlButton} 
-            activeOpacity={0.7}
-          >
-            <Icon 
-              name={isMuted ? 'volume_off' : 'volume_up'} 
-              size={28} 
-              color="rgba(255,255,255,0.4)" 
+
+          <TouchableOpacity style={styles.iconBtn} onPress={() => setIsMuted(!isMuted)}>
+            <Icon
+              name={isMuted ? 'volume_off' : 'volume_up'}
+              size={28}
+              color="rgba(255,255,255,0.4)"
             />
           </TouchableOpacity>
         </View>
@@ -459,359 +257,166 @@ export const BoxBreathingScreen: React.FC<BoxBreathingScreenProps> = ({
   );
 };
 
+/* ---------------------- Styles ---------------------- */
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#111d21',
-  },
-  topGradient: {
+  container: { flex: 1, backgroundColor: '#111d21' },
+
+  topGlow: {
     position: 'absolute',
     top: 0,
-    left: 0,
-    right: 0,
     height: '33%',
-    pointerEvents: 'none',
+    width: '100%',
   },
-  bottomGradient: {
+  bottomGlow: {
     position: 'absolute',
     bottom: 0,
-    left: 0,
-    right: 0,
     height: '25%',
-    pointerEvents: 'none',
+    width: '100%',
   },
+
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 24,
-    zIndex: 20,
   },
-  headerButton: {
-    padding: 8,
-    borderRadius: 9999,
-  },
+  headerBtn: { padding: 8, borderRadius: 999 },
   headerTitle: {
     flex: 1,
     textAlign: 'center',
     fontSize: 16,
     fontWeight: '600',
     letterSpacing: 0.5,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: 'rgba(255,255,255,0.8)',
   },
-  mainContent: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  boxContainer: {
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+
+  main: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+
+  box: { alignItems: 'center', justifyContent: 'center' },
   boxBorder: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    ...StyleSheet.absoluteFillObject,
     borderRadius: BOX_RADIUS,
     borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255,255,255,0.05)',
   },
-  activePathTop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: BOX_RADIUS,
-    overflow: 'hidden',
-  },
-  activePathRight: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: BOX_RADIUS,
-    overflow: 'hidden',
-  },
-  activePathBottom: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: BOX_RADIUS,
-    overflow: 'hidden',
-  },
-  activePathLeft: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: BOX_RADIUS,
-    overflow: 'hidden',
-  },
-  activePathBorderTop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 2,
-    borderTopLeftRadius: BOX_RADIUS,
-    borderTopRightRadius: BOX_RADIUS,
-    backgroundColor: '#19b3e6',
-    shadowColor: '#19b3e6',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  activePathBorderRight: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    width: 2,
-    borderTopRightRadius: BOX_RADIUS,
-    borderBottomRightRadius: BOX_RADIUS,
-    backgroundColor: '#19b3e6',
-    shadowColor: '#19b3e6',
-    shadowOffset: { width: -4, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  activePathBorderBottom: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 2,
-    borderBottomLeftRadius: BOX_RADIUS,
-    borderBottomRightRadius: BOX_RADIUS,
-    backgroundColor: '#19b3e6',
-    shadowColor: '#19b3e6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  activePathBorderLeft: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    bottom: 0,
-    width: 2,
-    borderTopLeftRadius: BOX_RADIUS,
-    borderBottomLeftRadius: BOX_RADIUS,
-    backgroundColor: '#19b3e6',
-    shadowColor: '#19b3e6',
-    shadowOffset: { width: 4, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 10,
-  },
+
   travelerDot: {
     position: 'absolute',
-    top: -5, // -top-[5px] from HTML
-    left: '50%',
     width: DOT_SIZE,
     height: DOT_SIZE,
     borderRadius: DOT_SIZE / 2,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#fff',
     zIndex: 10,
-    marginLeft: -DOT_SIZE / 2, // Center the dot
   },
   dotGlow: {
     ...StyleSheet.absoluteFillObject,
     borderRadius: DOT_SIZE / 2,
-    backgroundColor: '#ffffff',
-    shadowColor: '#ffffff',
-    shadowOffset: { width: 0, height: 0 },
+    shadowColor: '#fff',
     shadowOpacity: 0.8,
     shadowRadius: 15,
-    elevation: 10,
   },
-  orbContainer: {
+
+  orbWrapper: {
     width: '100%',
     height: '100%',
     padding: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 10,
   },
-  breathingOrb: {
+  orb: {
     width: '100%',
     height: '100%',
-    borderRadius: 9999,
+    borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255,255,255,0.05)',
     shadowColor: '#19b3e6',
-    shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.15,
     shadowRadius: 100,
-    elevation: 20,
     overflow: 'hidden',
   },
   innerGlow: {
-    position: 'absolute',
-    top: 16,
-    left: 16,
-    right: 16,
-    bottom: 16,
-    borderRadius: 9999,
+    ...StyleSheet.absoluteFillObject,
+    margin: 16,
+    borderRadius: 999,
+    backgroundColor: 'rgba(25,179,230,0.35)',
   },
+
   orbContent: {
-    position: 'relative',
-    zIndex: 20,
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    flex: 1,
   },
   phaseText: {
     fontSize: 20,
-    fontWeight: '500',
     letterSpacing: 2,
     textTransform: 'uppercase',
     color: '#19b3e6',
     marginBottom: 8,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
   },
-  countContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  countText: {
+  countRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  count: {
     fontSize: 80,
-    fontWeight: '300',
-    lineHeight: 96,
-    letterSpacing: -2,
-    color: '#ffffff',
-    fontVariant: ['tabular-nums'],
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 8,
+    fontWeight: '200',
+    letterSpacing: -1.5,
+    color: '#fff',
   },
-  countUnit: {
+  unit: {
     fontSize: 24,
-    fontWeight: '300',
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: 'rgba(255,255,255,0.5)',
+    marginTop: 18,
     marginLeft: 4,
-    marginTop: 16,
   },
-  boxLabel: {
+
+  label: {
     position: 'absolute',
     fontSize: 12,
-    fontWeight: '500',
     letterSpacing: 1,
-    zIndex: 5,
+    color: 'rgba(255,255,255,0.2)',
   },
-  labelTop: {
-    top: -30,
-    left: '50%',
-    transform: [{ translateX: -30 }],
-    color: 'rgba(25, 179, 230, 0.6)',
-  },
-  labelRight: {
-    right: -50,
-    top: '50%',
-    transform: [{ translateY: -6 }, { rotate: '90deg' }],
-    color: 'rgba(255, 255, 255, 0.2)',
-  },
-  labelBottom: {
-    bottom: -30,
-    left: '50%',
-    transform: [{ translateX: -30 }],
-    color: 'rgba(255, 255, 255, 0.2)',
-  },
-  labelLeft: {
-    left: -50,
-    top: '50%',
-    transform: [{ translateY: -6 }, { rotate: '-90deg' }],
-    color: 'rgba(255, 255, 255, 0.2)',
-  },
-  footer: {
-    width: '100%',
-    padding: 32,
-    paddingBottom: 40,
-    alignItems: 'center',
-    gap: 32,
-    zIndex: 20,
-    position: 'relative',
-  },
-  progressSection: {
-    width: '100%',
-    maxWidth: 384,
-    gap: 12,
-  },
+  labelTop: { top: -30, color: 'rgba(25,179,230,0.6)' },
+  labelBottom: { bottom: -30 },
+  labelLeft: { left: -40, transform: [{ rotate: '-90deg' }] },
+  labelRight: { right: -40, transform: [{ rotate: '90deg' }] },
+
+  footer: { padding: 32, gap: 32 },
+  progressBlock: { gap: 12 },
   progressHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    paddingHorizontal: 4,
   },
-  progressLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    letterSpacing: 0.5,
-    color: 'rgba(255, 255, 255, 0.6)',
-  },
-  timeRemaining: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.4)',
-  },
-  progressBarContainer: {
+  progressText: { color: 'rgba(255,255,255,0.6)' },
+  time: { color: 'rgba(255,255,255,0.4)', fontSize: 12 },
+
+  progressBar: {
     height: 6,
-    width: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 3,
     overflow: 'hidden',
   },
-  progressBarFill: {
+  progressFill: {
     height: '100%',
     borderRadius: 3,
-    shadowColor: '#19b3e6',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 5,
   },
-  controls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 32,
-  },
-  controlButton: {
-    padding: 12,
-    borderRadius: 9999,
-  },
-  playPauseButton: {
+
+  controls: { flexDirection: 'row', gap: 32, alignItems: 'center' },
+  iconBtn: { padding: 12 },
+
+  playBtn: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
-    overflow: 'hidden',
   },
-  playPauseGlow: {
-    position: 'absolute',
-    top: -20,
-    left: -20,
-    right: -20,
-    bottom: -20,
+  playGlow: {
+    ...StyleSheet.absoluteFillObject,
     borderRadius: 40,
-    backgroundColor: 'rgba(25, 179, 230, 0.1)',
-    opacity: 0,
+    backgroundColor: 'rgba(25,179,230,0.15)',
+    shadowColor: '#19b3e6',
+    shadowOpacity: 0.6,
+    shadowRadius: 40,
   },
 });
