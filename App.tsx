@@ -1,20 +1,5 @@
-import { ScreenContent } from 'components/ScreenContent';
-import { StatusBar } from 'expo-status-bar';
-
-import './global.css';
-
-import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
-import '@/global.css';
-
+// This file is replaced by expo-router
+// The entry point is now app/_layout.tsx
 export default function App() {
-  return (
-    
-    <GluestackUIProvider mode="dark">
-      <>
-      <ScreenContent title="Home" path="App.tsx"></ScreenContent>
-      <StatusBar style="auto" />
-    </>
-    </GluestackUIProvider>
-  
-  );
+  return null;
 }
