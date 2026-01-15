@@ -59,6 +59,12 @@ const iconMap: Record<string, keyof typeof MaterialIcons.glyphMap> = {
   person: 'person',
   auto_awesome: 'auto-awesome',
   ios: 'phone-iphone',
+  psychology_alt: 'psychology',
+  wb_sunny: 'wb-sunny',
+  coffee: 'local-cafe',
+  group: 'group',
+  pets: 'pets',
+  filter_list: 'filter-list',
 };
 
 export const Icon: React.FC<IconProps> = ({ name, size = 24, color = '#6b7280' }) => {

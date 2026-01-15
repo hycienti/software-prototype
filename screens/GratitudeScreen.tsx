@@ -8,11 +8,13 @@ import { Icon } from '@/components/ui/Icon';
 interface GratitudeScreenProps {
   onBack?: () => void;
   onSave?: () => void;
+  onHistory?: () => void;
 }
 
 export const GratitudeScreen: React.FC<GratitudeScreenProps> = ({
   onBack,
   onSave,
+  onHistory,
 }) => {
   const insets = useSafeAreaInsets();
   const [gratitudes, setGratitudes] = useState(['', '', '']);
@@ -57,10 +59,14 @@ export const GratitudeScreen: React.FC<GratitudeScreenProps> = ({
             <Icon name="arrow_back" size={24} color="#cbd5e1" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Gratitude Practice</Text>
-          <View style={styles.streakBadge}>
+          <TouchableOpacity
+            style={styles.streakBadge}
+            onPress={onHistory}
+            activeOpacity={0.7}
+          >
             <Icon name="local_fire_department" size={20} color="#f59e0b" />
             <Text style={styles.streakText}>{streak}</Text>
-          </View>
+          </TouchableOpacity>
         </View>
       </View>
 

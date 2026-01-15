@@ -15,10 +15,15 @@ export default function GratitudePage() {
     router.back();
   };
 
+  const handleHistory = () => {
+    router.push('/gratitude-history');
+  };
+
   return (
     <GratitudeScreen
       onBack={handleBack}
       onSave={handleSave}
+      onHistory={handleHistory}
     />
   );
 }
