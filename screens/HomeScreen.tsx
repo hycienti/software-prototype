@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, ImageBackground, StyleSheet, useColorScheme } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, ImageBackground, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card';
 import { cn } from '@/utils/cn';
@@ -47,26 +48,49 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onProfilePress,
   onRecommendationPress,
 }) => {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  
   return (
-    <SafeAreaView className="flex-1 bg-background-light dark:bg-background-dark">
-      <View className="flex-row items-center bg-background-light dark:bg-background-dark p-4 pb-2 justify-between">
+    <SafeAreaView className="flex-1 bg-background-dark">
+      {/* Dark Gradient Background */}
+      <View style={StyleSheet.absoluteFill} className="bg-background-dark">
+        <LinearGradient
+          colors={[
+            'rgba(30, 41, 59, 0.3)',
+            'rgba(15, 23, 42, 0.15)',
+            'rgba(17, 29, 33, 0.1)',
+            'transparent',
+          ]}
+          locations={[0, 0.3, 0.6, 1]}
+          style={StyleSheet.absoluteFill}
+        />
+        <View 
+          style={[
+            styles.backgroundBlob1,
+            { backgroundColor: 'rgba(25, 179, 230, 0.08)' }
+          ]} 
+        />
+        <View 
+          style={[
+            styles.backgroundBlob2,
+            { backgroundColor: 'rgba(88, 28, 135, 0.12)' }
+          ]} 
+        />
+      </View>
+
+      <View style={styles.headerContainer} className="flex-row items-center p-4 pb-2 justify-between relative z-10">
         <TouchableOpacity className="w-12 h-12 shrink-0 items-center justify-start">
-          <Icon name="menu" size={30} color={isDark ? '#ffffff' : '#111827'} />
+          <Icon name="menu" size={30} color="#ffffff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} className="text-lg font-bold flex-1 text-center text-neutral-900 dark:text-white">
+        <Text style={styles.headerTitle} className="text-lg font-bold flex-1 text-center text-white">
           Haven
         </Text>
         <TouchableOpacity className="w-12 h-12 items-center justify-end">
-          <Icon name="notifications" size={24} color={isDark ? '#ffffff' : '#111827'} />
+          <Icon name="notifications" size={24} color="#ffffff" />
         </TouchableOpacity>
       </View>
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+      <ScrollView className="flex-1 relative z-10" showsVerticalScrollIndicator={false}>
         <View className="w-full">
-          <Text className="text-[28px] font-bold leading-tight px-4 text-left pb-3 pt-5 text-neutral-900 dark:text-white">
+          <Text style={styles.greetingText}>
             Hello, Alex.{'\n'}How are you feeling today?
           </Text>
         </View>
@@ -90,13 +114,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 locations={[0, 1]}
                 style={StyleSheet.absoluteFill}
               />
-              <View className="flex-col gap-3 justify-between p-4 flex-1">
-                <View className="bg-primary/20 backdrop-blur-sm rounded-full w-12 h-12 items-center justify-center self-start">
+              <View style={styles.cardContent}>
+                <BlurView intensity={20} tint="light" style={styles.iconContainer}>
                   <Icon name="chat_bubble" size={24} color="#19b3e6" />
-                </View>
+                </BlurView>
                 <View>
-                  <Text className="text-white text-lg font-bold leading-tight w-full">Chat with Haven</Text>
-                  <Text className="text-white/70 text-sm mt-1">Text Therapy</Text>
+                  <Text style={styles.cardTitle}>Chat with Haven</Text>
+                  <Text style={styles.cardSubtitle}>Text Therapy</Text>
                 </View>
               </View>
             </ImageBackground>
@@ -120,13 +144,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 locations={[0, 1]}
                 style={StyleSheet.absoluteFill}
               />
-              <View className="flex-col gap-3 justify-between p-4 flex-1">
-                <View className="bg-primary/20 backdrop-blur-sm rounded-full w-12 h-12 items-center justify-center self-start">
+              <View style={styles.cardContent}>
+                <BlurView intensity={20} tint="light" style={styles.iconContainer}>
                   <Icon name="mic" size={24} color="#19b3e6" />
-                </View>
+                </BlurView>
                 <View>
-                  <Text className="text-white text-lg font-bold leading-tight w-full">Start Voice Session</Text>
-                  <Text className="text-white/70 text-sm mt-1">Voice Therapy</Text>
+                  <Text style={styles.cardTitle}>Start Voice Session</Text>
+                  <Text style={styles.cardSubtitle}>Voice Therapy</Text>
                 </View>
               </View>
             </ImageBackground>
@@ -136,110 +160,98 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         <View className="flex-col gap-3 px-4 pb-2">
           <TouchableOpacity
             onPress={onJournalPress}
-            style={[styles.actionButton, isDark && styles.actionButtonDark]}
+            style={styles.actionButtonDark}
             activeOpacity={0.98}
           >
-            <View className="w-12 h-12 rounded-xl bg-orange-50 dark:bg-orange-500/10 items-center justify-center shrink-0">
-              <Icon name="book_2" size={24} color="#f97316" />
+            <View style={styles.actionIconContainer}>
+              <View style={[styles.actionIcon, { backgroundColor: 'rgba(249, 115, 22, 0.1)' }]}>
+                <Icon name="book_2" size={24} color="#f97316" />
+              </View>
             </View>
-            <View className="flex-col items-start ml-4 flex-1">
-              <Text className="text-neutral-900 dark:text-white font-bold text-base">
-                Mood Journal
-              </Text>
-              <Text className="text-neutral-500 dark:text-neutral-400 text-sm font-medium">
-                Log your daily thoughts
-              </Text>
+            <View style={styles.actionTextContainer}>
+              <Text style={styles.actionTitle}>Mood Journal</Text>
+              <Text style={styles.actionSubtitle}>Log your daily thoughts</Text>
             </View>
-            <Icon name="chevron_right" size={24} color={isDark ? '#475569' : '#d1d5db'} />
+            <Icon name="chevron_right" size={24} color="#475569" />
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={onWellnessPress}
-            style={[styles.actionButton, isDark && styles.actionButtonDark]}
+            style={styles.actionButtonDark}
             activeOpacity={0.98}
           >
-            <View className="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 items-center justify-center shrink-0">
-              <Icon name="self_improvement" size={24} color="#10b981" />
+            <View style={styles.actionIconContainer}>
+              <View style={[styles.actionIcon, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
+                <Icon name="self_improvement" size={24} color="#10b981" />
+              </View>
             </View>
-            <View className="flex-col items-start ml-4 flex-1">
-              <Text className="text-neutral-900 dark:text-white font-bold text-base">
-                Wellness Exercises
-              </Text>
-              <Text className="text-neutral-500 dark:text-neutral-400 text-sm font-medium">
-                Body and mind activities
-              </Text>
+            <View style={styles.actionTextContainer}>
+              <Text style={styles.actionTitle}>Wellness Exercises</Text>
+              <Text style={styles.actionSubtitle}>Body and mind activities</Text>
             </View>
-            <Icon name="chevron_right" size={24} color={isDark ? '#475569' : '#d1d5db'} />
+            <Icon name="chevron_right" size={24} color="#475569" />
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={onProfilePress}
-            style={[styles.actionButton, isDark && styles.actionButtonDark]}
+            style={styles.actionButtonDark}
             activeOpacity={0.98}
           >
-            <View className="w-12 h-12 rounded-xl bg-violet-50 dark:bg-violet-500/10 items-center justify-center shrink-0">
-              <Icon name="person" size={24} color="#8b5cf6" />
+            <View style={styles.actionIconContainer}>
+              <View style={[styles.actionIcon, { backgroundColor: 'rgba(139, 92, 246, 0.1)' }]}>
+                <Icon name="person" size={24} color="#8b5cf6" />
+              </View>
             </View>
-            <View className="flex-col items-start ml-4 flex-1">
-              <Text className="text-neutral-900 dark:text-white font-bold text-base">
-                Your Profile
-              </Text>
-              <Text className="text-neutral-500 dark:text-neutral-400 text-sm font-medium">
-                Settings and preferences
-              </Text>
+            <View style={styles.actionTextContainer}>
+              <Text style={styles.actionTitle}>Your Profile</Text>
+              <Text style={styles.actionSubtitle}>Settings and preferences</Text>
             </View>
-            <Icon name="chevron_right" size={24} color={isDark ? '#475569' : '#d1d5db'} />
+            <Icon name="chevron_right" size={24} color="#475569" />
           </TouchableOpacity>
         </View>
 
         <View className="w-full">
-          <Text className="text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-6 text-neutral-900 dark:text-white">
-            Recommended for You
-          </Text>
+          <Text style={styles.recommendedTitle}>Recommended for You</Text>
         </View>
 
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          className="w-full pb-8"
+          style={styles.recommendationsScroll}
         >
-          <View className="flex-row items-stretch p-4 gap-4 pt-0">
+          <View style={styles.recommendationsContainer}>
             {recommendations.map((item) => (
               <TouchableOpacity
                 key={item.id}
                 onPress={() => onRecommendationPress?.(item.id, item.type)}
-                className="flex h-full flex-col gap-3 rounded-lg w-60 shrink-0"
+                style={styles.recommendationCard}
               >
-                <View className="w-full aspect-video rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-800 relative">
+                <View style={styles.recommendationImageContainer}>
                   {item.imageUri && (
                     <Image
                       source={{ uri: item.imageUri }}
-                      className="w-full h-full"
+                      style={styles.recommendationImage}
                       resizeMode="cover"
                     />
                   )}
-                  <View className="absolute inset-0 bg-black/30" />
+                  <View style={styles.recommendationOverlay} />
                   {(item.type === 'audio' || item.type === 'video') && (
-                    <View className="absolute inset-0 items-center justify-center">
-                      <View className="bg-white/20 backdrop-blur-md rounded-full w-10 h-10 items-center justify-center">
+                    <View style={styles.playButtonContainer}>
+                      <BlurView intensity={40} tint="light" style={styles.playButton}>
                         <Icon name="play_arrow" size={24} color="#fff" />
-                      </View>
+                      </BlurView>
                     </View>
                   )}
                 </View>
                 <View>
-                  <Text className="text-neutral-900 dark:text-white text-base font-medium leading-normal">
-                    {item.title}
-                  </Text>
-                  <View className="flex-row items-center gap-1 mt-1">
+                  <Text style={styles.recommendationTitle}>{item.title}</Text>
+                  <View style={styles.recommendationMeta}>
                     <Icon
                       name={item.type === 'audio' ? 'headphones' : item.type === 'video' ? 'videocam' : 'article'}
                       size={16}
                       color="#19b3e6"
                     />
-                    <Text className="text-neutral-500 dark:text-[#93bac8] text-sm font-normal leading-normal">
-                      {item.duration}
-                    </Text>
+                    <Text style={styles.recommendationDuration}>{item.duration}</Text>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -252,8 +264,40 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 };
 
 const styles = StyleSheet.create({
+  headerContainer: {
+    backgroundColor: 'transparent',
+  },
   headerTitle: {
     letterSpacing: -0.015 * 18, // tracking-[-0.015em] for text-lg (18px)
+    color: '#ffffff',
+  },
+  greetingText: {
+    fontSize: 28,
+    fontWeight: '700',
+    lineHeight: 36,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    paddingTop: 20,
+    textAlign: 'left',
+    color: '#ffffff',
+  },
+  backgroundBlob1: {
+    position: 'absolute',
+    top: '-10%',
+    left: '-5%',
+    width: 400,
+    height: 400,
+    borderRadius: 200,
+    opacity: 0.4,
+  },
+  backgroundBlob2: {
+    position: 'absolute',
+    bottom: '20%',
+    right: '-5%',
+    width: 350,
+    height: 350,
+    borderRadius: 175,
+    opacity: 0.4,
   },
   cardContainer: {
     flex: 1,
@@ -271,24 +315,153 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  actionButton: {
+  cardContent: {
+    flexDirection: 'column',
+    gap: 12,
+    justifyContent: 'space-between',
+    padding: 16,
+    flex: 1,
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(25, 179, 230, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'flex-start',
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    lineHeight: 24,
+    color: '#ffffff',
+    width: '100%',
+  },
+  cardSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginTop: 4,
+  },
+  playButtonContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  playButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionButtonDark: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
     borderRadius: 16,
-    backgroundColor: '#ffffff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  actionButtonDark: {
     backgroundColor: '#1a2c32',
-    shadowOpacity: 0,
-    elevation: 0,
+    borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  actionIconContainer: {
+    width: 48,
+    height: 48,
+  },
+  actionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionTextContainer: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    marginLeft: 16,
+    flex: 1,
+  },
+  actionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  actionSubtitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: 'rgba(148, 163, 184, 0.8)',
+    marginTop: 2,
+  },
+  recommendedTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    lineHeight: 24,
+    letterSpacing: -0.015 * 18,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    paddingTop: 24,
+    color: '#ffffff',
+  },
+  recommendationsScroll: {
+    width: '100%',
+    paddingBottom: 32,
+  },
+  recommendationsContainer: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    paddingHorizontal: 16,
+    gap: 16,
+    paddingTop: 0,
+  },
+  recommendationCard: {
+    flexDirection: 'column',
+    gap: 12,
+    borderRadius: 8,
+    width: 240, // w-60 = 15rem = 240px
+    flexShrink: 0,
+  },
+  recommendationImageContainer: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#1e293b',
+    position: 'relative',
+  },
+  recommendationImage: {
+    width: '100%',
+    height: '100%',
+  },
+  recommendationOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  recommendationTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    lineHeight: 22,
+    color: '#ffffff',
+  },
+  recommendationMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+  },
+  recommendationDuration: {
+    fontSize: 14,
+    fontWeight: '400',
+    lineHeight: 20,
+    color: '#93bac8',
   },
 });
