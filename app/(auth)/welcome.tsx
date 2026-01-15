@@ -1,8 +1,6 @@
 import React from 'react';
 import { View, Text, SafeAreaView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Icon } from '@/components/ui/Icon';
-import { WelcomeScreen } from '@/screens/WelcomeScreen';
 
 export default function WelcomePage() {
   const router = useRouter();
