@@ -28,6 +28,44 @@ export const MoodJournalScreen: React.FC<MoodJournalScreenProps> = ({
   const [intensity, setIntensity] = useState(7);
   const [journalText, setJournalText] = useState('');
 
+  // Get color based on intensity (cooler to hotter)
+  const getIntensityColor = (value: number): string => {
+    // Color stops from cool to hot:
+    // 1: Cool blue (#19b3e6)
+    // 3: Cyan (#34d399)
+    // 5: Yellow-green (#84cc16)
+    // 7: Yellow (#fbbf24)
+    // 9: Orange (#f97316)
+    // 10: Hot red (#ef4444)
+    const colorStops = [
+      '#19b3e6', // 1 - Cool blue
+      '#22d3ee', // 2 - Light cyan
+      '#34d399', // 3 - Teal
+      '#65a30d', // 4 - Green
+      '#84cc16', // 5 - Yellow-green
+      '#eab308', // 6 - Yellow
+      '#fbbf24', // 7 - Bright yellow
+      '#fb923c', // 8 - Light orange
+      '#f97316', // 9 - Orange
+      '#ef4444', // 10 - Hot red
+    ];
+    
+    // Clamp value between 1 and 10
+    const clamped = Math.max(1, Math.min(10, Math.round(value)));
+    return colorStops[clamped - 1];
+  };
+
+  // Convert hex to rgba with opacity
+  const hexToRgba = (hex: string, opacity: number): string => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  };
+
+  const intensityColor = getIntensityColor(intensity);
+  const intensityBadgeBg = hexToRgba(intensityColor, 0.1);
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header with Backdrop Blur */}
@@ -119,8 +157,10 @@ export const MoodJournalScreen: React.FC<MoodJournalScreenProps> = ({
         <View style={styles.intensityCard}>
           <View style={styles.intensityHeader}>
             <Text style={styles.intensityLabel}>Intensity</Text>
-            <View style={styles.intensityBadge}>
-              <Text style={styles.intensityValue}>{intensity}/10</Text>
+            <View style={[styles.intensityBadge, { backgroundColor: intensityBadgeBg }]}>
+              <Text style={[styles.intensityValue, { color: intensityColor }]}>
+                {intensity}/10
+              </Text>
             </View>
           </View>
           <View style={styles.sliderContainer}>
@@ -131,9 +171,9 @@ export const MoodJournalScreen: React.FC<MoodJournalScreenProps> = ({
               step={1}
               value={intensity}
               onValueChange={setIntensity}
-              minimumTrackTintColor="#19b3e6"
+              minimumTrackTintColor={intensityColor}
               maximumTrackTintColor="#e5e7eb"
-              thumbTintColor="#19b3e6"
+              thumbTintColor={intensityColor}
             />
           </View>
           <View style={styles.sliderLabels}>
@@ -341,7 +381,6 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
   },
   intensityBadge: {
-    backgroundColor: 'rgba(25, 179, 230, 0.1)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 6,
@@ -349,7 +388,6 @@ const styles = StyleSheet.create({
   intensityValue: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#19b3e6',
   },
   sliderContainer: {
     height: 24,
