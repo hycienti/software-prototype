@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
   },
   calendarCard: {
     marginBottom: 24,
-    borderRadius: 12,
+    borderRadius: 24,
     backgroundColor: '#1a2c32',
     padding: 20,
     shadowColor: '#000',
@@ -581,7 +581,7 @@ const styles = StyleSheet.create({
   },
   insightsCard: {
     marginBottom: 24,
-    borderRadius: 12,
+    borderRadius: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -685,7 +685,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
-    borderRadius: 12,
+    borderRadius: 24,
     backgroundColor: '#1a2c32',
     padding: 16,
     shadowColor: '#000',
