@@ -12,6 +12,7 @@ interface IconProps {
 const iconMap: Record<string, keyof typeof MaterialIcons.glyphMap> = {
   arrow_back: 'arrow-back',
   arrow_forward: 'arrow-forward',
+  chevron_right: 'chevron-right',
   arrow_upward: 'arrow-upward',
   chat_bubble: 'chat-bubble',
   mic: 'mic',
