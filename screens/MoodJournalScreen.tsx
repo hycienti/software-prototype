@@ -17,11 +17,13 @@ const moods = [
 interface MoodJournalScreenProps {
   onBack?: () => void;
   onSave?: () => void;
+  onHistory?: () => void;
 }
 
 export const MoodJournalScreen: React.FC<MoodJournalScreenProps> = ({
   onBack,
   onSave,
+  onHistory,
 }) => {
   const insets = useSafeAreaInsets();
   const [selectedMood, setSelectedMood] = useState('happy');
@@ -76,7 +78,7 @@ export const MoodJournalScreen: React.FC<MoodJournalScreenProps> = ({
             <Icon name="close" size={24} color="#6b7280" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Today, Oct 24</Text>
-          <TouchableOpacity style={styles.historyButton} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.historyButton} onPress={onHistory} activeOpacity={0.7}>
             <Text style={styles.historyText}>History</Text>
           </TouchableOpacity>
         </View>

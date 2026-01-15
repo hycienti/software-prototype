@@ -26,6 +26,7 @@ export default function RootLayout() {
           <Stack.Screen name="breathing" />
           <Stack.Screen name="journal" />
           <Stack.Screen name="gratitude" />
+          <Stack.Screen name="mood-history" />
         </Stack>
       </GluestackUIProvider>
     </SafeAreaProvider>

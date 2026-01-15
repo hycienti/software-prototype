@@ -15,10 +15,15 @@ export default function JournalPage() {
     router.back();
   };
 
+  const handleHistory = () => {
+    router.push('/mood-history');
+  };
+
   return (
     <MoodJournalScreen
       onBack={handleBack}
       onSave={handleSave}
+      onHistory={handleHistory}
     />
   );
 }
