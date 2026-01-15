@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { TherapistCard } from '@/components/therapist/TherapistCard';
 import { cn } from '@/utils/cn';
 
@@ -42,41 +42,150 @@ const therapists = [
 
 interface TherapistRecommendationsScreenProps {
   onTherapistPress?: (id: string) => void;
+  visible?: boolean;
+  onClose?: () => void;
 }
 
 export const TherapistRecommendationsScreen: React.FC<TherapistRecommendationsScreenProps> = ({
   onTherapistPress,
+  visible = true,
+  onClose,
 }) => {
   return (
-    <SafeAreaView className="flex-1 bg-background-light dark:bg-background-dark">
-      <View className="flex-1">
-        <View className="pt-4 pb-2 items-center">
-          <View className="h-1.5 w-12 rounded-full bg-gray-300 dark:bg-[#345965]" />
-        </View>
-        <ScrollView
-          className="flex-1 px-5 pb-8"
-          showsVerticalScrollIndicator={false}
-        >
-          <View className="mt-2 mb-6 items-center">
-            <Text className="text-gray-900 dark:text-white text-2xl font-bold leading-tight px-2 text-center">
-              Based on our talk, I think a specialist could help.
-            </Text>
-            <Text className="text-gray-500 dark:text-[#93bac8] text-sm mt-2 font-medium">
-              Here are 3 recommendations from Haven.
-            </Text>
-          </View>
-          <View className="flex-col gap-4">
-            {therapists.map((therapist) => (
-              <TherapistCard
-                key={therapist.id}
-                {...therapist}
-                onPress={() => onTherapistPress?.(therapist.id)}
-              />
-            ))}
-          </View>
-          <View className="h-8" />
-        </ScrollView>
+    <View style={styles.container}>
+      {/* Dark Gradient Background */}
+      <View style={StyleSheet.absoluteFill}>
+        <LinearGradient
+          colors={[
+            'rgba(30, 41, 59, 0.4)',
+            'rgba(15, 23, 42, 0.25)',
+            'rgba(17, 29, 33, 0.15)',
+            'rgba(17, 29, 33, 0.05)',
+            'transparent',
+          ]}
+          locations={[0, 0.2, 0.5, 0.8, 1]}
+          style={StyleSheet.absoluteFill}
+        />
+        <View 
+          style={[
+            styles.backgroundBlob1,
+            { backgroundColor: 'rgba(25, 179, 230, 0.08)' }
+          ]} 
+        />
+        <View 
+          style={[
+            styles.backgroundBlob2,
+            { backgroundColor: 'rgba(88, 28, 135, 0.12)' }
+          ]} 
+        />
       </View>
-    </SafeAreaView>
+
+      {/* Drag Handle */}
+      <View style={styles.dragHandleContainer}>
+        <View style={styles.dragHandle} />
+      </View>
+
+      {/* Scrollable Content */}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header Text */}
+        <View style={styles.headerText}>
+          <Text style={styles.title}>
+            Based on our talk, I think a specialist could help.
+          </Text>
+          <Text style={styles.subtitle}>
+            Here are 3 recommendations from Haven.
+          </Text>
+        </View>
+
+        {/* Cards List */}
+        <View style={styles.cardsContainer}>
+          {therapists.map((therapist) => (
+            <TherapistCard
+              key={therapist.id}
+              {...therapist}
+              onPress={() => onTherapistPress?.(therapist.id)}
+            />
+          ))}
+        </View>
+        <View style={styles.bottomSpacer} />
+      </ScrollView>
+    </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#111d21',
+    position: 'relative',
+  },
+  dragHandleContainer: {
+    width: '100%',
+    paddingTop: 16,
+    paddingBottom: 8,
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  dragHandle: {
+    height: 6,
+    width: 48,
+    borderRadius: 3,
+    backgroundColor: '#345965',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 32,
+  },
+  headerText: {
+    marginTop: 8,
+    marginBottom: 24,
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+    lineHeight: 32,
+    color: '#ffffff',
+    textAlign: 'center',
+    paddingHorizontal: 8,
+  },
+  subtitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#93bac8',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  cardsContainer: {
+    flexDirection: 'column',
+    gap: 16,
+  },
+  bottomSpacer: {
+    height: 32,
+  },
+  backgroundBlob1: {
+    position: 'absolute',
+    top: '-10%',
+    left: '-5%',
+    width: 400,
+    height: 400,
+    borderRadius: 200,
+    opacity: 0.4,
+  },
+  backgroundBlob2: {
+    position: 'absolute',
+    bottom: '20%',
+    right: '-5%',
+    width: 350,
+    height: 350,
+    borderRadius: 175,
+    opacity: 0.4,
+  },
+});
