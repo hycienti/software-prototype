@@ -360,13 +360,14 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: 9999,
     backgroundColor: 'rgba(25, 179, 230, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'flex-start',
     borderWidth: 1,
     borderColor: 'rgba(25, 179, 230, 0.3)',
+    overflow: 'hidden',
   },
   cardTitle: {
     fontSize: 18,
