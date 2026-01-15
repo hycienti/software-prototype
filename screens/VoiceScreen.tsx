@@ -228,9 +228,9 @@ export const VoiceScreen: React.FC<VoiceScreenProps> = ({
       </View>
 
       {/* Header Status */}
-      <View className="relative z-10 pt-12 pb-4 px-6 items-center">
-        <View className="flex-row items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/5">
-          <View className="relative h-2 w-2 items-center justify-center">
+      <View style={styles.headerContainer} className="relative z-10 pt-12 pb-4 px-6 items-center">
+        <BlurView intensity={20} tint="dark" style={styles.liveSessionBadge}>
+          <View style={styles.liveDotContainer}>
             <Animated.View 
               style={[
                 styles.pingDot,
@@ -245,13 +245,12 @@ export const VoiceScreen: React.FC<VoiceScreenProps> = ({
               ]} 
             />
           </View>
-          <Text className="text-xs font-medium tracking-wide text-gray-300 uppercase">
+          <Text style={styles.liveSessionText}>
             Live Session
           </Text>
-        </View>
+        </BlurView>
         <Animated.Text 
           style={[styles.listeningText, listeningTextStyle]}
-          className="mt-4 text-2xl font-light tracking-wide text-white/90"
         >
           I'm listening...
         </Animated.Text>
@@ -296,21 +295,23 @@ export const VoiceScreen: React.FC<VoiceScreenProps> = ({
       </View>
 
       {/* Bottom Controls */}
-      <View className="relative z-10 pb-10 px-6">
-        <View className="max-w-md mx-auto">
+      <View style={styles.bottomControlsContainer}>
+        <View style={styles.bottomControlsWrapper}>
           {/* Glass Control Bar */}
           <BlurView intensity={80} tint="dark" style={styles.glassPanel}>
             {/* Switch to Text */}
             <TouchableOpacity
               onPress={onKeyboardPress}
               style={styles.controlButton}
-              activeOpacity={0.7}
+              activeOpacity={0.8}
             >
-              <Icon name="keyboard" size={24} color="#d1d5db" />
+              <View style={styles.controlButtonInner}>
+                <Icon name="keyboard" size={24} color="#d1d5db" />
+              </View>
             </TouchableOpacity>
 
             {/* Visualizer Placeholder (Center) */}
-            <View style={styles.visualizerContainer} className="flex-1 h-12 flex-row items-center justify-center gap-1 mx-4 opacity-50">
+            <View style={styles.visualizerContainer}>
               <Animated.View style={[styles.visualizerBar, bar1Style]} />
               <Animated.View style={[styles.visualizerBar, bar2Style]} />
               <Animated.View style={[styles.visualizerBar, bar3Style]} />
@@ -322,13 +323,15 @@ export const VoiceScreen: React.FC<VoiceScreenProps> = ({
             <TouchableOpacity
               onPress={onBack}
               style={styles.endButton}
-              activeOpacity={0.7}
+              activeOpacity={0.8}
             >
-              <Icon name="close" size={24} color="#f87171" />
+              <View style={styles.endButtonInner}>
+                <Icon name="close" size={24} color="#f87171" />
+              </View>
             </TouchableOpacity>
           </BlurView>
           
-          <Text className="text-center text-white/20 text-[10px] mt-6 font-medium tracking-widest uppercase">
+          <Text style={styles.interfaceLabel}>
             Haven Voice Interface
           </Text>
         </View>
@@ -356,6 +359,29 @@ const styles = StyleSheet.create({
     borderRadius: 250,
     opacity: 0.5,
   },
+  headerContainer: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  liveSessionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 9999,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    overflow: 'hidden',
+  },
+  liveDotContainer: {
+    position: 'relative',
+    width: 8,
+    height: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   pingDot: {
     position: 'absolute',
     width: 8,
@@ -370,8 +396,20 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: '#19b3e6',
   },
+  liveSessionText: {
+    fontSize: 12,
+    fontWeight: '500',
+    letterSpacing: 0.5,
+    color: 'rgba(209, 213, 219, 1)',
+    textTransform: 'uppercase',
+  },
   listeningText: {
-    opacity: 0.9,
+    marginTop: 16,
+    fontSize: 24,
+    fontWeight: '300',
+    letterSpacing: 0.5,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
   },
   rippleContainer: {
     position: 'absolute',
@@ -407,6 +445,18 @@ const styles = StyleSheet.create({
     shadowRadius: 40,
     elevation: 10,
   },
+  bottomControlsContainer: {
+    position: 'relative',
+    zIndex: 10,
+    paddingBottom: 40,
+    paddingHorizontal: 24,
+    width: '100%',
+  },
+  bottomControlsWrapper: {
+    maxWidth: 448,
+    width: '100%',
+    alignSelf: 'center',
+  },
   glassPanel: {
     borderRadius: 9999,
     padding: 8,
@@ -421,6 +471,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 20,
     elevation: 20,
+    overflow: 'hidden',
   },
   controlButton: {
     height: 56,
@@ -429,7 +480,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 28,
   },
+  controlButtonInner: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 28,
+  },
   visualizerContainer: {
+    flex: 1,
+    height: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    marginHorizontal: 16,
+    opacity: 0.5,
     borderRadius: 9999,
   },
   visualizerBar: {
@@ -447,5 +513,21 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(239, 68, 68, 0.1)',
     borderWidth: 1,
     borderColor: 'rgba(239, 68, 68, 0.2)',
+  },
+  endButtonInner: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 28,
+  },
+  interfaceLabel: {
+    textAlign: 'center',
+    color: 'rgba(255, 255, 255, 0.2)',
+    fontSize: 10,
+    fontWeight: '500',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginTop: 24,
   },
 });
