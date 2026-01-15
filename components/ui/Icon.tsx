@@ -68,6 +68,13 @@ const iconMap: Record<string, keyof typeof MaterialIcons.glyphMap> = {
   trending_up: 'show-chart',
   edit_note: 'edit',
   security_update_good: 'update',
+  calendar_month: 'calendar-today',
+  more_horiz: 'more-horiz',
+  mindfulness: 'spa',
+  emoji_events: 'emoji-events',
+  nightlight: 'nightlight',
+  monitor_heart: 'favorite',
+  edit: 'edit',
 };
 
 export const Icon: React.FC<IconProps> = ({ name, size = 24, color = '#6b7280' }) => {

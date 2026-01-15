@@ -29,6 +29,7 @@ export default function RootLayout() {
           <Stack.Screen name="gratitude-history" />
           <Stack.Screen name="mood-history" />
           <Stack.Screen name="notifications" />
+          <Stack.Screen name="profile" />
         </Stack>
       </GluestackUIProvider>
     </SafeAreaProvider>

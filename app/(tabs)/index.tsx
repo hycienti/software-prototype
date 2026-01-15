@@ -23,8 +23,7 @@ export default function HomePage() {
   };
 
   const handleProfilePress = () => {
-    // TODO: Navigate to profile
-    console.log('Profile pressed');
+    router.push('/profile');
   };
 
   const handleNotificationsPress = () => {
