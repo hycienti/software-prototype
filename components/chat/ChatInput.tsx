@@ -57,7 +57,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             activeOpacity={0.8}
           >
             <View style={[styles.sendButtonInner, !message.trim() && styles.sendButtonDisabled]}>
-              <Icon name="arrow_upward" size={18} color={message.trim() ? "#111d21" : "#6b7280"} />
+              <Icon name="arrow_upward" size={20} color={message.trim() ? "#111d21" : "#6b7280"} />
             </View>
           </TouchableOpacity>
         </View>
@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.05)',
-    backgroundColor: 'rgba(17, 29, 33, 0.3)',
+    // backgroundColor: 'rgba(17, 29, 33, 0.3)',
   },
   inputContainer: {
     flexDirection: 'row',
@@ -103,8 +103,8 @@ const styles = StyleSheet.create({
   },
   inputWrapper: {
     flex: 1,
-    backgroundColor: 'rgba(26, 38, 42, 0.6)',
-    borderRadius: 16,
+    // backgroundColor: 'rgba(26, 38, 42, 0.6)',
+    borderRadius: 100,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    minHeight: 48,
+    minHeight: 55,
     maxHeight: 128,
     zIndex: 1,
   },
@@ -133,8 +133,8 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   sendButtonInner: {
-    width: 32,
-    height: 32,
+    width: 35,
+    height: 35,
     borderRadius: 16,
     backgroundColor: '#19b3e6',
     alignItems: 'center',
