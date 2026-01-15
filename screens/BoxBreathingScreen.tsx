@@ -130,6 +130,39 @@ export const BoxBreathingScreen: React.FC<{ onBack?: () => void }> = ({ onBack }
     transform: [{ scale: orbScale.value }],
   }));
 
+  // Active path glow styles - only show the current side
+  const activePathTopStyle = useAnimatedStyle(() => {
+    const side = Math.floor(dotProgress.value);
+    const isActive = side === 0;
+    return {
+      opacity: isActive ? 1 : 0,
+    };
+  });
+
+  const activePathRightStyle = useAnimatedStyle(() => {
+    const side = Math.floor(dotProgress.value);
+    const isActive = side === 1;
+    return {
+      opacity: isActive ? pathProgress.value : 0,
+    };
+  });
+
+  const activePathBottomStyle = useAnimatedStyle(() => {
+    const side = Math.floor(dotProgress.value);
+    const isActive = side === 2;
+    return {
+      opacity: isActive ? 1 : 0,
+    };
+  });
+
+  const activePathLeftStyle = useAnimatedStyle(() => {
+    const side = Math.floor(dotProgress.value);
+    const isActive = side === 3;
+    return {
+      opacity: isActive ? pathProgress.value : 0,
+    };
+  });
+
   const dotStyle = useAnimatedStyle(() => {
     const side = Math.floor(dotProgress.value);
     const progress = dotProgress.value - side;
@@ -185,12 +218,29 @@ export const BoxBreathingScreen: React.FC<{ onBack?: () => void }> = ({ onBack }
       {/* Main */}
       <View style={styles.main}>
         <View style={[styles.box, { width: BOX_SIZE, height: BOX_SIZE }]}>
+          {/* Box Border with Glow */}
           <View style={styles.boxBorder} />
 
+          {/* Active Path Indicators - Glowing borders on current side */}
+          <Animated.View style={[styles.activePathContainer, activePathTopStyle]}>
+            <View style={styles.activePathTop} />
+          </Animated.View>
+          <Animated.View style={[styles.activePathContainer, activePathRightStyle]}>
+            <View style={styles.activePathRight} />
+          </Animated.View>
+          <Animated.View style={[styles.activePathContainer, activePathBottomStyle]}>
+            <View style={styles.activePathBottom} />
+          </Animated.View>
+          <Animated.View style={[styles.activePathContainer, activePathLeftStyle]}>
+            <View style={styles.activePathLeft} />
+          </Animated.View>
+
+          {/* Traveler Dot */}
           <Animated.View style={[styles.travelerDot, dotStyle]}>
             <View style={styles.dotGlow} />
           </Animated.View>
 
+          {/* Breathing Orb - with overflow hidden to prevent scaling out */}
           <View style={styles.orbWrapper}>
             <Animated.View style={[styles.orb, orbStyle]}>
               <LinearGradient
@@ -209,6 +259,7 @@ export const BoxBreathingScreen: React.FC<{ onBack?: () => void }> = ({ onBack }
             </Animated.View>
           </View>
 
+          {/* Labels */}
           <Text style={[styles.label, styles.labelTop]}>INHALE</Text>
           <Text style={[styles.label, styles.labelRight]}>HOLD</Text>
           <Text style={[styles.label, styles.labelBottom]}>EXHALE</Text>
@@ -292,12 +343,82 @@ const styles = StyleSheet.create({
 
   main: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
-  box: { alignItems: 'center', justifyContent: 'center' },
+  box: { alignItems: 'center', justifyContent: 'center', position: 'relative' },
   boxBorder: {
     ...StyleSheet.absoluteFillObject,
     borderRadius: BOX_RADIUS,
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.05)',
+    shadowColor: '#19b3e6',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.15,
+    shadowRadius: 30,
+    elevation: 10,
+  },
+  activePathContainer: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: BOX_RADIUS,
+    overflow: 'hidden',
+  },
+  activePathTop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 2,
+    borderTopLeftRadius: BOX_RADIUS,
+    borderTopRightRadius: BOX_RADIUS,
+    backgroundColor: '#19b3e6',
+    shadowColor: '#19b3e6',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.8,
+    shadowRadius: 25,
+    elevation: 15,
+  },
+  activePathRight: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: 2,
+    borderTopRightRadius: BOX_RADIUS,
+    borderBottomRightRadius: BOX_RADIUS,
+    backgroundColor: '#19b3e6',
+    shadowColor: '#19b3e6',
+    shadowOffset: { width: -4, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 25,
+    elevation: 15,
+  },
+  activePathBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 2,
+    borderBottomLeftRadius: BOX_RADIUS,
+    borderBottomRightRadius: BOX_RADIUS,
+    backgroundColor: '#19b3e6',
+    shadowColor: '#19b3e6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.8,
+    shadowRadius: 25,
+    elevation: 15,
+  },
+  activePathLeft: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+    width: 2,
+    borderTopLeftRadius: BOX_RADIUS,
+    borderBottomLeftRadius: BOX_RADIUS,
+    backgroundColor: '#19b3e6',
+    shadowColor: '#19b3e6',
+    shadowOffset: { width: 4, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 25,
+    elevation: 15,
   },
 
   travelerDot: {
@@ -322,6 +443,8 @@ const styles = StyleSheet.create({
     padding: 32,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+    borderRadius: BOX_RADIUS,
   },
   orb: {
     width: '100%',
