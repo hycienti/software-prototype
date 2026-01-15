@@ -27,6 +27,10 @@ export default function HomePage() {
     console.log('Profile pressed');
   };
 
+  const handleNotificationsPress = () => {
+    router.push('/notifications');
+  };
+
   const handleRecommendationPress = (id: string, type: string) => {
     if (type === 'video' || type === 'audio') {
       router.push('/breathing');
@@ -45,6 +49,7 @@ export default function HomePage() {
       onJournalPress={handleJournalPress}
       onWellnessPress={handleWellnessPress}
       onProfilePress={handleProfilePress}
+      onNotificationsPress={handleNotificationsPress}
       onRecommendationPress={handleRecommendationPress}
     />
   );

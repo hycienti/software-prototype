@@ -44,6 +44,7 @@ interface HomeScreenProps {
   onJournalPress?: () => void;
   onWellnessPress?: () => void;
   onProfilePress?: () => void;
+  onNotificationsPress?: () => void;
   onRecommendationPress?: (id: string, type: string) => void;
 }
 
@@ -53,6 +54,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onJournalPress,
   onWellnessPress,
   onProfilePress,
+  onNotificationsPress,
   onRecommendationPress,
 }) => {
   return (
@@ -80,7 +82,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <Icon name="menu" size={30} color="#ffffff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Haven</Text>
-        <TouchableOpacity style={styles.headerButton} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={onNotificationsPress}
+          activeOpacity={0.7}
+        >
           <Icon name="notifications" size={24} color="#ffffff" />
         </TouchableOpacity>
       </View>
