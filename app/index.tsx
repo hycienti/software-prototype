@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { Redirect } from 'expo-router';
-import { View } from 'react-native';
 
 // For now, redirect to welcome screen
 // In production, check auth state here

@@ -1,6 +1,7 @@
 {
-  "name": "Haven",
+  "name": "haven",
   "version": "1.0.0",
+  "main": "expo-router/entry",
   "scripts": {
     "android": "expo start --android",
     "ios": "expo start --ios",
@@ -29,6 +30,7 @@
     "react-native": "0.81.5",
     "react-native-reanimated": "~4.1.6",
     "react-native-safe-area-context": "~5.6.2",
+    "react-native-screens": "~4.16.0",
     "react-native-svg": "^15.12.1",
     "react-native-worklets": "0.5.1",
     "react-stately": "^3.43.0",
@@ -47,6 +49,5 @@
     "tailwindcss": "^3.4.19",
     "typescript": "~5.9.2"
   },
-  "main": "node_modules/expo/AppEntry.js",
   "private": true
 }
