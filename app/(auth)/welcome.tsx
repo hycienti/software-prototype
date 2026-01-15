@@ -122,38 +122,50 @@ export default function WelcomePage() {
         </View>
 
         {/* Bottom Sheet */}
-        <BlurView intensity={80} tint="light" style={styles.bottomSheet}>
-          <View style={styles.dragHandle} />
+        <View style={styles.bottomSheet}>
+          <BlurView intensity={100} tint="light" style={StyleSheet.absoluteFill} />
+          <LinearGradient
+            colors={[
+              'rgba(255, 255, 255, 0.95)',
+              'rgba(255, 255, 255, 0.90)',
+              'rgba(249, 250, 251, 0.85)',
+            ]}
+            locations={[0, 0.5, 1]}
+            style={StyleSheet.absoluteFill}
+          />
+          <View style={styles.bottomSheetContent}>
+            <View style={styles.dragHandle} />
 
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              onPress={handleAppleLogin}
-              style={[styles.appleButton, { marginBottom: 16 }]}
-              activeOpacity={0.8}>
-              <View style={{ marginRight: 12 }}>
-                <AppleIcon size={24} color="#0f172a" />
-              </View>
-              <Text style={styles.appleButtonText}>Continue with Apple</Text>
-            </TouchableOpacity>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                onPress={handleAppleLogin}
+                style={[styles.appleButton, { marginBottom: 16 }]}
+                activeOpacity={0.98}>
+                <View style={{ marginRight: 12 }}>
+                  <AppleIcon size={24} color="#0f172a" />
+                </View>
+                <Text style={styles.appleButtonText}>Continue with Apple</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={handleGoogleLogin}
-              style={styles.googleButton}
-              activeOpacity={0.8}>
-              <View style={{ marginRight: 12 }}>
-                <GoogleIcon size={24} />
-              </View>
-              <Text style={styles.googleButtonText}>Continue with Google</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleGoogleLogin}
+                style={styles.googleButton}
+                activeOpacity={0.98}>
+                <View style={{ marginRight: 12 }}>
+                  <GoogleIcon size={24} />
+                </View>
+                <Text style={styles.googleButtonText}>Continue with Google</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.termsText}>
+              By continuing, you agree to our <Text style={styles.linkText}>Terms</Text> &{' '}
+              <Text style={styles.linkText}>Privacy Policy</Text>.
+            </Text>
+
+            <View style={[styles.bottomSpacer, { height: Math.max(16, insets.bottom) }]} />
           </View>
-
-          <Text style={styles.termsText}>
-            By continuing, you agree to our <Text style={styles.linkText}>Terms</Text> &{' '}
-            <Text style={styles.linkText}>Privacy Policy</Text>.
-          </Text>
-
-          <View style={[styles.bottomSpacer, { height: Math.max(16, insets.bottom) }]} />
-        </BlurView>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -266,10 +278,8 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '35%',
     zIndex: 20,
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.5)',
     shadowColor: '#000',
@@ -277,16 +287,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 40,
     elevation: 20,
+    overflow: 'hidden',
+  },
+  bottomSheetContent: {
+    flex: 1,
+    alignItems: 'center',
     paddingHorizontal: 24,
     paddingTop: 32,
     paddingBottom: 0,
-    overflow: 'hidden',
   },
   dragHandle: {
     width: 48,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(148, 163, 184, 0.8)',
+    backgroundColor: 'rgba(203, 213, 225, 0.8)',
     marginBottom: 32,
   },
   buttonContainer: {
@@ -305,9 +319,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
-    elevation: 2,
+    elevation: 1,
     borderWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.8)',
+    borderColor: 'rgba(226, 232, 240, 0.8)',
   },
   appleButtonText: {
     fontSize: 17,
@@ -348,6 +362,7 @@ const styles = StyleSheet.create({
   linkText: {
     textDecorationLine: 'underline',
     textDecorationColor: '#94a3b8',
+    color: '#64748b',
   },
   bottomSpacer: {
     height: 16,
