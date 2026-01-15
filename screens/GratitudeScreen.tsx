@@ -5,7 +5,15 @@ import { TextArea } from '@/components/ui/TextArea';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/utils/cn';
 
-export const GratitudeScreen: React.FC = () => {
+interface GratitudeScreenProps {
+  onBack?: () => void;
+  onSave?: () => void;
+}
+
+export const GratitudeScreen: React.FC<GratitudeScreenProps> = ({
+  onBack,
+  onSave,
+}) => {
   const [gratitudes, setGratitudes] = useState(['', '', '']);
   const [streak, setStreak] = useState(12);
 
@@ -23,7 +31,10 @@ export const GratitudeScreen: React.FC = () => {
       </View>
 
       <View className="relative z-10 flex-row items-center justify-between p-4 pb-2 sticky top-0 bg-background-light/80 dark:bg-background-dark/80">
-        <TouchableOpacity className="w-10 h-10 items-center justify-center rounded-full active:bg-black/5 dark:active:bg-white/10">
+        <TouchableOpacity
+          onPress={onBack}
+          className="w-10 h-10 items-center justify-center rounded-full active:bg-black/5 dark:active:bg-white/10"
+        >
           <Icon name="arrow_back" size={24} color="#64748b" />
         </TouchableOpacity>
         <Text className="text-lg font-bold flex-1 text-center pr-2">Gratitude Practice</Text>
@@ -98,10 +109,13 @@ export const GratitudeScreen: React.FC = () => {
       </ScrollView>
 
       <View className="absolute bottom-0 left-0 right-0 w-full p-4 bg-background-light dark:bg-background-dark border-t border-gray-200 dark:border-gray-800 pt-10">
-        <Button className="w-full" onPress={() => {}}>
+        <TouchableOpacity
+          onPress={onSave}
+          className="w-full bg-primary active:bg-primary/90 py-4 px-6 rounded-xl shadow-lg shadow-primary/25 flex-row items-center justify-center gap-2"
+        >
           <Icon name="check_circle" size={20} color="#fff" />
           <Text className="text-white font-bold">Save Entry</Text>
-        </Button>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );

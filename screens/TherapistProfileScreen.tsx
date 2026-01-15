@@ -5,11 +5,26 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { cn } from '@/utils/cn';
 
-export const TherapistProfileScreen: React.FC = () => {
+interface TherapistProfileScreenProps {
+  therapistId?: string;
+  onBack?: () => void;
+  onBookConsultation?: () => void;
+  onMessage?: () => void;
+}
+
+export const TherapistProfileScreen: React.FC<TherapistProfileScreenProps> = ({
+  therapistId,
+  onBack,
+  onBookConsultation,
+  onMessage,
+}) => {
   return (
     <SafeAreaView className="flex-1 bg-background-light dark:bg-background-dark">
       <View className="sticky top-0 z-50 flex-row items-center justify-between p-4 bg-background-light/90 dark:bg-background-dark/90 border-b border-gray-200/50 dark:border-gray-800/50">
-        <TouchableOpacity className="p-2 rounded-full active:bg-gray-200 dark:active:bg-gray-800">
+        <TouchableOpacity
+          onPress={onBack}
+          className="p-2 rounded-full active:bg-gray-200 dark:active:bg-gray-800"
+        >
           <Icon name="arrow_back" size={24} color="#111827" />
         </TouchableOpacity>
         <Text className="text-lg font-bold">Therapist Profile</Text>
@@ -166,10 +181,10 @@ export const TherapistProfileScreen: React.FC = () => {
 
       <View className="absolute bottom-0 left-0 right-0 p-4 bg-background-light/80 dark:bg-background-dark/80 border-t border-gray-200 dark:border-gray-800">
         <View className="flex-row gap-3">
-          <Button variant="outline" className="flex-1" onPress={() => {}}>
+          <Button variant="outline" className="flex-1" onPress={onMessage}>
             Message
           </Button>
-          <Button className="flex-[2]" onPress={() => {}}>
+          <Button className="flex-[2]" onPress={onBookConsultation}>
             Book Consultation
           </Button>
         </View>

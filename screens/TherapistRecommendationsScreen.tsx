@@ -39,7 +39,13 @@ const therapists = [
   },
 ];
 
-export const TherapistRecommendationsScreen: React.FC = () => {
+interface TherapistRecommendationsScreenProps {
+  onTherapistPress?: (id: string) => void;
+}
+
+export const TherapistRecommendationsScreen: React.FC<TherapistRecommendationsScreenProps> = ({
+  onTherapistPress,
+}) => {
   return (
     <SafeAreaView className="flex-1 bg-background-light dark:bg-background-dark">
       <View className="flex-1">
@@ -63,7 +69,7 @@ export const TherapistRecommendationsScreen: React.FC = () => {
               <TherapistCard
                 key={therapist.id}
                 {...therapist}
-                onPress={() => {}}
+                onPress={() => onTherapistPress?.(therapist.id)}
               />
             ))}
           </View>

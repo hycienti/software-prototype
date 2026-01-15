@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, SafeAreaView, TouchableOpacity } from 'react-native';
+import { Slider } from '@react-native-community/slider';
 import { Icon } from '@/components/ui/Icon';
 import { TextArea } from '@/components/ui/TextArea';
 import { Button } from '@/components/ui/Button';
@@ -14,7 +15,15 @@ const moods = [
   { id: 'angry', label: 'Angry', icon: 'local_fire_department' },
 ];
 
-export const MoodJournalScreen: React.FC = () => {
+interface MoodJournalScreenProps {
+  onBack?: () => void;
+  onSave?: () => void;
+}
+
+export const MoodJournalScreen: React.FC<MoodJournalScreenProps> = ({
+  onBack,
+  onSave,
+}) => {
   const [selectedMood, setSelectedMood] = useState('happy');
   const [intensity, setIntensity] = useState(7);
   const [journalText, setJournalText] = useState('');
@@ -22,7 +31,10 @@ export const MoodJournalScreen: React.FC = () => {
   return (
     <SafeAreaView className="flex-1 bg-background-light dark:bg-background-dark">
       <View className="sticky top-0 z-10 flex-row items-center justify-between bg-background-light/80 dark:bg-background-dark/80 px-4 py-3">
-        <TouchableOpacity className="w-10 h-10 items-center justify-center rounded-full active:bg-gray-100 dark:active:bg-gray-800">
+        <TouchableOpacity
+          onPress={onBack}
+          className="w-10 h-10 items-center justify-center rounded-full active:bg-gray-100 dark:active:bg-gray-800"
+        >
           <Icon name="close" size={24} color="#6b7280" />
         </TouchableOpacity>
         <Text className="text-base font-bold">Today, Oct 24</Text>
@@ -106,7 +118,17 @@ export const MoodJournalScreen: React.FC = () => {
             </View>
           </View>
           <View className="h-6 items-center w-full">
-            <View className="h-1 w-full rounded-full bg-gray-200 dark:bg-gray-700" />
+            <Slider
+              style={{ width: '100%', height: 40 }}
+              minimumValue={1}
+              maximumValue={10}
+              step={1}
+              value={intensity}
+              onValueChange={setIntensity}
+              minimumTrackTintColor="#19b3e6"
+              maximumTrackTintColor="#e5e7eb"
+              thumbTintColor="#19b3e6"
+            />
           </View>
           <View className="mt-2 flex-row justify-between">
             <Text className="text-xs font-medium text-gray-400 dark:text-gray-500">Mild</Text>
@@ -116,7 +138,7 @@ export const MoodJournalScreen: React.FC = () => {
       </ScrollView>
 
       <View className="absolute bottom-0 left-0 right-0 mx-auto w-full bg-background-light dark:bg-background-dark border-t border-gray-200 dark:border-gray-800 pb-6 pt-4 px-4">
-        <Button className="w-full" onPress={() => {}}>
+        <Button className="w-full" onPress={onSave}>
           Save Entry
         </Button>
       </View>

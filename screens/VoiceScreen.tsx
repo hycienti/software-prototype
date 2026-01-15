@@ -10,7 +10,15 @@ import Animated, {
 import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/utils/cn';
 
-export const VoiceScreen: React.FC = () => {
+interface VoiceScreenProps {
+  onBack?: () => void;
+  onKeyboardPress?: () => void;
+}
+
+export const VoiceScreen: React.FC<VoiceScreenProps> = ({
+  onBack,
+  onKeyboardPress,
+}) => {
   const scale = useSharedValue(1);
   const rotation = useSharedValue(0);
 
@@ -80,7 +88,10 @@ export const VoiceScreen: React.FC = () => {
       <View className="relative z-10 pb-10 px-6">
         <View className="max-w-md mx-auto">
           <View className="bg-black/30 backdrop-blur-xl rounded-full p-2 flex-row items-center justify-between">
-            <TouchableOpacity className="h-14 w-14 items-center justify-center rounded-full active:bg-white/10">
+            <TouchableOpacity
+              onPress={onKeyboardPress}
+              className="h-14 w-14 items-center justify-center rounded-full active:bg-white/10"
+            >
               <Icon name="keyboard" size={24} color="#d1d5db" />
             </TouchableOpacity>
             <View className="flex-1 h-12 flex-row items-center justify-center gap-1 mx-4 opacity-50">
@@ -92,7 +103,10 @@ export const VoiceScreen: React.FC = () => {
                 />
               ))}
             </View>
-            <TouchableOpacity className="h-14 w-14 items-center justify-center rounded-full bg-red-500/10 border border-red-500/20 active:bg-red-500/20">
+            <TouchableOpacity
+              onPress={onBack}
+              className="h-14 w-14 items-center justify-center rounded-full bg-red-500/10 border border-red-500/20 active:bg-red-500/20"
+            >
               <Icon name="close" size={24} color="#f87171" />
             </TouchableOpacity>
           </View>

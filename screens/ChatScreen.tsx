@@ -13,7 +13,17 @@ interface Message {
   timestamp: string;
 }
 
-export const ChatScreen: React.FC = () => {
+interface ChatScreenProps {
+  onBack?: () => void;
+  onTalkToHuman?: () => void;
+  onVoicePress?: () => void;
+}
+
+export const ChatScreen: React.FC<ChatScreenProps> = ({
+  onBack,
+  onTalkToHuman,
+  onVoicePress,
+}) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -68,8 +78,8 @@ export const ChatScreen: React.FC = () => {
       <ChatHeader
         name="Haven"
         status="Online"
-        onBack={() => {}}
-        onTalkToHuman={() => {}}
+        onBack={onBack}
+        onTalkToHuman={onTalkToHuman}
       />
       <ScrollView
         className="flex-1"
@@ -97,7 +107,7 @@ export const ChatScreen: React.FC = () => {
           <View className="h-2" />
         </View>
       </ScrollView>
-      <ChatInput onSend={handleSend} onVoicePress={() => {}} />
+      <ChatInput onSend={handleSend} onVoicePress={onVoicePress} />
     </SafeAreaView>
   );
 };

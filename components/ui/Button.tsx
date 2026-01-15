@@ -50,20 +50,24 @@ export const Button: React.FC<ButtonProps> = ({
       {loading ? (
         <ActivityIndicator color={variant === 'primary' ? '#fff' : '#19b3e6'} />
       ) : (
-        <Text
-          className={cn(
-            'font-semibold',
-            size === 'sm' && 'text-sm',
-            size === 'md' && 'text-base',
-            size === 'lg' && 'text-lg',
-            variant === 'primary' && 'text-white',
-            variant === 'secondary' && 'text-gray-900 dark:text-white',
-            variant === 'outline' && 'text-[#19b3e6]',
-            variant === 'ghost' && 'text-gray-900 dark:text-white'
-          )}
-        >
-          {children}
-        </Text>
+        typeof children === 'string' ? (
+          <Text
+            className={cn(
+              'font-semibold',
+              size === 'sm' && 'text-sm',
+              size === 'md' && 'text-base',
+              size === 'lg' && 'text-lg',
+              variant === 'primary' && 'text-white',
+              variant === 'secondary' && 'text-gray-900 dark:text-white',
+              variant === 'outline' && 'text-[#19b3e6]',
+              variant === 'ghost' && 'text-gray-900 dark:text-white'
+            )}
+          >
+            {children}
+          </Text>
+        ) : (
+          children
+        )
       )}
     </TouchableOpacity>
   );

@@ -34,5 +34,7 @@
         "backgroundColor": "#ffffff"
       }
     }
-  }
+  },
+  "main": "expo-router/entry",
+  "scheme": "haven"
 }

@@ -26,7 +26,23 @@ const recommendations = [
   },
 ];
 
-export const HomeScreen: React.FC = () => {
+interface HomeScreenProps {
+  onChatPress?: () => void;
+  onVoicePress?: () => void;
+  onJournalPress?: () => void;
+  onWellnessPress?: () => void;
+  onProfilePress?: () => void;
+  onRecommendationPress?: (id: string, type: string) => void;
+}
+
+export const HomeScreen: React.FC<HomeScreenProps> = ({
+  onChatPress,
+  onVoicePress,
+  onJournalPress,
+  onWellnessPress,
+  onProfilePress,
+  onRecommendationPress,
+}) => {
   return (
     <SafeAreaView className="flex-1 bg-background-light dark:bg-background-dark">
       <View className="flex-row items-center bg-background-light dark:bg-background-dark p-4 pb-2 justify-between">
@@ -46,9 +62,10 @@ export const HomeScreen: React.FC = () => {
           </Text>
         </View>
 
-        <View className="grid grid-cols-2 gap-3 p-4">
+        <View className="flex-row gap-3 p-4">
           <TouchableOpacity
-            className="relative overflow-hidden flex-col gap-3 rounded-xl justify-between p-4 aspect-[4/5] shadow-sm active:scale-[0.98]"
+            onPress={onChatPress}
+            className="relative overflow-hidden flex-col gap-3 rounded-xl justify-between p-4 flex-1 aspect-[4/5] shadow-sm active:scale-[0.98]"
             style={{
               backgroundColor: 'rgba(25, 179, 230, 0.1)',
             }}
@@ -63,7 +80,8 @@ export const HomeScreen: React.FC = () => {
           </TouchableOpacity>
 
           <TouchableOpacity
-            className="relative overflow-hidden flex-col gap-3 rounded-xl justify-between p-4 aspect-[4/5] shadow-sm active:scale-[0.98]"
+            onPress={onVoicePress}
+            className="relative overflow-hidden flex-col gap-3 rounded-xl justify-between p-4 flex-1 aspect-[4/5] shadow-sm active:scale-[0.98]"
             style={{
               backgroundColor: 'rgba(25, 179, 230, 0.1)',
             }}
@@ -79,7 +97,10 @@ export const HomeScreen: React.FC = () => {
         </View>
 
         <View className="flex-col gap-3 px-4 pb-2">
-          <TouchableOpacity className="flex-row items-center p-4 rounded-2xl bg-white dark:bg-[#1a2c32] shadow-sm border border-transparent dark:border-white/5 active:scale-[0.98]">
+          <TouchableOpacity
+            onPress={onJournalPress}
+            className="flex-row items-center p-4 rounded-2xl bg-white dark:bg-[#1a2c32] shadow-sm border border-transparent dark:border-white/5 active:scale-[0.98]"
+          >
             <View className="w-12 h-12 rounded-xl bg-orange-50 dark:bg-orange-500/10 items-center justify-center shrink-0">
               <Icon name="book_2" size={24} color="#f97316" />
             </View>
@@ -94,7 +115,10 @@ export const HomeScreen: React.FC = () => {
             <Icon name="arrow_forward" size={24} color="#d1d5db" />
           </TouchableOpacity>
 
-          <TouchableOpacity className="flex-row items-center p-4 rounded-2xl bg-white dark:bg-[#1a2c32] shadow-sm border border-transparent dark:border-white/5 active:scale-[0.98]">
+          <TouchableOpacity
+            onPress={onWellnessPress}
+            className="flex-row items-center p-4 rounded-2xl bg-white dark:bg-[#1a2c32] shadow-sm border border-transparent dark:border-white/5 active:scale-[0.98]"
+          >
             <View className="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 items-center justify-center shrink-0">
               <Icon name="self_improvement" size={24} color="#10b981" />
             </View>
@@ -109,7 +133,10 @@ export const HomeScreen: React.FC = () => {
             <Icon name="arrow_forward" size={24} color="#d1d5db" />
           </TouchableOpacity>
 
-          <TouchableOpacity className="flex-row items-center p-4 rounded-2xl bg-white dark:bg-[#1a2c32] shadow-sm border border-transparent dark:border-white/5 active:scale-[0.98]">
+          <TouchableOpacity
+            onPress={onProfilePress}
+            className="flex-row items-center p-4 rounded-2xl bg-white dark:bg-[#1a2c32] shadow-sm border border-transparent dark:border-white/5 active:scale-[0.98]"
+          >
             <View className="w-12 h-12 rounded-xl bg-violet-50 dark:bg-violet-500/10 items-center justify-center shrink-0">
               <Icon name="person" size={24} color="#8b5cf6" />
             </View>
@@ -140,6 +167,7 @@ export const HomeScreen: React.FC = () => {
             {recommendations.map((item) => (
               <TouchableOpacity
                 key={item.id}
+                onPress={() => onRecommendationPress?.(item.id, item.type)}
                 className="flex-col gap-3 rounded-lg w-60 shrink-0"
               >
                 <View className="w-full aspect-video rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-800 relative">

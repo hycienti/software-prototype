@@ -5,7 +5,17 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { cn } from '@/utils/cn';
 
-export const PaymentScreen: React.FC = () => {
+interface PaymentScreenProps {
+  therapistId?: string;
+  onBack?: () => void;
+  onConfirmPayment?: () => void;
+}
+
+export const PaymentScreen: React.FC<PaymentScreenProps> = ({
+  therapistId,
+  onBack,
+  onConfirmPayment,
+}) => {
   const [selectedCrypto, setSelectedCrypto] = useState('USDC');
 
   const cryptoOptions = [
@@ -150,7 +160,7 @@ export const PaymentScreen: React.FC = () => {
       <View className="absolute bottom-0 left-0 right-0 p-5 bg-background-light/80 dark:bg-background-dark/80 border-t border-gray-200 dark:border-gray-800">
         <TouchableOpacity
           className="w-full bg-primary active:bg-primary/90 h-14 rounded-xl shadow-lg shadow-primary/25 flex-row items-center justify-center gap-2"
-          onPress={() => {}}
+          onPress={onConfirmPayment}
         >
           <Text className="text-white font-semibold text-lg">Confirm Payment</Text>
           <Icon name="arrow_forward" size={20} color="#fff" />

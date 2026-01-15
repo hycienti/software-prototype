@@ -9,7 +9,13 @@ import Animated, {
 import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/utils/cn';
 
-export const BoxBreathingScreen: React.FC = () => {
+interface BoxBreathingScreenProps {
+  onBack?: () => void;
+}
+
+export const BoxBreathingScreen: React.FC<BoxBreathingScreenProps> = ({
+  onBack,
+}) => {
   const [isPaused, setIsPaused] = useState(false);
   const [currentPhase, setCurrentPhase] = useState<'inhale' | 'hold' | 'exhale' | 'hold2'>('inhale');
   const [count, setCount] = useState(4);
@@ -40,7 +46,10 @@ export const BoxBreathingScreen: React.FC = () => {
       <View className="absolute bottom-0 left-0 right-0 h-1/4 bg-background-dark" />
 
       <View className="flex-row items-center p-6 z-20">
-        <TouchableOpacity className="p-2 rounded-full active:bg-white/5">
+        <TouchableOpacity
+          onPress={onBack}
+          className="p-2 rounded-full active:bg-white/5"
+        >
           <Icon name="close" size={28} color="rgba(255,255,255,0.8)" />
         </TouchableOpacity>
         <Text className="text-white text-base font-semibold tracking-wide flex-1 text-center opacity-80">
