@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { ChatHeader } from '@/components/chat/ChatHeader';
 import { ChatInput } from '@/components/chat/ChatInput';
 import { ChatBubble } from '@/components/chat/ChatBubble';
@@ -67,15 +68,38 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   };
 
   const formatDate = () => {
-    return new Date().toLocaleDateString('en-US', {
-      weekday: 'long',
-      hour: 'numeric',
-      minute: '2-digit',
-    });
+    return 'Today, 10:42 AM';
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background-light dark:bg-background-dark">
+    <SafeAreaView className="flex-1 bg-background-dark">
+      {/* Dark Gradient Background */}
+      <View style={StyleSheet.absoluteFill} className="bg-background-dark">
+        <LinearGradient
+          colors={[
+            'rgba(30, 41, 59, 0.4)',
+            'rgba(15, 23, 42, 0.25)',
+            'rgba(17, 29, 33, 0.15)',
+            'rgba(17, 29, 33, 0.05)',
+            'transparent',
+          ]}
+          locations={[0, 0.2, 0.5, 0.8, 1]}
+          style={StyleSheet.absoluteFill}
+        />
+        <View 
+          style={[
+            styles.backgroundBlob1,
+            { backgroundColor: 'rgba(25, 179, 230, 0.08)' }
+          ]} 
+        />
+        <View 
+          style={[
+            styles.backgroundBlob2,
+            { backgroundColor: 'rgba(88, 28, 135, 0.12)' }
+          ]} 
+        />
+      </View>
+
       <ChatHeader
         name="Haven"
         status="Online"
@@ -83,16 +107,14 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         onTalkToHuman={onTalkToHuman}
       />
       <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ padding: 16, paddingBottom: 16 }}
+        className="flex-1 relative z-10"
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View className="flex-col gap-6">
-          <View className="flex items-center py-2">
-            <View className="px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800">
-              <Text className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                {formatDate()}
-              </Text>
+        <View style={styles.messagesContainer}>
+          <View style={styles.dateSeparator}>
+            <View style={styles.dateBadge}>
+              <Text style={styles.dateText}>{formatDate()}</Text>
             </View>
           </View>
           {messages.map((message) => (
@@ -105,10 +127,57 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             />
           ))}
           {isTyping && <TypingIndicator />}
-          <View className="h-2" />
+          <View style={styles.spacer} />
         </View>
       </ScrollView>
       <ChatInput onSend={handleSend} onVoicePress={onVoicePress} />
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 16,
+  },
+  messagesContainer: {
+    flexDirection: 'column',
+    gap: 24,
+  },
+  dateSeparator: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  dateBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 9999,
+    backgroundColor: 'rgba(31, 41, 55, 0.8)',
+  },
+  dateText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: 'rgba(156, 163, 175, 0.8)',
+  },
+  spacer: {
+    height: 8,
+  },
+  backgroundBlob1: {
+    position: 'absolute',
+    top: '-10%',
+    left: '-5%',
+    width: 400,
+    height: 400,
+    borderRadius: 200,
+    opacity: 0.4,
+  },
+  backgroundBlob2: {
+    position: 'absolute',
+    bottom: '20%',
+    right: '-5%',
+    width: 350,
+    height: 350,
+    borderRadius: 175,
+    opacity: 0.4,
+  },
+});

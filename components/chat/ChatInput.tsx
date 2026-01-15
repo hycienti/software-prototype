@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity } from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/utils/cn';
 
@@ -24,37 +24,116 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   };
 
   return (
-    <View className="bg-background-light dark:bg-background-dark p-4 border-t border-gray-200 dark:border-gray-800">
-      <View className="flex-row items-end gap-2">
+    <View style={styles.container}>
+      <View style={styles.inputContainer}>
         {onVoicePress && (
           <TouchableOpacity
             onPress={onVoicePress}
-            className="w-12 h-12 rounded-full bg-gray-100 dark:bg-surface-dark items-center justify-center active:bg-gray-200 dark:active:bg-gray-800"
+            style={styles.voiceButton}
+            activeOpacity={0.7}
           >
             <Icon name="mic" size={24} color="#6b7280" />
           </TouchableOpacity>
         )}
-        <View className="flex-1 bg-white dark:bg-surface-dark rounded-2xl flex-row items-center border border-gray-200 dark:border-gray-700">
+        <View style={styles.inputWrapper}>
           <TextInput
             value={message}
             onChangeText={setMessage}
             placeholder={placeholder}
             placeholderTextColor="#9CA3AF"
             multiline
-            className="flex-1 bg-transparent text-slate-900 dark:text-white px-4 py-3.5 text-base min-h-[48px]"
-            style={{ maxHeight: 128 }}
+            style={styles.textInput}
           />
           <TouchableOpacity
             onPress={handleSend}
-            className="pr-2 pl-1 mr-1"
+            style={styles.sendButton}
             disabled={!message.trim()}
+            activeOpacity={0.8}
           >
-            <View className="w-8 h-8 rounded-full bg-primary items-center justify-center">
-              <Icon name="arrow_upward" size={18} color="#fff" />
+            <View style={[styles.sendButtonInner, !message.trim() && styles.sendButtonDisabled]}>
+              <Icon name="arrow_upward" size={18} color={message.trim() ? "#111d21" : "#6b7280"} />
             </View>
           </TouchableOpacity>
         </View>
       </View>
+      <View style={styles.safeArea} />
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: '#111d21',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(31, 41, 55, 0.8)',
+    position: 'relative',
+    zIndex: 20,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 8,
+    maxWidth: 448,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  voiceButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#1a262a',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  inputWrapper: {
+    flex: 1,
+    backgroundColor: '#1a262a',
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(31, 41, 55, 0.8)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  textInput: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    color: '#ffffff',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    minHeight: 48,
+    maxHeight: 128,
+  },
+  sendButton: {
+    paddingRight: 8,
+    paddingLeft: 4,
+    marginRight: 4,
+  },
+  sendButtonInner: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#19b3e6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  sendButtonDisabled: {
+    backgroundColor: '#374151',
+  },
+  safeArea: {
+    height: 4,
+    width: '100%',
+  },
+});
