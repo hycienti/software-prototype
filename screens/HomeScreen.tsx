@@ -83,7 +83,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <Text style={styles.greetingText}>Hello, Alex.{'\n'}How are you feeling today?</Text>
         </View>
 
-        <View className="flex-row gap-3 p-4" style={{ gap: 16 }}>
+        <View className="flex-row gap-3 p-4" style={{ gap: 12 }}>
           <TouchableOpacity onPress={onChatPress} style={styles.cardContainer} activeOpacity={0.98}>
             <ImageBackground
               source={{
@@ -136,7 +136,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </TouchableOpacity>
         </View>
 
-        <View className="flex-col gap-3 px-4 pb-2" style={{ gap: 16 }}>
+        <View className="flex-col gap-3 px-4 pb-2" style={{ gap: 12 }}>
           <TouchableOpacity
             onPress={onJournalPress}
             style={styles.actionButtonDark}
