@@ -1,6 +1,7 @@
 import React from 'react';
 import { useRouter } from 'expo-router';
 import { BoxBreathingScreen } from '@/screens/BoxBreathingScreen';
+import { BoxBreathingSettingsProvider } from '@/store/BoxBreathingSettingsContext';
 
 export default function BreathingPage() {
   const router = useRouter();
@@ -14,6 +15,8 @@ export default function BreathingPage() {
   };
 
   return (
-    <BoxBreathingScreen onBack={handleBack} onSettings={handleSettings} />
+    <BoxBreathingSettingsProvider>
+      <BoxBreathingScreen onBack={handleBack} onSettings={handleSettings} />
+    </BoxBreathingSettingsProvider>
   );
 }

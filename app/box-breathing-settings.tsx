@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { BoxBreathingSettingsScreen } from '@/screens/BoxBreathingSettingsScreen';
+import { BoxBreathingSettingsProvider } from '@/store/BoxBreathingSettingsContext';
 
 export default function BoxBreathingSettingsPage() {
   const router = useRouter();
@@ -17,23 +18,24 @@ export default function BoxBreathingSettingsPage() {
   };
 
   const handleDone = () => {
-    // TODO: Save settings
-    console.log('Settings saved');
     handleClose();
   };
 
   const handleReset = () => {
-    // TODO: Reset to defaults
-    console.log('Reset to defaults');
+    // Reset is handled in the settings screen via context
   };
 
+  // Note: This provider will share state with the breathing screen if both are wrapped
+  // For now, each route has its own provider instance, but settings are persisted via AsyncStorage
   return (
-    <BottomSheetModal visible={visible} onClose={handleClose}>
-      <BoxBreathingSettingsScreen
-        onBack={handleBack}
-        onDone={handleDone}
-        onReset={handleReset}
-      />
-    </BottomSheetModal>
+    <BoxBreathingSettingsProvider>
+      <BottomSheetModal visible={visible} onClose={handleClose}>
+        <BoxBreathingSettingsScreen
+          onBack={handleBack}
+          onDone={handleDone}
+          onReset={handleReset}
+        />
+      </BottomSheetModal>
+    </BoxBreathingSettingsProvider>
   );
 }

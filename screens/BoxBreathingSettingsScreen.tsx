@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Icon } from '@/components/ui/Icon';
 import Slider from '@react-native-community/slider';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming, withRepeat } from 'react-native-reanimated';
+import { useBoxBreathingSettings } from '@/store/BoxBreathingSettingsContext';
 
 interface BoxBreathingSettingsScreenProps {
   onBack?: () => void;
@@ -13,9 +14,9 @@ interface BoxBreathingSettingsScreenProps {
 }
 
 const musicOptions = [
-  { id: 'rain', label: 'Rain', icon: 'water_drop', color: '#19b3e6' },
-  { id: 'forest', label: 'Forest', icon: 'forest', color: '#94a3b8' },
-  { id: 'zen', label: 'Zen', icon: 'self_improvement', color: '#94a3b8' },
+  { id: 'rain' as const, label: 'Rain', icon: 'water_drop', color: '#19b3e6' },
+  { id: 'forest' as const, label: 'Forest', icon: 'forest', color: '#94a3b8' },
+  { id: 'zen' as const, label: 'Zen', icon: 'self_improvement', color: '#94a3b8' },
 ];
 
 export const BoxBreathingSettingsScreen: React.FC<BoxBreathingSettingsScreenProps> = ({
@@ -23,13 +24,43 @@ export const BoxBreathingSettingsScreen: React.FC<BoxBreathingSettingsScreenProp
   onDone,
   onReset,
 }) => {
-  const [inhaleDuration, setInhaleDuration] = useState(4);
-  const [holdDuration, setHoldDuration] = useState(4);
-  const [exhaleDuration, setExhaleDuration] = useState(6);
-  const [hapticFeedback, setHapticFeedback] = useState(true);
-  const [voiceGuidance, setVoiceGuidance] = useState(false);
-  const [enableMusic, setEnableMusic] = useState(true);
-  const [selectedMusic, setSelectedMusic] = useState('rain');
+  const { settings, updateSettings, resetSettings } = useBoxBreathingSettings();
+  const [inhaleDuration, setInhaleDuration] = useState(settings.inhaleDuration);
+  const [holdDuration, setHoldDuration] = useState(settings.holdDuration);
+  const [exhaleDuration, setExhaleDuration] = useState(settings.exhaleDuration);
+  const [hapticFeedback, setHapticFeedback] = useState(settings.hapticFeedback);
+  const [voiceGuidance, setVoiceGuidance] = useState(settings.voiceGuidance);
+  const [enableMusic, setEnableMusic] = useState(settings.enableMusic);
+  const [selectedMusic, setSelectedMusic] = useState(settings.selectedMusic);
+
+  // Sync local state with context when settings change externally
+  useEffect(() => {
+    setInhaleDuration(settings.inhaleDuration);
+    setHoldDuration(settings.holdDuration);
+    setExhaleDuration(settings.exhaleDuration);
+    setHapticFeedback(settings.hapticFeedback);
+    setVoiceGuidance(settings.voiceGuidance);
+    setEnableMusic(settings.enableMusic);
+    setSelectedMusic(settings.selectedMusic);
+  }, [settings]);
+
+  const handleDone = () => {
+    updateSettings({
+      inhaleDuration,
+      holdDuration,
+      exhaleDuration,
+      hapticFeedback,
+      voiceGuidance,
+      enableMusic,
+      selectedMusic,
+    });
+    onDone?.();
+  };
+
+  const handleReset = () => {
+    resetSettings();
+    onReset?.();
+  };
 
   // Pulse animation for selected music dot
   const pulseScale = useSharedValue(1);
@@ -92,7 +123,7 @@ export const BoxBreathingSettingsScreen: React.FC<BoxBreathingSettingsScreenProp
             <Text style={styles.backText}>Back</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Settings</Text>
-          <TouchableOpacity onPress={onDone} style={styles.doneButton} activeOpacity={0.7}>
+          <TouchableOpacity onPress={handleDone} style={styles.doneButton} activeOpacity={0.7}>
             <Text style={styles.doneText}>Done</Text>
           </TouchableOpacity>
         </View>
@@ -301,7 +332,7 @@ export const BoxBreathingSettingsScreen: React.FC<BoxBreathingSettingsScreenProp
 
         {/* Reset Button */}
         <View style={styles.resetContainer}>
-          <TouchableOpacity onPress={onReset} activeOpacity={0.7}>
+          <TouchableOpacity onPress={handleReset} activeOpacity={0.7}>
             <Text style={styles.resetText}>Reset to Defaults</Text>
           </TouchableOpacity>
         </View>
