@@ -14,7 +14,7 @@ import { Icon } from '@/components/ui/Icon';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const BOX_SIZE = Math.min(380, SCREEN_WIDTH - 48);
+const BOX_SIZE = Math.min(380, SCREEN_WIDTH - 100);
 const BOX_RADIUS = 32;
 const DOT_SIZE = 12;
 
@@ -51,9 +51,9 @@ export const BoxBreathingScreen: React.FC<{ onBack?: () => void }> = ({ onBack }
   const startPhase = () => {
     const duration = PHASE_DURATIONS[currentPhase];
 
-    if (currentPhase === 'inhale') {
+    if (currentPhase === 'exhale') {
       orbScale.value = withTiming(1.3, { duration, easing: Easing.inOut(Easing.ease) });
-    } else if (currentPhase === 'exhale') {
+    } else if (currentPhase === 'inhale') {
       orbScale.value = withTiming(0.85, { duration, easing: Easing.inOut(Easing.ease) });
     } else {
       orbScale.value = withTiming(orbScale.value, { duration });
@@ -447,8 +447,8 @@ const styles = StyleSheet.create({
     borderRadius: BOX_RADIUS,
   },
   orb: {
-    width: '100%',
-    height: '100%',
+    width: '90%',
+    height: '90%',
     borderRadius: 999,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.05)',
@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
   labelLeft: { left: -40, transform: [{ rotate: '-90deg' }] },
   labelRight: { right: -40, transform: [{ rotate: '90deg' }] },
 
-  footer: { padding: 32, gap: 32 },
+  footer: { padding: 32, gap: 32,  width: '100%' },
   progressBlock: { gap: 12 },
   progressHeader: {
     flexDirection: 'row',
@@ -521,7 +521,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
 
-  controls: { flexDirection: 'row', gap: 32, alignItems: 'center' },
+  controls: { flexDirection: 'row', gap: 32, alignItems: 'center', justifyContent: 'center', width: '100%' },
   iconBtn: { padding: 12 },
 
   playBtn: {
