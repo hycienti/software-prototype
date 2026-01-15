@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/utils/cn';
 
@@ -25,6 +26,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <View style={styles.container}>
+      <BlurView intensity={60} tint="dark" style={StyleSheet.absoluteFill} />
       <View style={styles.inputContainer}>
         {onVoicePress && (
           <TouchableOpacity
@@ -32,10 +34,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             style={styles.voiceButton}
             activeOpacity={0.7}
           >
-            <Icon name="mic" size={24} color="#6b7280" />
+            <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+            <View style={styles.voiceButtonContent}>
+              <Icon name="mic" size={24} color="#94a3b8" />
+            </View>
           </TouchableOpacity>
         )}
         <View style={styles.inputWrapper}>
+          <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
           <TextInput
             value={message}
             onChangeText={setMessage}
@@ -63,12 +69,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#111d21',
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(31, 41, 55, 0.8)',
     position: 'relative',
     zIndex: 20,
+    padding: 16,
+    overflow: 'hidden',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(17, 29, 33, 0.3)',
   },
   inputContainer: {
     flexDirection: 'row',
@@ -82,24 +89,32 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#1a262a',
+    backgroundColor: 'rgba(26, 38, 42, 0.6)',
+    flexShrink: 0,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    overflow: 'hidden',
+  },
+  voiceButtonContent: {
+    width: '100%',
+    height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
   },
   inputWrapper: {
     flex: 1,
-    backgroundColor: '#1a262a',
+    backgroundColor: 'rgba(26, 38, 42, 0.6)',
     borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(31, 41, 55, 0.8)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    overflow: 'hidden',
   },
   textInput: {
     flex: 1,
@@ -110,6 +125,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     minHeight: 48,
     maxHeight: 128,
+    zIndex: 1,
   },
   sendButton: {
     paddingRight: 8,

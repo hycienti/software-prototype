@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/utils/cn';
 
@@ -20,51 +21,57 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 }) => {
   return (
     <View style={styles.header}>
-      <View style={styles.leftSection}>
+      <BlurView intensity={60} tint="dark" style={StyleSheet.absoluteFill} />
+      <View style={styles.headerContent}>
+        <View style={styles.leftSection}>
+          <TouchableOpacity
+            onPress={onBack}
+            style={styles.backButton}
+            activeOpacity={0.7}
+          >
+            <Icon name="arrow_back" size={24} color="#94a3b8" />
+          </TouchableOpacity>
+          <View style={styles.avatarContainer}>
+            <Image
+              source={{ uri: avatarUri }}
+              style={styles.avatar}
+              resizeMode="cover"
+            />
+            {status === 'Online' && <View style={styles.onlineIndicator} />}
+          </View>
+          <View style={styles.nameContainer}>
+            <Text style={styles.name}>{name}</Text>
+            <Text style={styles.status}>{status}</Text>
+          </View>
+        </View>
         <TouchableOpacity
-          onPress={onBack}
-          style={styles.backButton}
-          activeOpacity={0.7}
+          onPress={onTalkToHuman}
+          style={styles.humanButton}
+          activeOpacity={0.8}
         >
-          <Icon name="arrow_back" size={24} color="#64748b" />
+          <Icon name="support_agent" size={18} color="#f43f5e" />
+          <Text style={styles.humanButtonText}>Human</Text>
         </TouchableOpacity>
-        <View style={styles.avatarContainer}>
-          <Image
-            source={{ uri: avatarUri }}
-            style={styles.avatar}
-            resizeMode="cover"
-          />
-          {status === 'Online' && <View style={styles.onlineIndicator} />}
-        </View>
-        <View style={styles.nameContainer}>
-          <Text style={styles.name}>{name}</Text>
-          <Text style={styles.status}>{status}</Text>
-        </View>
       </View>
-      <TouchableOpacity
-        onPress={onTalkToHuman}
-        style={styles.humanButton}
-        activeOpacity={0.8}
-      >
-        <Icon name="support_agent" size={18} color="#e11d48" />
-        <Text style={styles.humanButtonText}>Human</Text>
-      </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   header: {
+    position: 'relative',
+    zIndex: 20,
+    overflow: 'hidden',
+  },
+  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#111d21',
+    backgroundColor: 'rgba(17, 29, 33, 0.3)',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(31, 41, 55, 0.8)',
-    position: 'relative',
-    zIndex: 20,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
   },
   leftSection: {
     flexDirection: 'row',
