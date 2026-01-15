@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet, Platform } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import { Asset } from 'expo-asset';
 import { AppleIcon } from '@/components/ui/AppleIcon';
 import { GoogleIcon } from '@/components/ui/GoogleIcon';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -12,22 +13,53 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 export default function WelcomePage() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [videoUri, setVideoUri] = useState<string | null>(null);
   
-  // Create video player
+  // Load video asset
+  useEffect(() => {
+    const loadVideo = async () => {
+      try {
+        const asset = Asset.fromModule(require('../../assets/onboarding/vidoes/therapy.mp4'));
+        await asset.downloadAsync();
+        if (asset.localUri) {
+          setVideoUri(asset.localUri);
+        }
+      } catch (error) {
+        console.error('Error loading video:', error);
+        // Fallback to require if Asset fails
+        setVideoUri(require('../../assets/onboarding/vidoes/therapy.mp4') as any);
+      }
+    };
+    loadVideo();
+  }, []);
+
+  // Create video player only when URI is available
   const player = useVideoPlayer(
-    'https://assets.mixkit.co/videos/preview/mixkit-sun-shining-through-the-trees-1240-large.mp4',
+    videoUri || 'https://assets.mixkit.co/videos/preview/mixkit-sun-shining-through-the-trees-1240-large.mp4',
     (player) => {
-      player.loop = true;
-      player.muted = true;
+      if (player) {
+        player.loop = true;
+        player.muted = true;
+        if (videoUri) {
+          player.play();
+        }
+      }
     }
   );
 
   useEffect(() => {
-    // Start playing when component mounts
-    if (player) {
-      player.play();
+    // Ensure video plays when player and URI are ready
+    if (player && videoUri) {
+      const timer = setTimeout(() => {
+        try {
+          player.play();
+        } catch (error) {
+          console.error('Error playing video:', error);
+        }
+      }, 300);
+      return () => clearTimeout(timer);
     }
-  }, [player]);
+  }, [player, videoUri]);
 
   const handleAppleLogin = () => {
     // TODO: Implement Apple OAuth
@@ -40,10 +72,7 @@ export default function WelcomePage() {
   };
 
   return (
-    <SafeAreaView 
-      edges={[]}
-      style={styles.container}
-    >
+    <SafeAreaView edges={[]} style={styles.container}>
       <View style={styles.wrapper}>
         {/* Video Background Layer */}
         <View style={styles.videoContainer}>
@@ -52,15 +81,19 @@ export default function WelcomePage() {
             style={StyleSheet.absoluteFill}
             contentFit="cover"
             nativeControls={false}
-            allowsFullscreen={false}
+            fullscreenOptions={
+              {
+                enable: true,
+              }
+            }
             allowsPictureInPicture={false}
           />
           {/* Gradient Overlay */}
           <LinearGradient
             colors={[
-              'rgba(79, 209, 197, 0.3)',  // mint/30
-              'rgba(25, 179, 230, 0.2)',  // primary/20
-              'rgba(15, 23, 42, 0.5)',    // slate-900/50
+              'rgba(79, 209, 197, 0.3)', // mint/30
+              'rgba(25, 179, 230, 0.2)', // primary/20
+              'rgba(15, 23, 42, 0.5)', // slate-900/50
             ]}
             locations={[0, 0.5, 1]}
             style={StyleSheet.absoluteFill}
@@ -71,18 +104,17 @@ export default function WelcomePage() {
 
         {/* Top Content - Logo and Title */}
         <View style={styles.topContent}>
-          <Animated.View 
-            entering={FadeInDown.duration(600)}
-            style={styles.logoContainer}
-          >
+          <Animated.View entering={FadeInDown.duration(600)} style={styles.logoContainer}>
             <Image
-              source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA6znBoTu6R2NCalZovWSQI64K1JDtNpGuYSk8r83lcgK2TMKlDHz87juYiBsm-Ne5oovTkBqHYPYvVFKk_RxjEVR7B5W6hO5tJd0pLrxNIWfOIA_-f8XUz7NmQaU6MATSU2bxSw3-7rFp6I4h-WlBA4naNlHeFTkjj3_PLiARf7BCZjUT93ps0yjlO3PoLGtsaYo5ymsp7zupCpx6rMaypiQfBe68AC7L6eyBKwoggTpQMTNIUGPWce283UpQ3xas-5bU3lLtemsY' }}
+              source={{
+                uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA6znBoTu6R2NCalZovWSQI64K1JDtNpGuYSk8r83lcgK2TMKlDHz87juYiBsm-Ne5oovTkBqHYPYvVFKk_RxjEVR7B5W6hO5tJd0pLrxNIWfOIA_-f8XUz7NmQaU6MATSU2bxSw3-7rFp6I4h-WlBA4naNlHeFTkjj3_PLiARf7BCZjUT93ps0yjlO3PoLGtsaYo5ymsp7zupCpx6rMaypiQfBe68AC7L6eyBKwoggTpQMTNIUGPWce283UpQ3xas-5bU3lLtemsY',
+              }}
               style={styles.logoImage}
               resizeMode="cover"
             />
             <View style={styles.logoGradient} />
           </Animated.View>
-          
+
           <View style={styles.titleContainer}>
             <Text style={styles.title}>Haven</Text>
             <Text style={styles.subtitle}>Your safe space for mental health</Text>
@@ -92,24 +124,22 @@ export default function WelcomePage() {
         {/* Bottom Sheet */}
         <BlurView intensity={80} tint="light" style={styles.bottomSheet}>
           <View style={styles.dragHandle} />
-          
+
           <View style={styles.buttonContainer}>
             <TouchableOpacity
               onPress={handleAppleLogin}
               style={[styles.appleButton, { marginBottom: 16 }]}
-              activeOpacity={0.8}
-            >
+              activeOpacity={0.8}>
               <View style={{ marginRight: 12 }}>
                 <AppleIcon size={24} color="#0f172a" />
               </View>
               <Text style={styles.appleButtonText}>Continue with Apple</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               onPress={handleGoogleLogin}
               style={styles.googleButton}
-              activeOpacity={0.8}
-            >
+              activeOpacity={0.8}>
               <View style={{ marginRight: 12 }}>
                 <GoogleIcon size={24} />
               </View>
@@ -118,10 +148,10 @@ export default function WelcomePage() {
           </View>
 
           <Text style={styles.termsText}>
-            By continuing, you agree to our{' '}
-            <Text style={styles.linkText}>Terms</Text> & <Text style={styles.linkText}>Privacy Policy</Text>.
+            By continuing, you agree to our <Text style={styles.linkText}>Terms</Text> &{' '}
+            <Text style={styles.linkText}>Privacy Policy</Text>.
           </Text>
-          
+
           <View style={[styles.bottomSpacer, { height: Math.max(16, insets.bottom) }]} />
         </BlurView>
       </View>
