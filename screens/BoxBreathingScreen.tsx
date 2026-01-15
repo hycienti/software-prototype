@@ -198,30 +198,50 @@ export const BoxBreathingScreen: React.FC<BoxBreathingScreenProps> = ({
     const side = Math.floor(dotProgress.value);
     const progressOnSide = dotProgress.value - side;
     const halfSize = BOX_SIZE / 2;
-    const borderOffset = 1; // Account for border width
+    const borderWidth = 2; // Match border-2
 
     let x = 0;
     let y = 0;
 
     // Top side (0-1): left to right
     if (side === 0) {
-      x = interpolate(progressOnSide, [0, 1], [-halfSize + borderOffset, halfSize - borderOffset], Extrapolate.CLAMP);
+      x = interpolate(
+        progressOnSide,
+        [0, 1],
+        [-halfSize + borderWidth, halfSize - borderWidth],
+        Extrapolate.CLAMP
+      );
       y = -halfSize - DOT_SIZE / 2;
     }
     // Right side (1-2): top to bottom
     else if (side === 1) {
       x = halfSize + DOT_SIZE / 2;
-      y = interpolate(progressOnSide, [0, 1], [-halfSize + borderOffset, halfSize - borderOffset], Extrapolate.CLAMP);
+      y = interpolate(
+        progressOnSide,
+        [0, 1],
+        [-halfSize + borderWidth, halfSize - borderWidth],
+        Extrapolate.CLAMP
+      );
     }
     // Bottom side (2-3): right to left
     else if (side === 2) {
-      x = interpolate(progressOnSide, [0, 1], [halfSize - borderOffset, -halfSize + borderOffset], Extrapolate.CLAMP);
+      x = interpolate(
+        progressOnSide,
+        [0, 1],
+        [halfSize - borderWidth, -halfSize + borderWidth],
+        Extrapolate.CLAMP
+      );
       y = halfSize + DOT_SIZE / 2;
     }
     // Left side (3-4): bottom to top
     else if (side === 3) {
       x = -halfSize - DOT_SIZE / 2;
-      y = interpolate(progressOnSide, [0, 1], [halfSize - borderOffset, -halfSize + borderOffset], Extrapolate.CLAMP);
+      y = interpolate(
+        progressOnSide,
+        [0, 1],
+        [halfSize - borderWidth, -halfSize + borderWidth],
+        Extrapolate.CLAMP
+      );
     }
 
     return {
@@ -311,46 +331,22 @@ export const BoxBreathingScreen: React.FC<BoxBreathingScreenProps> = ({
           {/* The Path Trace (Subtle Square Border) */}
           <View style={styles.boxBorder} />
 
-          {/* Active Path Indicator - Glowing effect on current side only */}
+          {/* Active Path Indicator - Simple border highlight on current side */}
           {/* Top */}
           <Animated.View style={[styles.activePathTop, pathAnimatedStyleTop]}>
-            <View style={styles.glowOverlayTop} />
-            <LinearGradient
-              colors={['#19b3e6', 'rgba(25, 179, 230, 0.6)', '#19b3e6']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={StyleSheet.absoluteFill}
-            />
+            <View style={styles.activePathBorderTop} />
           </Animated.View>
           {/* Right */}
           <Animated.View style={[styles.activePathRight, pathAnimatedStyleRight]}>
-            <View style={styles.glowOverlayRight} />
-            <LinearGradient
-              colors={['#19b3e6', 'rgba(25, 179, 230, 0.6)', '#19b3e6']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-              style={StyleSheet.absoluteFill}
-            />
+            <View style={styles.activePathBorderRight} />
           </Animated.View>
           {/* Bottom */}
           <Animated.View style={[styles.activePathBottom, pathAnimatedStyleBottom]}>
-            <View style={styles.glowOverlayBottom} />
-            <LinearGradient
-              colors={['#19b3e6', 'rgba(25, 179, 230, 0.6)', '#19b3e6']}
-              start={{ x: 1, y: 0 }}
-              end={{ x: 0, y: 0 }}
-              style={StyleSheet.absoluteFill}
-            />
+            <View style={styles.activePathBorderBottom} />
           </Animated.View>
           {/* Left */}
           <Animated.View style={[styles.activePathLeft, pathAnimatedStyleLeft]}>
-            <View style={styles.glowOverlayLeft} />
-            <LinearGradient
-              colors={['#19b3e6', 'rgba(25, 179, 230, 0.6)', '#19b3e6']}
-              start={{ x: 0, y: 1 }}
-              end={{ x: 0, y: 0 }}
-              style={StyleSheet.absoluteFill}
-            />
+            <View style={styles.activePathBorderLeft} />
           </Animated.View>
 
           {/* The Traveller Dot */}
@@ -525,125 +521,110 @@ const styles = StyleSheet.create({
   },
   activePathTop: {
     position: 'absolute',
-    top: -1,
+    top: 0,
     left: 0,
     right: 0,
-    height: 4,
-    borderTopLeftRadius: BOX_RADIUS,
-    borderTopRightRadius: BOX_RADIUS,
+    bottom: 0,
+    borderRadius: BOX_RADIUS,
     overflow: 'hidden',
-    shadowColor: '#19b3e6',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 20,
-    elevation: 15,
   },
   activePathRight: {
     position: 'absolute',
     top: 0,
-    right: -1,
+    left: 0,
+    right: 0,
     bottom: 0,
-    width: 4,
-    borderTopRightRadius: BOX_RADIUS,
-    borderBottomRightRadius: BOX_RADIUS,
+    borderRadius: BOX_RADIUS,
     overflow: 'hidden',
-    shadowColor: '#19b3e6',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 20,
-    elevation: 15,
   },
   activePathBottom: {
     position: 'absolute',
-    bottom: -1,
+    top: 0,
     left: 0,
     right: 0,
-    height: 4,
-    borderBottomLeftRadius: BOX_RADIUS,
-    borderBottomRightRadius: BOX_RADIUS,
+    bottom: 0,
+    borderRadius: BOX_RADIUS,
     overflow: 'hidden',
-    shadowColor: '#19b3e6',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 20,
-    elevation: 15,
   },
   activePathLeft: {
     position: 'absolute',
     top: 0,
-    left: -1,
+    left: 0,
+    right: 0,
     bottom: 0,
-    width: 4,
+    borderRadius: BOX_RADIUS,
+    overflow: 'hidden',
+  },
+  activePathBorderTop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 2,
+    borderTopLeftRadius: BOX_RADIUS,
+    borderTopRightRadius: BOX_RADIUS,
+    backgroundColor: '#19b3e6',
+    shadowColor: '#19b3e6',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  activePathBorderRight: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: 2,
+    borderTopRightRadius: BOX_RADIUS,
+    borderBottomRightRadius: BOX_RADIUS,
+    backgroundColor: '#19b3e6',
+    shadowColor: '#19b3e6',
+    shadowOffset: { width: -4, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  activePathBorderBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 2,
+    borderBottomLeftRadius: BOX_RADIUS,
+    borderBottomRightRadius: BOX_RADIUS,
+    backgroundColor: '#19b3e6',
+    shadowColor: '#19b3e6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  activePathBorderLeft: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+    width: 2,
     borderTopLeftRadius: BOX_RADIUS,
     borderBottomLeftRadius: BOX_RADIUS,
-    overflow: 'hidden',
+    backgroundColor: '#19b3e6',
     shadowColor: '#19b3e6',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
+    shadowOffset: { width: 4, height: 0 },
+    shadowOpacity: 0.5,
     shadowRadius: 20,
-    elevation: 15,
-  },
-  glowOverlayTop: {
-    position: 'absolute',
-    top: -10,
-    left: -10,
-    right: -10,
-    height: 24,
-    backgroundColor: 'rgba(25, 179, 230, 0.2)',
-    borderRadius: 12,
-    shadowColor: '#19b3e6',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 15,
-  },
-  glowOverlayRight: {
-    position: 'absolute',
-    top: -10,
-    right: -10,
-    bottom: -10,
-    width: 24,
-    backgroundColor: 'rgba(25, 179, 230, 0.2)',
-    borderRadius: 12,
-    shadowColor: '#19b3e6',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 15,
-  },
-  glowOverlayBottom: {
-    position: 'absolute',
-    bottom: -10,
-    left: -10,
-    right: -10,
-    height: 24,
-    backgroundColor: 'rgba(25, 179, 230, 0.2)',
-    borderRadius: 12,
-    shadowColor: '#19b3e6',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 15,
-  },
-  glowOverlayLeft: {
-    position: 'absolute',
-    top: -10,
-    left: -10,
-    bottom: -10,
-    width: 24,
-    backgroundColor: 'rgba(25, 179, 230, 0.2)',
-    borderRadius: 12,
-    shadowColor: '#19b3e6',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 15,
+    elevation: 10,
   },
   travelerDot: {
     position: 'absolute',
-    top: -DOT_SIZE / 2,
+    top: -5, // -top-[5px] from HTML
     left: '50%',
     width: DOT_SIZE,
     height: DOT_SIZE,
     borderRadius: DOT_SIZE / 2,
     backgroundColor: '#ffffff',
     zIndex: 10,
+    marginLeft: -DOT_SIZE / 2, // Center the dot
   },
   dotGlow: {
     ...StyleSheet.absoluteFillObject,
