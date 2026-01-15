@@ -123,12 +123,23 @@ export default function WelcomePage() {
 
         {/* Bottom Sheet */}
         <View style={styles.bottomSheet}>
-          <BlurView intensity={100} tint="light" style={StyleSheet.absoluteFill} />
+          <BlurView intensity={100} tint="dark" style={StyleSheet.absoluteFill} />
           <LinearGradient
             colors={[
-              'rgba(255, 255, 255, 0.95)',
-              'rgba(255, 255, 255, 0.90)',
-              'rgba(249, 250, 251, 0.85)',
+              'rgba(17, 29, 33, 0.95)',
+              'rgba(17, 29, 33, 0.92)',
+              'rgba(15, 23, 42, 0.90)',
+              'rgba(15, 23, 42, 0.88)',
+            ]}
+            locations={[0, 0.3, 0.7, 1]}
+            style={StyleSheet.absoluteFill}
+          />
+          {/* Accent gradient overlay */}
+          <LinearGradient
+            colors={[
+              'rgba(25, 179, 230, 0.08)',
+              'rgba(79, 209, 197, 0.05)',
+              'transparent',
             ]}
             locations={[0, 0.5, 1]}
             style={StyleSheet.absoluteFill}
@@ -281,7 +292,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.5)',
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -10 },
     shadowOpacity: 0.2,
@@ -300,7 +311,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(203, 213, 225, 0.8)',
+    backgroundColor: 'rgba(148, 163, 184, 0.5)',
     marginBottom: 32,
   },
   buttonContainer: {
@@ -316,12 +327,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
     borderWidth: 1,
-    borderColor: 'rgba(226, 232, 240, 0.8)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   appleButtonText: {
     fontSize: 17,
@@ -357,12 +368,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 12,
     fontWeight: '500',
-    color: '#64748b',
+    color: 'rgba(148, 163, 184, 0.8)',
   },
   linkText: {
     textDecorationLine: 'underline',
-    textDecorationColor: '#94a3b8',
-    color: '#64748b',
+    textDecorationColor: 'rgba(148, 163, 184, 0.6)',
+    color: 'rgba(148, 163, 184, 0.9)',
   },
   bottomSpacer: {
     height: 16,
