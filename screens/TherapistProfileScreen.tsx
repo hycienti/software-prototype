@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, ImageBackground } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Icon } from '@/components/ui/Icon';
-import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { cn } from '@/utils/cn';
 
 interface TherapistProfileScreenProps {
@@ -19,177 +19,551 @@ export const TherapistProfileScreen: React.FC<TherapistProfileScreenProps> = ({
   onBookConsultation,
   onMessage,
 }) => {
+  const insets = useSafeAreaInsets();
+
   return (
-    <SafeAreaView className="flex-1 bg-background-light dark:bg-background-dark">
-      <View className="sticky top-0 z-50 flex-row items-center justify-between p-4 bg-background-light/90 dark:bg-background-dark/90 border-b border-gray-200/50 dark:border-gray-800/50">
-        <TouchableOpacity
-          onPress={onBack}
-          className="p-2 rounded-full active:bg-gray-200 dark:active:bg-gray-800"
-        >
-          <Icon name="arrow_back" size={24} color="#111827" />
-        </TouchableOpacity>
-        <Text className="text-lg font-bold">Therapist Profile</Text>
-        <TouchableOpacity className="p-2 rounded-full active:bg-gray-200 dark:active:bg-gray-800">
-          <Icon name="share" size={24} color="#111827" />
-        </TouchableOpacity>
+    <SafeAreaView className="flex-1 bg-background-dark">
+      {/* Dark Gradient Background */}
+      <View style={StyleSheet.absoluteFill}>
+        <LinearGradient
+          colors={[
+            'rgba(30, 41, 59, 0.4)',
+            'rgba(15, 23, 42, 0.25)',
+            'rgba(17, 29, 33, 0.15)',
+            'rgba(17, 29, 33, 0.05)',
+            'transparent',
+          ]}
+          locations={[0, 0.2, 0.5, 0.8, 1]}
+          style={StyleSheet.absoluteFill}
+        />
+        <View 
+          style={[
+            styles.backgroundBlob1,
+            { backgroundColor: 'rgba(25, 179, 230, 0.08)' }
+          ]} 
+        />
+        <View 
+          style={[
+            styles.backgroundBlob2,
+            { backgroundColor: 'rgba(88, 28, 135, 0.12)' }
+          ]} 
+        />
       </View>
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        <View className="items-center px-4 pt-6 pb-2">
-          <View className="relative mb-4">
-            <View className="w-32 h-32 rounded-full bg-gray-300 dark:bg-gray-700" />
-            <View className="absolute bottom-1 right-1 bg-primary p-1.5 rounded-full border-4 border-background-light dark:border-background-dark">
-              <Icon name="check" size={16} color="#fff" />
+      {/* Top App Bar */}
+      <View style={styles.header}>
+        {/* <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} /> */}
+        <View style={styles.headerContent}>
+          <TouchableOpacity
+            onPress={onBack}
+            style={styles.headerButton}
+            activeOpacity={0.7}
+          >
+            <Icon name="arrow_back" size={24} color="#ffffff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Therapist Profile</Text>
+          <TouchableOpacity style={styles.headerButton} activeOpacity={0.7}>
+            <Icon name="share" size={24} color="#ffffff" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Profile Header */}
+        <View style={styles.profileHeader}>
+          <View style={styles.avatarContainer}>
+            <Image
+              source={{
+                uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCgbDlx1Qj2YWaZo8UJYytHB3bPuqilDGnRNHE-WSSOS4INf-t9zijKiqMz3mccQ5ycKNL62Q7xURiDMs9T2TATepCnHagEcTCyz16Go4EsfqsvPvwLh_ljhC43AkYBARQKgif8HD4y3q667ENOGUAV3uGH_Ddr3U8YoGres65xBuONf9LUjm483CYOa_gO9XgS-mHumdYuzHLohiGhc0ohHxI_JnulBFyq1Ao0g_Zad34GWKm2OB9C9bKC5Z2L_z-mQk68kFoCI3A',
+              }}
+              style={styles.avatar}
+              resizeMode="cover"
+            />
+            <View style={styles.verificationBadge}>
+              <Icon name="check" size={16} color="#ffffff" />
             </View>
           </View>
-          <View className="items-center space-y-1">
-            <View className="flex-row items-center gap-2">
-              <Text className="text-2xl font-bold text-gray-900 dark:text-white">
-                Dr. Sarah Bennett
-              </Text>
-              <View className="px-2 py-0.5 rounded-full border border-gray-300 dark:border-gray-700">
-                <Text className="text-sm font-normal text-gray-500 dark:text-gray-400">
-                  PhD
-                </Text>
+          <View style={styles.profileInfo}>
+            <View style={styles.nameRow}>
+              <Text style={styles.name}>Dr. Sarah Bennett</Text>
+              <View style={styles.phdBadge}>
+                <Text style={styles.phdText}>PhD</Text>
               </View>
             </View>
-            <Text className="text-primary font-medium">Clinical Psychologist</Text>
-            <Text className="text-sm text-gray-500 dark:text-gray-400">
-              Specializing in Anxiety & Trauma
-            </Text>
+            <Text style={styles.title}>Clinical Psychologist</Text>
+            <Text style={styles.specialization}>Specializing in Anxiety & Trauma</Text>
           </View>
         </View>
 
-        <View className="flex-row gap-3 px-4 py-6">
-          <Card className="flex-1 items-center p-3">
+        {/* Quick Stats */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statCard}>
             <Icon name="local_police" size={24} color="#19b3e6" />
-            <Text className="text-gray-900 dark:text-white text-lg font-bold mt-1">
-              12 Yrs
-            </Text>
-            <Text className="text-xs text-gray-500 dark:text-gray-400">Experience</Text>
-          </Card>
-          <Card className="flex-1 items-center p-3">
+            <Text style={styles.statValue}>12 Yrs</Text>
+            <Text style={styles.statLabel}>Experience</Text>
+          </View>
+          <View style={styles.statCard}>
             <Icon name="star" size={24} color="#19b3e6" />
-            <Text className="text-gray-900 dark:text-white text-lg font-bold mt-1">
-              4.9
-            </Text>
-            <Text className="text-xs text-gray-500 dark:text-gray-400">120 Reviews</Text>
-          </Card>
-          <Card className="flex-1 items-center p-3">
+            <Text style={styles.statValue}>4.9</Text>
+            <Text style={styles.statLabel}>120 Reviews</Text>
+          </View>
+          <View style={styles.statCard}>
             <Icon name="payments" size={24} color="#19b3e6" />
-            <Text className="text-gray-900 dark:text-white text-lg font-bold mt-1">
-              $150
-            </Text>
-            <Text className="text-xs text-gray-500 dark:text-gray-400">Per Session</Text>
-          </Card>
+            <Text style={styles.statValue}>$150</Text>
+            <Text style={styles.statLabel}>Per Session</Text>
+          </View>
         </View>
 
-        <View className="px-4 mb-6">
-          <Text className="text-lg font-bold text-gray-900 dark:text-white mb-2">
-            About Dr. Bennett
-          </Text>
-          <Text className="text-gray-600 dark:text-[#93bac8] text-base leading-relaxed">
+        {/* About Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>About Dr. Bennett</Text>
+          <Text style={styles.aboutText}>
             Dr. Bennett is a compassionate therapist dedicated to helping individuals navigate
             life's challenges. With over a decade of experience, she specializes in cognitive
             behavioral therapy and mindfulness-based approaches to treat anxiety disorders and
             trauma. She believes in creating a safe, non-judgmental space...
           </Text>
           <TouchableOpacity>
-            <Text className="text-primary font-medium text-sm mt-1">Read more</Text>
+            <Text style={styles.readMore}>Read more</Text>
           </TouchableOpacity>
         </View>
 
-        <View className="px-4 mb-6">
-          <Text className="text-lg font-bold text-gray-900 dark:text-white mb-3">
-            Treatment Approaches
-          </Text>
-          <View className="flex-row flex-wrap gap-2">
+        {/* Treatment Approaches */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Treatment Approaches</Text>
+          <View style={styles.tagsContainer}>
             {['CBT', 'DBT', 'Trauma-Informed', 'Mindfulness', 'Anxiety'].map((approach) => (
-              <View
-                key={approach}
-                className="px-3 py-1.5 rounded-full bg-primary/10 dark:bg-primary/20 border border-primary/20"
-              >
-                <Text className="text-sm font-medium text-primary">{approach}</Text>
+              <View key={approach} style={styles.tag}>
+                <Text style={styles.tagText}>{approach}</Text>
               </View>
             ))}
-            <View className="px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800">
-              <Text className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                +3 More
-              </Text>
+            <View style={styles.moreTag}>
+              <Text style={styles.moreTagText}>+3 More</Text>
             </View>
           </View>
         </View>
 
-        <View className="px-4 mb-6">
-          <Text className="text-lg font-bold text-gray-900 dark:text-white mb-3">
-            Education
-          </Text>
-          <View className="flex-col gap-4">
-            <View className="flex-row items-start gap-4">
-              <View className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 items-center justify-center">
-                <Icon name="school" size={20} color="#6b7280" />
+        {/* Education */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Education</Text>
+          <View style={styles.educationContainer}>
+            <View style={styles.educationItem}>
+              <View style={styles.educationIcon}>
+                <Icon name="school" size={20} color="#9ca3af" />
               </View>
-              <View>
-                <Text className="text-gray-900 dark:text-white font-semibold">
-                  PhD in Clinical Psychology
-                </Text>
-                <Text className="text-sm text-gray-500 dark:text-[#93bac8]">
-                  Stanford University • 2012
-                </Text>
+              <View style={styles.educationContent}>
+                <Text style={styles.educationTitle}>PhD in Clinical Psychology</Text>
+                <Text style={styles.educationDetails}>Stanford University • 2012</Text>
               </View>
             </View>
-            <View className="flex-row items-start gap-4">
-              <View className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 items-center justify-center">
-                <Icon name="history_edu" size={20} color="#6b7280" />
+            <View style={styles.educationItem}>
+              <View style={styles.educationIcon}>
+                <Icon name="history_edu" size={20} color="#9ca3af" />
               </View>
-              <View>
-                <Text className="text-gray-900 dark:text-white font-semibold">
-                  MA in Counseling
-                </Text>
-                <Text className="text-sm text-gray-500 dark:text-[#93bac8]">
-                  New York University • 2008
-                </Text>
+              <View style={styles.educationContent}>
+                <Text style={styles.educationTitle}>MA in Counseling</Text>
+                <Text style={styles.educationDetails}>New York University • 2008</Text>
               </View>
             </View>
           </View>
         </View>
 
-        <View className="px-4 mb-24">
-          <View className="flex-row items-center justify-between mb-3">
-            <Text className="text-lg font-bold text-gray-900 dark:text-white">Location</Text>
-            <View className="bg-green-500/10 px-2 py-1 rounded-md">
-              <Text className="text-xs font-medium text-green-500">Online Available</Text>
+        {/* Location */}
+        <View style={[styles.section, { marginBottom: 96 }]}>
+          <View style={styles.locationHeader}>
+            <Text style={styles.sectionTitle}>Location</Text>
+            <View style={styles.onlineBadge}>
+              <Text style={styles.onlineBadgeText}>Online Available</Text>
             </View>
           </View>
-          <View className="w-full h-32 rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-800">
-            <View className="absolute inset-0 bg-black/10 items-center justify-center">
-              <View className="bg-white dark:bg-[#1a2c32] px-3 py-1.5 rounded-lg shadow-lg flex-row items-center gap-2">
-                <Icon name="location_on" size={16} color="#19b3e6" />
-                <Text className="text-xs font-bold text-gray-900 dark:text-white">
-                  Downtown Office
-                </Text>
+          <View style={styles.mapContainer}>
+            <ImageBackground
+              source={{
+                uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBAp7QPrDaLpXDgwCUsocnIeDzJHmKSwgPohkqdMtO9-J6KSZeLDoOPar6rrCn668br4_3LGicGjg-FRa6KuptSSE1Dy0UAl5W_LYfHgmLMGbP6K9Wvi5HOp5HHaPwAp2l2gu1CZ4bJ7g30LHdx9xZZnn0TFBKaz1hjO_7sYZ3VrGj0ZIw7KQUlQCrbK4X56CmzLFHnVjnRJ9rErDYrgpcIxKJsr3WpKe599z8Coc7IX0QbmRBN7dbzJi4LZXeIvnjYBlZY6uIpG4U',
+              }}
+              style={styles.mapImage}
+              resizeMode="cover"
+            >
+              <View style={styles.mapOverlay}>
+                <View style={styles.mapPin}>
+                  <Icon name="location_on" size={16} color="#19b3e6" />
+                  <Text style={styles.mapPinText}>Downtown Office</Text>
+                </View>
               </View>
-            </View>
+            </ImageBackground>
           </View>
-          <View className="mt-2 flex-row items-center gap-2">
-            <Icon name="videocam" size={16} color="#6b7280" />
-            <Text className="text-sm text-gray-500 dark:text-gray-400">
-              Video & In-Person visits
-            </Text>
+          <View style={styles.visitInfo}>
+            <Icon name="videocam" size={16} color="#9ca3af" />
+            <Text style={styles.visitText}>Video & In-Person visits</Text>
           </View>
         </View>
       </ScrollView>
 
-      <View className="absolute bottom-0 left-0 right-0 p-4 bg-background-light/80 dark:bg-background-dark/80 border-t border-gray-200 dark:border-gray-800">
-        <View className="flex-row gap-3">
-          <Button variant="outline" className="flex-1" onPress={onMessage}>
-            Message
-          </Button>
-          <Button className="flex-[2]" onPress={onBookConsultation}>
-            Book Consultation
-          </Button>
+      {/* Sticky Bottom Action Bar */}
+      <View style={[styles.actionBar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} />
+        <View style={styles.actionBarContent}>
+          <TouchableOpacity
+            style={styles.messageButton}
+            onPress={onMessage}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.messageButtonText}>Message</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.bookButton}
+            onPress={onBookConsultation}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.bookButtonText}>Book Consultation</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  scrollView: {
+    flex: 1,
+  },
+  header: {
+    position: 'relative',
+    zIndex: 50,
+    overflow: 'hidden',
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    // backgroundColor: 'rgba(17, 29, 33, 0.9)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(31, 41, 55, 0.5)',
+  },
+  headerButton: {
+    padding: 8,
+    borderRadius: 9999,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#ffffff',
+    letterSpacing: -0.2,
+  },
+  profileHeader: {
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 24,
+    paddingBottom: 8,
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  avatar: {
+    width: 128,
+    height: 128,
+    borderRadius: 64,
+    borderWidth: 4,
+    borderColor: '#1a2c32',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  verificationBadge: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    backgroundColor: '#19b3e6',
+    padding: 6,
+    borderRadius: 9999,
+    borderWidth: 4,
+    borderColor: '#111d21',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileInfo: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  name: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  phdBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 9999,
+    borderWidth: 1,
+    borderColor: 'rgba(55, 65, 81, 0.8)',
+  },
+  phdText: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: 'rgba(156, 163, 175, 0.8)',
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#19b3e6',
+  },
+  specialization: {
+    fontSize: 14,
+    color: 'rgba(156, 163, 175, 0.8)',
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 24,
+  },
+  statCard: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 25,
+    backgroundColor: '#1a2c32',
+    borderWidth: 1,
+    borderColor: 'rgba(31, 41, 55, 0.8)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#ffffff',
+    marginTop: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: 'rgba(156, 163, 175, 0.8)',
+    marginTop: 2,
+  },
+  section: {
+    paddingHorizontal: 16,
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#ffffff',
+    marginBottom: 12,
+  },
+  aboutText: {
+    fontSize: 16,
+    fontWeight: '400',
+    lineHeight: 24,
+    color: '#93bac8',
+  },
+  readMore: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#19b3e6',
+    marginTop: 4,
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  tag: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 9999,
+    backgroundColor: 'rgba(25, 179, 230, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(25, 179, 230, 0.2)',
+  },
+  tagText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#19b3e6',
+  },
+  moreTag: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 9999,
+    backgroundColor: 'rgba(31, 41, 55, 0.8)',
+  },
+  moreTagText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: 'rgba(156, 163, 175, 0.8)',
+  },
+  educationContainer: {
+    flexDirection: 'column',
+    gap: 16,
+  },
+  educationItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 16,
+  },
+  educationIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(31, 41, 55, 0.8)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  educationContent: {
+    flex: 1,
+  },
+  educationTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  educationDetails: {
+    fontSize: 14,
+    color: '#93bac8',
+    marginTop: 2,
+  },
+  locationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  onlineBadge: {
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  onlineBadgeText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#10b981',
+  },
+  mapContainer: {
+    width: '100%',
+    height: 128,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(31, 41, 55, 0.8)',
+  },
+  mapImage: {
+    width: '100%',
+    height: '100%',
+    opacity: 0.8,
+  },
+  mapOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mapPin: {
+    backgroundColor: '#1a2c32',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  mapPinText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  visitInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  visitText: {
+    fontSize: 14,
+    color: 'rgba(156, 163, 175, 0.8)',
+  },
+  actionBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(31, 41, 55, 0.8)',
+    backgroundColor: 'rgba(17, 29, 33, 0.8)',
+    zIndex: 40,
+    overflow: 'hidden',
+  },
+  actionBarContent: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  messageButton: {
+    flex: 1,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 50,
+    borderWidth: 1,
+    borderColor: 'rgba(55, 65, 81, 0.8)',
+    backgroundColor: 'transparent',
+  },
+  messageButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  bookButton: {
+    flex: 2,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 50,
+    backgroundColor: '#19b3e6',
+    shadowColor: '#19b3e6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  bookButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  backgroundBlob1: {
+    position: 'absolute',
+    top: '-10%',
+    left: '-5%',
+    width: 400,
+    height: 400,
+    borderRadius: 200,
+    opacity: 0.4,
+  },
+  backgroundBlob2: {
+    position: 'absolute',
+    bottom: '20%',
+    right: '-5%',
+    width: 350,
+    height: 350,
+    borderRadius: 175,
+    opacity: 0.4,
+  },
+});

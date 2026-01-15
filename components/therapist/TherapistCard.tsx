@@ -99,7 +99,7 @@ export const TherapistCard: React.FC<TherapistCardProps> = ({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#1a2c32',
-    borderRadius: 12,
+    borderRadius: 20,
     padding: 16,
     marginBottom: 0,
     shadowColor: '#000',
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
   tag: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: 50,
     backgroundColor: 'rgba(25, 179, 230, 0.1)',
     borderWidth: 1,
     borderColor: 'rgba(25, 179, 230, 0.2)',
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
   learnMoreButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 50,
     backgroundColor: '#19b3e6',
   },
   learnMoreText: {
