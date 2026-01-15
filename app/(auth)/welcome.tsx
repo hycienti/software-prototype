@@ -20,6 +20,7 @@ export default function WelcomePage() {
 
   return (
     <SafeAreaView 
+      edges={['top', 'bottom']}
       className="flex-1 bg-background-light dark:bg-background-dark"
       style={{ flex: 1, backgroundColor: '#111d21' }}
     >
