@@ -41,7 +41,8 @@ export const BoxBreathingScreen: React.FC<BoxBreathingScreenProps> = ({
   const [isPaused, setIsPaused] = useState(false);
   const [currentPhase, setCurrentPhase] = useState<BreathingPhase>('inhale');
   const [count, setCount] = useState(4);
-  const [cycle, setCycle] = useState(2);
+  const [cycle, setCycle] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
   const [totalCycles] = useState(5);
   const [remainingTime, setRemainingTime] = useState(270); // 4:30 in seconds
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -196,31 +197,31 @@ export const BoxBreathingScreen: React.FC<BoxBreathingScreenProps> = ({
   const dotAnimatedStyle = useAnimatedStyle(() => {
     const side = Math.floor(dotProgress.value);
     const progressOnSide = dotProgress.value - side;
-    const sideLength = BOX_SIZE - DOT_SIZE;
     const halfSize = BOX_SIZE / 2;
+    const borderOffset = 1; // Account for border width
 
     let x = 0;
     let y = 0;
 
     // Top side (0-1): left to right
     if (side === 0) {
-      x = interpolate(progressOnSide, [0, 1], [-halfSize + DOT_SIZE / 2, halfSize - DOT_SIZE / 2], Extrapolate.CLAMP);
+      x = interpolate(progressOnSide, [0, 1], [-halfSize + borderOffset, halfSize - borderOffset], Extrapolate.CLAMP);
       y = -halfSize - DOT_SIZE / 2;
     }
     // Right side (1-2): top to bottom
     else if (side === 1) {
       x = halfSize + DOT_SIZE / 2;
-      y = interpolate(progressOnSide, [0, 1], [-halfSize + DOT_SIZE / 2, halfSize - DOT_SIZE / 2], Extrapolate.CLAMP);
+      y = interpolate(progressOnSide, [0, 1], [-halfSize + borderOffset, halfSize - borderOffset], Extrapolate.CLAMP);
     }
     // Bottom side (2-3): right to left
     else if (side === 2) {
-      x = interpolate(progressOnSide, [0, 1], [halfSize - DOT_SIZE / 2, -halfSize + DOT_SIZE / 2], Extrapolate.CLAMP);
+      x = interpolate(progressOnSide, [0, 1], [halfSize - borderOffset, -halfSize + borderOffset], Extrapolate.CLAMP);
       y = halfSize + DOT_SIZE / 2;
     }
     // Left side (3-4): bottom to top
     else if (side === 3) {
       x = -halfSize - DOT_SIZE / 2;
-      y = interpolate(progressOnSide, [0, 1], [halfSize - DOT_SIZE / 2, -halfSize + DOT_SIZE / 2], Extrapolate.CLAMP);
+      y = interpolate(progressOnSide, [0, 1], [halfSize - borderOffset, -halfSize + borderOffset], Extrapolate.CLAMP);
     }
 
     return {
@@ -228,43 +229,49 @@ export const BoxBreathingScreen: React.FC<BoxBreathingScreenProps> = ({
     };
   });
 
-  // Active path animation - wraps around entire box continuously
-  // Show completed sides + current side in progress for continuous wrap effect
+  // Active path animation - only highlight the current side being performed
   const pathAnimatedStyleTop = useAnimatedStyle(() => {
     const side = Math.floor(dotProgress.value);
-    // Show top side when on top (0) or any subsequent side (completed)
-    if (side >= 0) {
-      return { opacity: 1 };
-    }
-    return { opacity: 0 };
+    // Only show top side when on top (0)
+    return { opacity: side === 0 ? 1 : 0 };
   });
 
   const pathAnimatedStyleRight = useAnimatedStyle(() => {
     const side = Math.floor(dotProgress.value);
-    // Show right side when on right (1) or subsequent sides, with progress animation
-    if (side >= 1) {
-      return { opacity: side === 1 ? pathProgress.value : 1 };
-    }
-    return { opacity: 0 };
+    // Only show right side when on right (1)
+    return { opacity: side === 1 ? pathProgress.value : 0 };
   });
 
   const pathAnimatedStyleBottom = useAnimatedStyle(() => {
     const side = Math.floor(dotProgress.value);
-    // Show bottom side when on bottom (2) or subsequent sides
-    if (side >= 2) {
-      return { opacity: 1 };
-    }
-    return { opacity: 0 };
+    // Only show bottom side when on bottom (2)
+    return { opacity: side === 2 ? 1 : 0 };
   });
 
   const pathAnimatedStyleLeft = useAnimatedStyle(() => {
     const side = Math.floor(dotProgress.value);
-    // Show left side when on left (3) or wrapping back to top (4)
-    if (side >= 3) {
-      return { opacity: side === 3 ? pathProgress.value : 1 };
-    }
-    return { opacity: 0 };
+    // Only show left side when on left (3)
+    return { opacity: side === 3 ? pathProgress.value : 0 };
   });
+
+  // Reset function
+  const handleReset = () => {
+    setIsPaused(true);
+    setCurrentPhase('inhale');
+    setCount(4);
+    setCycle(1);
+    dotProgress.value = 0;
+    pathProgress.value = 0;
+    orbScale.value = 1;
+    setTimeout(() => {
+      setIsPaused(false);
+    }, 100);
+  };
+
+  // Toggle mute function
+  const handleToggleMute = () => {
+    setIsMuted(!isMuted);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -304,11 +311,12 @@ export const BoxBreathingScreen: React.FC<BoxBreathingScreenProps> = ({
           {/* The Path Trace (Subtle Square Border) */}
           <View style={styles.boxBorder} />
 
-          {/* Active Path Indicator - Wraps around box continuously */}
+          {/* Active Path Indicator - Glowing effect on current side only */}
           {/* Top */}
           <Animated.View style={[styles.activePathTop, pathAnimatedStyleTop]}>
+            <View style={styles.glowOverlayTop} />
             <LinearGradient
-              colors={['#19b3e6', 'rgba(25, 179, 230, 0.3)']}
+              colors={['#19b3e6', 'rgba(25, 179, 230, 0.6)', '#19b3e6']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={StyleSheet.absoluteFill}
@@ -316,8 +324,9 @@ export const BoxBreathingScreen: React.FC<BoxBreathingScreenProps> = ({
           </Animated.View>
           {/* Right */}
           <Animated.View style={[styles.activePathRight, pathAnimatedStyleRight]}>
+            <View style={styles.glowOverlayRight} />
             <LinearGradient
-              colors={['#19b3e6', 'rgba(25, 179, 230, 0.3)']}
+              colors={['#19b3e6', 'rgba(25, 179, 230, 0.6)', '#19b3e6']}
               start={{ x: 0, y: 0 }}
               end={{ x: 0, y: 1 }}
               style={StyleSheet.absoluteFill}
@@ -325,8 +334,9 @@ export const BoxBreathingScreen: React.FC<BoxBreathingScreenProps> = ({
           </Animated.View>
           {/* Bottom */}
           <Animated.View style={[styles.activePathBottom, pathAnimatedStyleBottom]}>
+            <View style={styles.glowOverlayBottom} />
             <LinearGradient
-              colors={['#19b3e6', 'rgba(25, 179, 230, 0.3)']}
+              colors={['#19b3e6', 'rgba(25, 179, 230, 0.6)', '#19b3e6']}
               start={{ x: 1, y: 0 }}
               end={{ x: 0, y: 0 }}
               style={StyleSheet.absoluteFill}
@@ -334,8 +344,9 @@ export const BoxBreathingScreen: React.FC<BoxBreathingScreenProps> = ({
           </Animated.View>
           {/* Left */}
           <Animated.View style={[styles.activePathLeft, pathAnimatedStyleLeft]}>
+            <View style={styles.glowOverlayLeft} />
             <LinearGradient
-              colors={['#19b3e6', 'rgba(25, 179, 230, 0.3)']}
+              colors={['#19b3e6', 'rgba(25, 179, 230, 0.6)', '#19b3e6']}
               start={{ x: 0, y: 1 }}
               end={{ x: 0, y: 0 }}
               style={StyleSheet.absoluteFill}
@@ -416,7 +427,11 @@ export const BoxBreathingScreen: React.FC<BoxBreathingScreenProps> = ({
 
         {/* Controls */}
         <View style={styles.controls}>
-          <TouchableOpacity style={styles.controlButton} activeOpacity={0.7}>
+          <TouchableOpacity 
+            onPress={handleReset}
+            style={styles.controlButton} 
+            activeOpacity={0.7}
+          >
             <Icon name="restart_alt" size={28} color="rgba(255,255,255,0.4)" />
           </TouchableOpacity>
           <TouchableOpacity
@@ -431,8 +446,16 @@ export const BoxBreathingScreen: React.FC<BoxBreathingScreenProps> = ({
               color="#ffffff"
             />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.controlButton} activeOpacity={0.7}>
-            <Icon name="volume_up" size={28} color="rgba(255,255,255,0.4)" />
+          <TouchableOpacity 
+            onPress={handleToggleMute}
+            style={styles.controlButton} 
+            activeOpacity={0.7}
+          >
+            <Icon 
+              name={isMuted ? 'volume_off' : 'volume_up'} 
+              size={28} 
+              color="rgba(255,255,255,0.4)" 
+            />
           </TouchableOpacity>
         </View>
       </View>
@@ -502,59 +525,115 @@ const styles = StyleSheet.create({
   },
   activePathTop: {
     position: 'absolute',
-    top: 0,
+    top: -1,
     left: 0,
     right: 0,
-    height: 2,
+    height: 4,
     borderTopLeftRadius: BOX_RADIUS,
     borderTopRightRadius: BOX_RADIUS,
+    overflow: 'hidden',
     shadowColor: '#19b3e6',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.5,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
     shadowRadius: 20,
-    elevation: 10,
+    elevation: 15,
   },
   activePathRight: {
     position: 'absolute',
     top: 0,
-    right: 0,
+    right: -1,
     bottom: 0,
-    width: 2,
+    width: 4,
     borderTopRightRadius: BOX_RADIUS,
     borderBottomRightRadius: BOX_RADIUS,
+    overflow: 'hidden',
     shadowColor: '#19b3e6',
-    shadowOffset: { width: -4, height: 0 },
-    shadowOpacity: 0.5,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
     shadowRadius: 20,
-    elevation: 10,
+    elevation: 15,
   },
   activePathBottom: {
     position: 'absolute',
-    bottom: 0,
+    bottom: -1,
     left: 0,
     right: 0,
-    height: 2,
+    height: 4,
     borderBottomLeftRadius: BOX_RADIUS,
     borderBottomRightRadius: BOX_RADIUS,
+    overflow: 'hidden',
     shadowColor: '#19b3e6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
     shadowRadius: 20,
-    elevation: 10,
+    elevation: 15,
   },
   activePathLeft: {
     position: 'absolute',
     top: 0,
-    left: 0,
+    left: -1,
     bottom: 0,
-    width: 2,
+    width: 4,
     borderTopLeftRadius: BOX_RADIUS,
     borderBottomLeftRadius: BOX_RADIUS,
+    overflow: 'hidden',
     shadowColor: '#19b3e6',
-    shadowOffset: { width: 4, height: 0 },
-    shadowOpacity: 0.5,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
     shadowRadius: 20,
-    elevation: 10,
+    elevation: 15,
+  },
+  glowOverlayTop: {
+    position: 'absolute',
+    top: -10,
+    left: -10,
+    right: -10,
+    height: 24,
+    backgroundColor: 'rgba(25, 179, 230, 0.2)',
+    borderRadius: 12,
+    shadowColor: '#19b3e6',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 15,
+  },
+  glowOverlayRight: {
+    position: 'absolute',
+    top: -10,
+    right: -10,
+    bottom: -10,
+    width: 24,
+    backgroundColor: 'rgba(25, 179, 230, 0.2)',
+    borderRadius: 12,
+    shadowColor: '#19b3e6',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 15,
+  },
+  glowOverlayBottom: {
+    position: 'absolute',
+    bottom: -10,
+    left: -10,
+    right: -10,
+    height: 24,
+    backgroundColor: 'rgba(25, 179, 230, 0.2)',
+    borderRadius: 12,
+    shadowColor: '#19b3e6',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 15,
+  },
+  glowOverlayLeft: {
+    position: 'absolute',
+    top: -10,
+    left: -10,
+    bottom: -10,
+    width: 24,
+    backgroundColor: 'rgba(25, 179, 230, 0.2)',
+    borderRadius: 12,
+    shadowColor: '#19b3e6',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 15,
   },
   travelerDot: {
     position: 'absolute',
