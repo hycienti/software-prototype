@@ -19,7 +19,15 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: {
+        'primary': '#19b3e6',
+        'background-light': '#f6f7f8',
+        'background-dark': '#111d21',
+        'surface-dark': '#1a2c32',
+        'bubble-haven': '#1e3a45',
+        'bubble-user': '#eef2f6',
+        'secondary-green': '#34d399',
+        'mint': '#4fd1c5',
+        'primary-variant': {
           0: 'rgb(var(--color-primary-0)/<alpha-value>)',
           50: 'rgb(var(--color-primary-50)/<alpha-value>)',
           100: 'rgb(var(--color-primary-100)/<alpha-value>)',
