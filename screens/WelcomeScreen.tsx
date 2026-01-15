@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, SafeAreaView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TouchableOpacity, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/utils/cn';

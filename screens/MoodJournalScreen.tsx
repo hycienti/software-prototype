@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, SafeAreaView, TouchableOpacity } from 'react-native';
-import { Slider } from '@react-native-community/slider';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Slider from '@react-native-community/slider';
 import { Icon } from '@/components/ui/Icon';
 import { TextArea } from '@/components/ui/TextArea';
 import { Button } from '@/components/ui/Button';

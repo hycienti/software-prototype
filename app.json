@@ -29,6 +29,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       }
-    }
+    },
+    "main": "expo-router/entry",
+    "scheme": "haven"
   }
 }
