@@ -30,6 +30,8 @@ export default function HomePage() {
   const handleRecommendationPress = (id: string, type: string) => {
     if (type === 'video' || type === 'audio') {
       router.push('/breathing');
+    } else if (type === 'gratitude') {
+      router.push('/gratitude');
     } else {
       // Handle article navigation
       console.log('Article pressed:', id);

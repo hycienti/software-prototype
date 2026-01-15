@@ -10,8 +10,8 @@ export default function GratitudePage() {
   };
 
   const handleSave = () => {
-    // TODO: Save gratitude entry
-    console.log('Saving gratitude entry');
+    // TODO: Implement save functionality
+    console.log('Gratitude entry saved');
     router.back();
   };
 

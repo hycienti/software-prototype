@@ -29,6 +29,13 @@ const recommendations = [
     duration: 'Video',
     imageUri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCXzIYxK9o-pXxamDelLb4ZRuSVsAdysdUoR7eGR70VuA1Z9h1p1hOiBG7ZXgV7vTYMf8Ic96z8U-5mWpZAXbpHW7Wez7RuN6N1h7-EbnWVN6id2CKAw4wcOI_oIzhF-EFsNfuWew70h5HLg7yktTzt4XvwETiKCqhMAdcOfFiyNzfoGDUwpd2kfGe46X1y-jsRuLGVRVQOcFDgu7wiTBOC4zFa0NhA-Yr91Jylzb3HHqyJmC9JOq4vapThpK4FrC5kN782eRGKvEQ',
   },
+  {
+    id: '4',
+    title: 'Gratitude Practice',
+    type: 'gratitude',
+    duration: 'Practice',
+    imageUri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCXzIYxK9o-pXxamDelLb4ZRuSVsAdysdUoR7eGR70VuA1Z9h1p1hOiBG7ZXgV7vTYMf8Ic96z8U-5mWpZAXbpHW7Wez7RuN6N1h7-EbnWVN6id2CKAw4wcOI_oIzhF-EFsNfuWew70h5HLg7yktTzt4XvwETiKCqhMAdcOfFiyNzfoGDUwpd2kfGe46X1y-jsRuLGVRVQOcFDgu7wiTBOC4zFa0NhA-Yr91Jylzb3HHqyJmC9JOq4vapThpK4FrC5kN782eRGKvEQ',
+  },
 ];
 
 interface HomeScreenProps {
@@ -226,6 +233,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                           ? 'headphones'
                           : item.type === 'video'
                             ? 'videocam'
+                            : item.type === 'gratitude'
+                            ? 'favorite'
                             : 'article'
                       }
                       size={16}
