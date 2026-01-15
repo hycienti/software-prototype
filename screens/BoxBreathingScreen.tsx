@@ -228,35 +228,60 @@ export const BoxBreathingScreen: React.FC<BoxBreathingScreenProps> = ({
     };
   });
 
-  // Active path animation (border highlight) - Top
+  // Active path animation - wraps around entire box continuously
+  // Show completed sides + current side in progress for continuous wrap effect
   const pathAnimatedStyleTop = useAnimatedStyle(() => {
     const side = Math.floor(dotProgress.value);
-    return {
-      opacity: side === 0 ? 1 : 0,
-    };
+    // Show top side when on top (0) or any subsequent side (completed)
+    if (side >= 0) {
+      return { opacity: 1 };
+    }
+    return { opacity: 0 };
   });
 
-  // Active path animation - Right
   const pathAnimatedStyleRight = useAnimatedStyle(() => {
     const side = Math.floor(dotProgress.value);
-    return {
-      opacity: side === 1 ? pathProgress.value : 0,
-    };
+    // Show right side when on right (1) or subsequent sides, with progress animation
+    if (side >= 1) {
+      return { opacity: side === 1 ? pathProgress.value : 1 };
+    }
+    return { opacity: 0 };
   });
 
-  // Active path animation - Bottom
   const pathAnimatedStyleBottom = useAnimatedStyle(() => {
     const side = Math.floor(dotProgress.value);
-    return {
-      opacity: side === 2 ? 1 : 0,
-    };
+    // Show bottom side when on bottom (2) or subsequent sides
+    if (side >= 2) {
+      return { opacity: 1 };
+    }
+    return { opacity: 0 };
+  });
+
+  const pathAnimatedStyleLeft = useAnimatedStyle(() => {
+    const side = Math.floor(dotProgress.value);
+    // Show left side when on left (3) or wrapping back to top (4)
+    if (side >= 3) {
+      return { opacity: side === 3 ? pathProgress.value : 1 };
+    }
+    return { opacity: 0 };
   });
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Background Gradients */}
-      <View style={styles.topGradient} />
-      <View style={styles.bottomGradient} />
+      <LinearGradient
+        colors={['rgba(25, 179, 230, 0.05)', 'transparent']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.topGradient}
+      />
+      <LinearGradient
+        colors={['transparent', '#111d21', '#111d21']}
+        locations={[0, 0.5, 1]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.bottomGradient}
+      />
 
       {/* Header */}
       <View style={styles.header}>
@@ -279,7 +304,8 @@ export const BoxBreathingScreen: React.FC<BoxBreathingScreenProps> = ({
           {/* The Path Trace (Subtle Square Border) */}
           <View style={styles.boxBorder} />
 
-          {/* Active Path Indicator - Top */}
+          {/* Active Path Indicator - Wraps around box continuously */}
+          {/* Top */}
           <Animated.View style={[styles.activePathTop, pathAnimatedStyleTop]}>
             <LinearGradient
               colors={['#19b3e6', 'rgba(25, 179, 230, 0.3)']}
@@ -288,7 +314,7 @@ export const BoxBreathingScreen: React.FC<BoxBreathingScreenProps> = ({
               style={StyleSheet.absoluteFill}
             />
           </Animated.View>
-          {/* Active Path Indicator - Right */}
+          {/* Right */}
           <Animated.View style={[styles.activePathRight, pathAnimatedStyleRight]}>
             <LinearGradient
               colors={['#19b3e6', 'rgba(25, 179, 230, 0.3)']}
@@ -297,11 +323,20 @@ export const BoxBreathingScreen: React.FC<BoxBreathingScreenProps> = ({
               style={StyleSheet.absoluteFill}
             />
           </Animated.View>
-          {/* Active Path Indicator - Bottom */}
+          {/* Bottom */}
           <Animated.View style={[styles.activePathBottom, pathAnimatedStyleBottom]}>
             <LinearGradient
               colors={['#19b3e6', 'rgba(25, 179, 230, 0.3)']}
               start={{ x: 1, y: 0 }}
+              end={{ x: 0, y: 0 }}
+              style={StyleSheet.absoluteFill}
+            />
+          </Animated.View>
+          {/* Left */}
+          <Animated.View style={[styles.activePathLeft, pathAnimatedStyleLeft]}>
+            <LinearGradient
+              colors={['#19b3e6', 'rgba(25, 179, 230, 0.3)']}
+              start={{ x: 0, y: 1 }}
               end={{ x: 0, y: 0 }}
               style={StyleSheet.absoluteFill}
             />
@@ -416,7 +451,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: '33%',
-    backgroundColor: 'rgba(25, 179, 230, 0.05)',
+    pointerEvents: 'none',
   },
   bottomGradient: {
     position: 'absolute',
@@ -424,7 +459,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: '25%',
-    backgroundColor: '#111d21',
+    pointerEvents: 'none',
   },
   header: {
     flexDirection: 'row',
@@ -503,6 +538,20 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: BOX_RADIUS,
     shadowColor: '#19b3e6',
     shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  activePathLeft: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+    width: 2,
+    borderTopLeftRadius: BOX_RADIUS,
+    borderBottomLeftRadius: BOX_RADIUS,
+    shadowColor: '#19b3e6',
+    shadowOffset: { width: 4, height: 0 },
     shadowOpacity: 0.5,
     shadowRadius: 20,
     elevation: 10,

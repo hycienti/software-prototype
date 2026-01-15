@@ -63,24 +63,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           locations={[0, 0.2, 0.5, 0.8, 1]}
           style={StyleSheet.absoluteFill}
         />
-        <View 
-          style={[
-            styles.backgroundBlob1,
-            { backgroundColor: 'rgba(25, 179, 230, 0.1)' }
-          ]} 
-        />
-        <View 
-          style={[
-            styles.backgroundBlob2,
-            { backgroundColor: 'rgba(88, 28, 135, 0.15)' }
-          ]} 
-        />
-        <View 
-          style={[
-            styles.backgroundBlob3,
-            { backgroundColor: 'rgba(79, 209, 197, 0.08)' }
-          ]} 
-        />
+        <View style={[styles.backgroundBlob1, { backgroundColor: 'rgba(25, 179, 230, 0.1)' }]} />
+        <View style={[styles.backgroundBlob2, { backgroundColor: 'rgba(88, 28, 135, 0.15)' }]} />
+        <View style={[styles.backgroundBlob3, { backgroundColor: 'rgba(79, 209, 197, 0.08)' }]} />
       </View>
 
       <View style={styles.headerContainer}>
@@ -93,29 +78,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         </TouchableOpacity>
       </View>
 
-      <ScrollView className="flex-1 relative z-10" showsVerticalScrollIndicator={false}>
+      <ScrollView className="relative z-10 flex-1" showsVerticalScrollIndicator={false}>
         <View className="w-full">
-          <Text style={styles.greetingText}>
-            Hello, Alex.{'\n'}How are you feeling today?
-          </Text>
+          <Text style={styles.greetingText}>Hello, Alex.{'\n'}How are you feeling today?</Text>
         </View>
 
-        <View className="flex-row gap-3 p-4">
-          <TouchableOpacity
-            onPress={onChatPress}
-            style={styles.cardContainer}
-            activeOpacity={0.98}
-          >
+        <View className="flex-row gap-3 p-4" style={{ gap: 16 }}>
+          <TouchableOpacity onPress={onChatPress} style={styles.cardContainer} activeOpacity={0.98}>
             <ImageBackground
-              source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA0TwLPJpFyltvNxAuh1BsiBUyH-Ednt2kwON5bpeunYV-by92Z0v858XJUU8ZlmWUngH1YsUoZTciiTg8BW8lJ0IYIfxYyA-RAy9nlZHebz6K35xV3apvZMfr60wyefj9EVh_TMhbzI3zg68U6oH5lHQkHaGgm47Tt1CJA31HZ7GmRqObgXi3hrX7C_W8EZSJd4gMzE94KaqaRGY8nkmPbE0WlXNHdyqRcvdSmJleaEmBdZP97hDHc4oyTsKLqL7vcrmq_3-FCjBI' }}
+              source={{
+                uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA0TwLPJpFyltvNxAuh1BsiBUyH-Ednt2kwON5bpeunYV-by92Z0v858XJUU8ZlmWUngH1YsUoZTciiTg8BW8lJ0IYIfxYyA-RAy9nlZHebz6K35xV3apvZMfr60wyefj9EVh_TMhbzI3zg68U6oH5lHQkHaGgm47Tt1CJA31HZ7GmRqObgXi3hrX7C_W8EZSJd4gMzE94KaqaRGY8nkmPbE0WlXNHdyqRcvdSmJleaEmBdZP97hDHc4oyTsKLqL7vcrmq_3-FCjBI',
+              }}
               style={styles.cardBackground}
-              resizeMode="cover"
-            >
+              resizeMode="cover">
               <LinearGradient
-                colors={[
-                  'rgba(25, 179, 230, 0.1)',
-                  'rgba(17, 29, 33, 0.8)',
-                ]}
+                colors={['rgba(25, 179, 230, 0.1)', 'rgba(17, 29, 33, 0.8)']}
                 locations={[0, 1]}
                 style={StyleSheet.absoluteFill}
               />
@@ -134,18 +111,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <TouchableOpacity
             onPress={onVoicePress}
             style={styles.cardContainer}
-            activeOpacity={0.98}
-          >
+            activeOpacity={0.98}>
             <ImageBackground
-              source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD8cfC6f-LljcQVvCnJ8V_MUx9KADPkXsVCfVN_4bA5mB-5LvavqE7ekpKlrmG1KsMujfz5d6um4pSlFRqD11YKQ6NSbiQXwjb0-oXCSB6C5B2KP0-lrAUvlMqVoiCUQ580Pf_c0p3MKL-IsDeWNzytIqPSjcd6zHzJSLXmvm-uaVMH_5htfhYC_1_hTavWJ6CUr1u2aV_2-MNxyiRBad2yiFYtyVaowyyVOgPpWG_ouHnbhUpUcLIrBqGdaP6qvP3hyTEUWC24zI4' }}
+              source={{
+                uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD8cfC6f-LljcQVvCnJ8V_MUx9KADPkXsVCfVN_4bA5mB-5LvavqE7ekpKlrmG1KsMujfz5d6um4pSlFRqD11YKQ6NSbiQXwjb0-oXCSB6C5B2KP0-lrAUvlMqVoiCUQ580Pf_c0p3MKL-IsDeWNzytIqPSjcd6zHzJSLXmvm-uaVMH_5htfhYC_1_hTavWJ6CUr1u2aV_2-MNxyiRBad2yiFYtyVaowyyVOgPpWG_ouHnbhUpUcLIrBqGdaP6qvP3hyTEUWC24zI4',
+              }}
               style={styles.cardBackground}
-              resizeMode="cover"
-            >
+              resizeMode="cover">
               <LinearGradient
-                colors={[
-                  'rgba(25, 179, 230, 0.1)',
-                  'rgba(17, 29, 33, 0.8)',
-                ]}
+                colors={['rgba(25, 179, 230, 0.1)', 'rgba(17, 29, 33, 0.8)']}
                 locations={[0, 1]}
                 style={StyleSheet.absoluteFill}
               />
@@ -162,12 +136,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </TouchableOpacity>
         </View>
 
-        <View className="flex-col gap-3 px-4 pb-2">
+        <View className="flex-col gap-3 px-4 pb-2" style={{ gap: 16 }}>
           <TouchableOpacity
             onPress={onJournalPress}
             style={styles.actionButtonDark}
-            activeOpacity={0.98}
-          >
+            activeOpacity={0.98}>
             <View style={styles.actionIconContainer}>
               <View style={[styles.actionIcon, { backgroundColor: 'rgba(249, 115, 22, 0.1)' }]}>
                 <Icon name="book_2" size={24} color="#f97316" />
@@ -183,8 +156,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <TouchableOpacity
             onPress={onWellnessPress}
             style={styles.actionButtonDark}
-            activeOpacity={0.98}
-          >
+            activeOpacity={0.98}>
             <View style={styles.actionIconContainer}>
               <View style={[styles.actionIcon, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
                 <Icon name="self_improvement" size={24} color="#10b981" />
@@ -200,8 +172,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <TouchableOpacity
             onPress={onProfilePress}
             style={styles.actionButtonDark}
-            activeOpacity={0.98}
-          >
+            activeOpacity={0.98}>
             <View style={styles.actionIconContainer}>
               <View style={[styles.actionIcon, { backgroundColor: 'rgba(139, 92, 246, 0.1)' }]}>
                 <Icon name="person" size={24} color="#8b5cf6" />
@@ -222,15 +193,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={styles.recommendationsScroll}
-        >
+          style={styles.recommendationsScroll}>
           <View style={styles.recommendationsContainer}>
             {recommendations.map((item) => (
               <TouchableOpacity
                 key={item.id}
                 onPress={() => onRecommendationPress?.(item.id, item.type)}
-                style={styles.recommendationCard}
-              >
+                style={styles.recommendationCard}>
                 <View style={styles.recommendationImageContainer}>
                   {item.imageUri && (
                     <Image
@@ -252,7 +221,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                   <Text style={styles.recommendationTitle}>{item.title}</Text>
                   <View style={styles.recommendationMeta}>
                     <Icon
-                      name={item.type === 'audio' ? 'headphones' : item.type === 'video' ? 'videocam' : 'article'}
+                      name={
+                        item.type === 'audio'
+                          ? 'headphones'
+                          : item.type === 'video'
+                            ? 'videocam'
+                            : 'article'
+                      }
                       size={16}
                       color="#19b3e6"
                     />
