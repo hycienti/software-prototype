@@ -27,7 +27,10 @@ const PHASE_DURATIONS: Record<BreathingPhase, number> = {
   hold2: 4000,
 };
 
-export const BoxBreathingScreen: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
+export const BoxBreathingScreen: React.FC<{ onBack?: () => void; onSettings?: () => void }> = ({
+  onBack,
+  onSettings,
+}) => {
   const [isPaused, setIsPaused] = useState(false);
   const [currentPhase, setCurrentPhase] = useState<BreathingPhase>('inhale');
   const [count, setCount] = useState(4);
@@ -210,7 +213,7 @@ export const BoxBreathingScreen: React.FC<{ onBack?: () => void }> = ({ onBack }
           <Icon name="close" size={28} color="rgba(255,255,255,0.8)" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Box Breathing</Text>
-        <TouchableOpacity style={styles.headerBtn}>
+        <TouchableOpacity style={styles.headerBtn} onPress={onSettings} activeOpacity={0.7}>
           <Icon name="settings" size={28} color="rgba(255,255,255,0.8)" />
         </TouchableOpacity>
       </View>

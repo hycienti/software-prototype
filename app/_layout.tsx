@@ -24,6 +24,7 @@ export default function RootLayout() {
           <Stack.Screen name="therapist/[id]" />
           <Stack.Screen name="payment" />
           <Stack.Screen name="breathing" />
+          <Stack.Screen name="box-breathing-settings" />
           <Stack.Screen name="journal" />
           <Stack.Screen name="gratitude" />
           <Stack.Screen name="gratitude-history" />

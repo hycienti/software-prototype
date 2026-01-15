@@ -9,7 +9,11 @@ export default function BreathingPage() {
     router.back();
   };
 
+  const handleSettings = () => {
+    router.push('/box-breathing-settings');
+  };
+
   return (
-    <BoxBreathingScreen onBack={handleBack} />
+    <BoxBreathingScreen onBack={handleBack} onSettings={handleSettings} />
   );
 }

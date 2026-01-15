@@ -75,6 +75,15 @@ const iconMap: Record<string, keyof typeof MaterialIcons.glyphMap> = {
   nightlight: 'nightlight',
   monitor_heart: 'favorite',
   edit: 'edit',
+  arrow_back_ios_new: 'arrow-back-ios',
+  arrow_upward: 'arrow-upward',
+  arrow_downward: 'arrow-downward',
+  pause: 'pause',
+  vibration: 'vibration',
+  record_voice_over: 'record-voice-over',
+  music_note: 'music-note',
+  air: 'air',
+  forest: 'park',
 };
 
 export const Icon: React.FC<IconProps> = ({ name, size = 24, color = '#6b7280' }) => {
