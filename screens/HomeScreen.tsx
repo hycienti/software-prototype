@@ -54,36 +54,41 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       <View style={StyleSheet.absoluteFill} className="bg-background-dark">
         <LinearGradient
           colors={[
-            'rgba(30, 41, 59, 0.3)',
-            'rgba(15, 23, 42, 0.15)',
-            'rgba(17, 29, 33, 0.1)',
+            'rgba(30, 41, 59, 0.4)',
+            'rgba(15, 23, 42, 0.25)',
+            'rgba(17, 29, 33, 0.15)',
+            'rgba(17, 29, 33, 0.05)',
             'transparent',
           ]}
-          locations={[0, 0.3, 0.6, 1]}
+          locations={[0, 0.2, 0.5, 0.8, 1]}
           style={StyleSheet.absoluteFill}
         />
         <View 
           style={[
             styles.backgroundBlob1,
-            { backgroundColor: 'rgba(25, 179, 230, 0.08)' }
+            { backgroundColor: 'rgba(25, 179, 230, 0.1)' }
           ]} 
         />
         <View 
           style={[
             styles.backgroundBlob2,
-            { backgroundColor: 'rgba(88, 28, 135, 0.12)' }
+            { backgroundColor: 'rgba(88, 28, 135, 0.15)' }
+          ]} 
+        />
+        <View 
+          style={[
+            styles.backgroundBlob3,
+            { backgroundColor: 'rgba(79, 209, 197, 0.08)' }
           ]} 
         />
       </View>
 
-      <View style={styles.headerContainer} className="flex-row items-center p-4 pb-2 justify-between relative z-10">
-        <TouchableOpacity className="w-12 h-12 shrink-0 items-center justify-start">
+      <View style={styles.headerContainer}>
+        <TouchableOpacity style={styles.headerButton} activeOpacity={0.7}>
           <Icon name="menu" size={30} color="#ffffff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} className="text-lg font-bold flex-1 text-center text-white">
-          Haven
-        </Text>
-        <TouchableOpacity className="w-12 h-12 items-center justify-end">
+        <Text style={styles.headerTitle}>Haven</Text>
+        <TouchableOpacity style={styles.headerButton} activeOpacity={0.7}>
           <Icon name="notifications" size={24} color="#ffffff" />
         </TouchableOpacity>
       </View>
@@ -265,11 +270,23 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
 const styles = StyleSheet.create({
   headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    paddingTop: 8,
+    justifyContent: 'space-between',
     backgroundColor: 'transparent',
+    position: 'relative',
+    zIndex: 10,
   },
   headerTitle: {
     letterSpacing: -0.015 * 18, // tracking-[-0.015em] for text-lg (18px)
     color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '700',
+    flex: 1,
+    textAlign: 'center',
   },
   greetingText: {
     fontSize: 28,
@@ -280,6 +297,15 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     textAlign: 'left',
     color: '#ffffff',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
+  },
+  headerButton: {
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   backgroundBlob1: {
     position: 'absolute',
@@ -288,7 +314,7 @@ const styles = StyleSheet.create({
     width: 400,
     height: 400,
     borderRadius: 200,
-    opacity: 0.4,
+    opacity: 0.5,
   },
   backgroundBlob2: {
     position: 'absolute',
@@ -297,7 +323,16 @@ const styles = StyleSheet.create({
     width: 350,
     height: 350,
     borderRadius: 175,
-    opacity: 0.4,
+    opacity: 0.5,
+  },
+  backgroundBlob3: {
+    position: 'absolute',
+    top: '40%',
+    right: '10%',
+    width: 250,
+    height: 250,
+    borderRadius: 125,
+    opacity: 0.3,
   },
   cardContainer: {
     flex: 1,
@@ -305,10 +340,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   cardBackground: {
     flex: 1,
@@ -326,10 +361,12 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(25, 179, 230, 0.2)',
+    backgroundColor: 'rgba(25, 179, 230, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: 'rgba(25, 179, 230, 0.3)',
   },
   cardTitle: {
     fontSize: 18,
@@ -337,11 +374,17 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     color: '#ffffff',
     width: '100%',
+    textShadowColor: 'rgba(0, 0, 0, 0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   cardSubtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(255, 255, 255, 0.75)',
     marginTop: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   playButtonContainer: {
     position: 'absolute',
@@ -357,9 +400,16 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   actionButtonDark: {
     flexDirection: 'row',
@@ -368,7 +418,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: '#1a2c32',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   actionIconContainer: {
     width: 48,
@@ -380,6 +435,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   actionTextContainer: {
     flexDirection: 'column',
@@ -391,12 +448,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#ffffff',
+    letterSpacing: -0.2,
   },
   actionSubtitle: {
     fontSize: 14,
     fontWeight: '500',
-    color: 'rgba(148, 163, 184, 0.8)',
+    color: 'rgba(148, 163, 184, 0.85)',
     marginTop: 2,
+    letterSpacing: -0.1,
   },
   recommendedTitle: {
     fontSize: 18,
@@ -433,6 +492,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#1e293b',
     position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 6,
   },
   recommendationImage: {
     width: '100%',
@@ -451,6 +515,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     lineHeight: 22,
     color: '#ffffff',
+    letterSpacing: -0.1,
   },
   recommendationMeta: {
     flexDirection: 'row',
