@@ -1,9 +1,16 @@
 import React from 'react';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ChatScreen } from '@/screens/ChatScreen';
+import { useConversationContext } from '@/contexts/ConversationContext';
 
 export default function ChatPage() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ conversationId?: string }>();
+  const { currentConversation } = useConversationContext();
+
+  const conversationId = params.conversationId
+    ? Number(params.conversationId)
+    : currentConversation?.id || null;
 
   const handleBack = () => {
     router.back();
@@ -22,6 +29,8 @@ export default function ChatPage() {
       onBack={handleBack}
       onTalkToHuman={handleTalkToHuman}
       onVoicePress={handleVoicePress}
+      conversationId={conversationId}
+      useStreaming={true}
     />
   );
 }

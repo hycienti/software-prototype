@@ -1,8 +1,10 @@
-import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import { Audio } from 'expo-av';
+import * as Haptics from 'expo-haptics';
 import Animated, {
   useAnimatedStyle,
   withRepeat,
@@ -13,16 +15,41 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/utils/cn';
+import { recordAudio, stopRecordingAndGetBase64, playAudioFromBase64 } from '@/utils/voiceHelper';
+import { useProcessVoiceMessage } from '@/hooks/useVoice';
+import { useConversationContext } from '@/contexts/ConversationContext';
+
+type VoiceState = 'idle' | 'listening' | 'thinking' | 'speaking';
 
 interface VoiceScreenProps {
   onBack?: () => void;
   onKeyboardPress?: () => void;
+  conversationId?: number | null;
 }
 
 export const VoiceScreen: React.FC<VoiceScreenProps> = ({
   onBack,
   onKeyboardPress,
+  conversationId = null,
 }) => {
+  const [voiceState, setVoiceState] = useState<VoiceState>('idle');
+  const [currentConversationId, setCurrentConversationId] = useState<number | null>(conversationId);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [audioLevel, setAudioLevel] = useState(0);
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const durationTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const audioLevelIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const processVoiceMutation = useProcessVoiceMessage();
+  const { currentConversation, updateConversationId } = useConversationContext();
+
+  // Sync conversation ID from context
+  useEffect(() => {
+    if (currentConversation?.id && currentConversation.id !== currentConversationId) {
+      setCurrentConversationId(currentConversation.id);
+    }
+  }, [currentConversation]);
+
   // Blob animation values
   const blobProgress = useSharedValue(0);
   const innerGlowOpacity = useSharedValue(0.3);
@@ -138,6 +165,252 @@ export const VoiceScreen: React.FC<VoiceScreenProps> = ({
     );
   }, []);
 
+  // Cleanup recording on unmount
+  useEffect(() => {
+    return () => {
+      if (recordingRef.current) {
+        recordingRef.current.stopAndUnloadAsync().catch(console.error);
+      }
+      if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current);
+      }
+      if (durationTimerRef.current) {
+        clearInterval(durationTimerRef.current);
+      }
+      if (audioLevelIntervalRef.current) {
+        clearInterval(audioLevelIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // Update visualizer animation based on voice state and audio levels
+  useEffect(() => {
+    if (voiceState === 'listening') {
+      // Real-time audio level based animation
+      const updateBars = () => {
+        if (voiceState === 'listening' && audioLevel > 0) {
+          // Use actual audio level for more dynamic visualization
+          const baseLevel = audioLevel;
+          bar1.value = withTiming(baseLevel * 0.8, { duration: 100 });
+          bar2.value = withTiming(baseLevel * 1.0, { duration: 100 });
+          bar3.value = withTiming(baseLevel * 1.2, { duration: 100 });
+          bar4.value = withTiming(baseLevel * 0.9, { duration: 100 });
+          bar5.value = withTiming(baseLevel * 0.7, { duration: 100 });
+        }
+      };
+      const interval = setInterval(updateBars, 100);
+      return () => clearInterval(interval);
+    } else if (voiceState === 'speaking') {
+      // Active animation for speaking
+      bar1.value = withRepeat(
+        withTiming(1, { duration: 500, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true
+      );
+      bar2.value = withRepeat(
+        withTiming(1, { duration: 600, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true
+      );
+      bar3.value = withRepeat(
+        withTiming(1, { duration: 400, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true
+      );
+      bar4.value = withRepeat(
+        withTiming(1, { duration: 750, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true
+      );
+      bar5.value = withRepeat(
+        withTiming(1, { duration: 550, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true
+      );
+    } else {
+      // Calmer animation for idle/thinking
+      bar1.value = withRepeat(
+        withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true
+      );
+      bar2.value = withRepeat(
+        withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true
+      );
+      bar3.value = withRepeat(
+        withTiming(1, { duration: 800, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true
+      );
+      bar4.value = withRepeat(
+        withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true
+      );
+      bar5.value = withRepeat(
+        withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true
+      );
+    }
+  }, [voiceState, audioLevel]);
+
+  // Voice recording handlers
+  const handleStartRecording = useCallback(async () => {
+    try {
+      setVoiceState('listening');
+      setRecordingDuration(0);
+      setAudioLevel(0);
+      const recording = await recordAudio();
+      recordingRef.current = recording;
+
+      // Start duration timer
+      durationTimerRef.current = setInterval(() => {
+        setRecordingDuration((prev) => {
+          const newDuration = prev + 1;
+          // Auto-stop at 60 seconds
+          if (newDuration >= 60) {
+            handleStopRecording();
+            return 60;
+          }
+          return newDuration;
+        });
+      }, 1000);
+
+      // Monitor audio levels for VAD and visualization
+      audioLevelIntervalRef.current = setInterval(async () => {
+        if (recording) {
+          try {
+            const status = await recording.getStatusAsync();
+            if (status.metering !== undefined) {
+              // Normalize metering value (-160 to 0 dB) to 0-1
+              const normalizedLevel = Math.max(0, Math.min(1, (status.metering + 60) / 60));
+              setAudioLevel(normalizedLevel);
+
+              // Voice Activity Detection: Auto-stop after 2.5 seconds of silence
+              if (status.metering < -40) {
+                // Silence detected
+                if (!silenceTimerRef.current) {
+                  silenceTimerRef.current = setTimeout(() => {
+                    if (voiceState === 'listening') {
+                      handleStopRecording();
+                    }
+                  }, 2500);
+                }
+              } else {
+                // Sound detected, clear silence timer
+                if (silenceTimerRef.current) {
+                  clearTimeout(silenceTimerRef.current);
+                  silenceTimerRef.current = null;
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error getting recording status:', error);
+          }
+        }
+      }, 100);
+
+      // Haptic feedback
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch (error: any) {
+      Alert.alert('Error', error?.message || 'Failed to start recording');
+      setVoiceState('idle');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+  }, [voiceState]);
+
+  const handleStopRecording = useCallback(async () => {
+    try {
+      if (!recordingRef.current) return;
+
+      // Clear timers
+      if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = null;
+      }
+      if (durationTimerRef.current) {
+        clearInterval(durationTimerRef.current);
+        durationTimerRef.current = null;
+      }
+      if (audioLevelIntervalRef.current) {
+        clearInterval(audioLevelIntervalRef.current);
+        audioLevelIntervalRef.current = null;
+      }
+
+      setVoiceState('thinking');
+      setAudioLevel(0);
+      const audioBase64 = await stopRecordingAndGetBase64(recordingRef.current);
+      recordingRef.current = null;
+      setRecordingDuration(0);
+
+      // Haptic feedback
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      // Process voice message
+      const response = await processVoiceMutation.mutateAsync({
+        conversationId: currentConversationId || undefined,
+        audioData: audioBase64,
+        audioFormat: 'm4a', // iOS default format
+        language: 'en',
+      });
+
+      // Update conversation ID if this was a new conversation
+      if (!currentConversationId && response.conversation.id) {
+        setCurrentConversationId(response.conversation.id);
+        updateConversationId(response.conversation.id);
+      }
+
+      // Check for crisis indicators
+      if (response.sentiment?.crisisIndicators && response.sentiment.crisisIndicators.length > 0) {
+        Alert.alert(
+          'Support Available',
+          "I've noticed some concerning indicators. Would you like to speak with a human therapist?",
+          [
+            { text: 'Continue', style: 'cancel' },
+            { text: 'Talk to Human', onPress: () => onKeyboardPress?.() },
+          ]
+        );
+      }
+
+      // Play AI response audio
+      setVoiceState('speaking');
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      await playAudioFromBase64(response.audioData, 'mp3');
+      setVoiceState('idle');
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (error: any) {
+      Alert.alert('Error', error?.message || 'Failed to process voice message');
+      setVoiceState('idle');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+  }, [currentConversationId, processVoiceMutation, onKeyboardPress, updateConversationId]);
+
+  // Handle blob press for recording
+  const handleBlobPress = useCallback(() => {
+    if (voiceState === 'idle') {
+      handleStartRecording();
+    } else if (voiceState === 'listening') {
+      handleStopRecording();
+    }
+  }, [voiceState, handleStartRecording, handleStopRecording]);
+
+  // Get status text based on state
+  const getStatusText = () => {
+    switch (voiceState) {
+      case 'listening':
+        return "I'm listening...";
+      case 'thinking':
+        return "I'm thinking...";
+      case 'speaking':
+        return "I'm speaking...";
+      default:
+        return "Tap to speak...";
+    }
+  };
+
   // Blob border-radius morphing animation
   // Note: React Native doesn't support complex border-radius strings, so we approximate with simpler values
   const blobStyle = useAnimatedStyle(() => {
@@ -252,8 +525,16 @@ export const VoiceScreen: React.FC<VoiceScreenProps> = ({
         <Animated.Text 
           style={[styles.listeningText, listeningTextStyle]}
         >
-          I'm listening...
+          {getStatusText()}
         </Animated.Text>
+        {voiceState === 'listening' && recordingDuration > 0 && (
+          <Text style={styles.recordingDuration}>
+            {Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, '0')}
+            {recordingDuration >= 55 && (
+              <Text style={styles.durationWarning}> (Max 60s)</Text>
+            )}
+          </Text>
+        )}
       </View>
 
       {/* Main Content: The Blob */}
@@ -267,7 +548,12 @@ export const VoiceScreen: React.FC<VoiceScreenProps> = ({
           </View>
 
           {/* The Core Blob */}
-          <View className="relative w-64 h-64">
+          <TouchableOpacity
+            onPress={handleBlobPress}
+            activeOpacity={0.9}
+            disabled={voiceState === 'thinking' || voiceState === 'speaking'}
+            className="relative w-64 h-64"
+          >
             {/* Inner Glow */}
             <Animated.View 
               style={[
@@ -280,17 +566,37 @@ export const VoiceScreen: React.FC<VoiceScreenProps> = ({
             {/* Main Animated Shape */}
             <Animated.View style={[styles.blob, blobStyle]}>
               <LinearGradient
-                colors={[
-                  'rgba(25, 179, 230, 0.8)',
-                  'rgba(76, 29, 149, 0.6)',
-                  'rgba(17, 29, 33, 0.1)',
-                ]}
+                colors={
+                  voiceState === 'listening'
+                    ? [
+                        'rgba(25, 179, 230, 0.9)',
+                        'rgba(76, 29, 149, 0.7)',
+                        'rgba(17, 29, 33, 0.2)',
+                      ]
+                    : voiceState === 'thinking'
+                    ? [
+                        'rgba(139, 92, 246, 0.8)',
+                        'rgba(88, 28, 135, 0.6)',
+                        'rgba(17, 29, 33, 0.1)',
+                      ]
+                    : voiceState === 'speaking'
+                    ? [
+                        'rgba(34, 197, 94, 0.8)',
+                        'rgba(25, 179, 230, 0.6)',
+                        'rgba(17, 29, 33, 0.1)',
+                      ]
+                    : [
+                        'rgba(25, 179, 230, 0.8)',
+                        'rgba(76, 29, 149, 0.6)',
+                        'rgba(17, 29, 33, 0.1)',
+                      ]
+                }
                 start={{ x: 0.3, y: 0.3 }}
                 end={{ x: 1, y: 1 }}
                 style={StyleSheet.absoluteFill}
               />
             </Animated.View>
-          </View>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -529,5 +835,16 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     textTransform: 'uppercase',
     marginTop: 24,
+  },
+  recordingDuration: {
+    marginTop: 8,
+    fontSize: 14,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
+  },
+  durationWarning: {
+    color: '#f87171',
+    fontWeight: '600',
   },
 });

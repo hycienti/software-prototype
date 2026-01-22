@@ -1,7 +1,9 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/utils/cn';
+import { formatMessageTime } from '@/utils/timeUtils';
 
 interface ChatBubbleProps {
   message: string;
@@ -9,6 +11,9 @@ interface ChatBubbleProps {
   timestamp?: string;
   showAvatar?: boolean;
   avatarUri?: string;
+  pending?: boolean;
+  error?: boolean;
+  index?: number;
 }
 
 const havenAvatars = [
@@ -17,21 +22,28 @@ const havenAvatars = [
   'https://lh3.googleusercontent.com/aida-public/AB6AXuAe8RFfY736d1qSC7thn6DYIe8U1E7BqMCz1GYgbyFQMXGC_4OmwQ3n9ISRgGL7_t7Rrob7jmyLjO1p3-UA8PP7PSp2q0nLv633JPzCSJQ_5VUq_093DSHghXJe-uftMRmM2mp_7MnDOWMNtWTsnHxCiuhW-VZGXeyTDRvFRBDy5HY5A_7ZfgjrGkXKFEh2z6Hx7oQIU4GzxUjzClFlzv9uvKORvXmytJSieF0W2IYyhKTNRa-0ZJJXAlu9X64tnVSBv5_SeVjdu_4',
 ];
 
-export const ChatBubble: React.FC<ChatBubbleProps> = ({
+export const ChatBubble = React.memo<ChatBubbleProps>(({
   message,
   isUser,
   timestamp,
   showAvatar = false,
   avatarUri,
+  pending = false,
+  error = false,
+  index = 0,
 }) => {
   // Use first Haven avatar for consistency (HTML shows different ones for visual variety)
   const avatarUrl = avatarUri || (showAvatar ? havenAvatars[0] : undefined);
+  const formattedTimestamp = timestamp ? formatMessageTime(timestamp) : undefined;
 
   return (
-    <View
+    <Animated.View
+      entering={FadeInDown.delay(index * 50).duration(300)}
       style={[
         styles.container,
-        isUser && styles.containerUser
+        isUser && styles.containerUser,
+        pending && styles.containerPending,
+        error && styles.containerError,
       ]}
     >
       {!isUser && showAvatar && avatarUrl && (
@@ -52,18 +64,32 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
             {message}
           </Text>
         </View>
-        {timestamp && (
+        {formattedTimestamp && (
           <View style={[styles.timestampContainer, isUser && styles.timestampContainerUser]}>
-            <Text style={styles.timestamp}>{timestamp}</Text>
-            {isUser && (
+            <Text style={styles.timestamp}>{formattedTimestamp}</Text>
+            {isUser && !pending && !error && (
               <Icon name="done_all" size={12} color="#19b3e6" />
+            )}
+            {isUser && pending && (
+              <Icon name="schedule" size={12} color="#9ca3af" />
+            )}
+            {isUser && error && (
+              <Icon name="error" size={12} color="#f87171" />
             )}
           </View>
         )}
       </View>
-    </View>
+    </Animated.View>
   );
-};
+}, (prevProps, nextProps) => {
+  // Memo comparison - only re-render if these change
+  return (
+    prevProps.message === nextProps.message &&
+    prevProps.timestamp === nextProps.timestamp &&
+    prevProps.pending === nextProps.pending &&
+    prevProps.error === nextProps.error
+  );
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -130,5 +156,11 @@ const styles = StyleSheet.create({
   timestamp: {
     fontSize: 10,
     color: 'rgba(156, 163, 175, 0.8)',
+  },
+  containerPending: {
+    opacity: 0.7,
+  },
+  containerError: {
+    opacity: 0.8,
   },
 });
