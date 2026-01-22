@@ -1,28 +1,51 @@
-import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, TextInput, TouchableOpacity, StyleSheet, Text } from 'react-native';
 import { BlurView } from 'expo-blur';
+import * as Haptics from 'expo-haptics';
 import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/utils/cn';
+
+const MAX_MESSAGE_LENGTH = 5000;
+const WARNING_LENGTH = 4500;
 
 interface ChatInputProps {
   onSend: (message: string) => void;
   onVoicePress?: () => void;
   placeholder?: string;
+  disabled?: boolean;
+  useStreaming?: boolean;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
   onSend,
   onVoicePress,
   placeholder = 'Type your thoughts...',
+  disabled = false,
+  useStreaming = false,
 }) => {
   const [message, setMessage] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
 
-  const handleSend = () => {
-    if (message.trim()) {
-      onSend(message);
+  const handleSend = useCallback(() => {
+    const trimmedMessage = message.trim();
+    if (trimmedMessage && !disabled && trimmedMessage.length <= MAX_MESSAGE_LENGTH) {
+      // Haptic feedback
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      onSend(trimmedMessage);
       setMessage('');
     }
-  };
+  }, [message, disabled, onSend]);
+
+  const handleChangeText = useCallback((text: string) => {
+    if (text.length <= MAX_MESSAGE_LENGTH) {
+      setMessage(text);
+    }
+  }, []);
+
+  const characterCount = message.length;
+  const isNearLimit = characterCount >= WARNING_LENGTH;
+  const isAtLimit = characterCount >= MAX_MESSAGE_LENGTH;
+  const canSend = message.trim().length > 0 && !disabled && !isAtLimit;
 
   return (
     <View style={styles.container}>
@@ -44,20 +67,31 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
           <TextInput
             value={message}
-            onChangeText={setMessage}
+            onChangeText={handleChangeText}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
             placeholder={placeholder}
             placeholderTextColor="#9CA3AF"
             multiline
             style={styles.textInput}
+            editable={!disabled}
+            maxLength={MAX_MESSAGE_LENGTH}
           />
+          {isNearLimit && (
+            <View style={styles.characterCount}>
+              <Text style={[styles.characterCountText, isAtLimit && styles.characterCountWarning]}>
+                {characterCount}/{MAX_MESSAGE_LENGTH}
+              </Text>
+            </View>
+          )}
           <TouchableOpacity
             onPress={handleSend}
             style={styles.sendButton}
-            disabled={!message.trim()}
+            disabled={!canSend}
             activeOpacity={0.8}
           >
-            <View style={[styles.sendButtonInner, !message.trim() && styles.sendButtonDisabled]}>
-              <Icon name="arrow_upward" size={20} color={message.trim() ? "#111d21" : "#6b7280"} />
+            <View style={[styles.sendButtonInner, !canSend && styles.sendButtonDisabled]}>
+              <Icon name="arrow_upward" size={20} color={canSend ? "#111d21" : "#6b7280"} />
             </View>
           </TouchableOpacity>
         </View>
@@ -151,5 +185,22 @@ const styles = StyleSheet.create({
   safeArea: {
     height: 4,
     width: '100%',
+  },
+  characterCount: {
+    position: 'absolute',
+    bottom: 4,
+    right: 50,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  characterCountText: {
+    fontSize: 10,
+    color: 'rgba(156, 163, 175, 0.8)',
+  },
+  characterCountWarning: {
+    color: '#f87171',
+    fontWeight: '600',
   },
 });

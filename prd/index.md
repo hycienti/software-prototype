@@ -30,19 +30,43 @@ Haven is an AI-powered therapy application that provides accessible mental healt
 **Description:**  
 Users can authenticate using OAuth providers for seamless, secure access.
 
+**Welcome Screen Interface:**
+- Video background (therapy/wellness themed)
+- Gradient overlay (mint, primary, slate colors)
+- Dark overlay for contrast
+- Logo container with:
+  - Circular logo image
+  - Gradient overlay
+  - Shadow and border styling
+- Title: "Haven"
+- Subtitle: "Your safe space for mental health"
+- Bottom sheet with:
+  - Dark gradient background (homogenous with VoiceScreen)
+  - BlurView backdrop for glassmorphism
+  - Drag handle
+  - Apple Sign-In button (white background, black text)
+  - Google Sign-In button (dark teal background, white text)
+  - Terms and Privacy Policy text with links
+  - Border radius: 40px (top corners)
+
 **Requirements:**
 - Support Google OAuth 2.0
 - Support Apple Sign-In
 - No traditional email/password registration required
 - Session management with secure token handling
 - Auto-login for returning users
+- Video background playback (looped, muted)
+- Smooth animations (logo fade-in)
 
 **User Flow:**
 1. User opens Haven app
-2. Presented with "Sign in with Google" and "Sign in with Apple" buttons
-3. User selects provider
-4. OAuth flow completes
-5. User redirected to main screen
+2. Welcome screen displays with video background
+3. Logo and title animate in
+4. Bottom sheet slides up with OAuth options
+5. User sees "Continue with Apple" and "Continue with Google" buttons
+6. User selects provider
+7. OAuth flow completes
+8. User redirected to main screen
 
 **Technical Specifications:**
 - Use OAuth 2.0 protocol
@@ -50,6 +74,10 @@ Users can authenticate using OAuth providers for seamless, secure access.
 - Implement token refresh mechanism
 - HTTPS only for all authentication requests
 - Session timeout: 30 days
+- Video playback using expo-video
+- Local video asset loading using expo-asset
+- BlurView for bottom sheet backdrop
+- LinearGradient for overlays and backgrounds
 
 **Acceptance Criteria:**
 - User can successfully authenticate with Google
@@ -57,6 +85,8 @@ Users can authenticate using OAuth providers for seamless, secure access.
 - Authentication persists across app restarts
 - Failed authentication shows clear error messages
 - Compliance with HIPAA privacy requirements
+- Video background plays smoothly
+- Bottom sheet has proper gradient and blur effects
 
 ---
 
@@ -70,21 +100,72 @@ Single-screen interface that serves as the hub for all AI therapy interactions a
 
 **Layout Components:**
 
-#### 3.1.1 AI Therapy Interaction Section
-- **Chat Interface Button:** Opens text-based conversation with AI therapist
-- **Voice Agent Button:** Activates voice conversation mode
-- Position: Top half of screen, prominently displayed
+#### 3.1.1 Header Section
+- Menu button (left)
+- "Haven" title (center)
+- Notifications button (right) - opens notifications modal
+- Profile button accessible via menu or direct action
 
-#### 3.1.2 Wellness Recommendations Section
-- **Recommended Articles:** AI-curated mental health articles
-- **Recommended Videos:** AI-curated wellness videos
-- Display: Scrollable horizontal carousel below therapy interaction buttons
-- Position: Bottom half of screen
+#### 3.1.2 Greeting Section
+- Personalized greeting: "Hello, [Name]. How are you feeling today?"
+- Large, bold typography with text shadow
+- Dark gradient background with ambient blobs
+
+#### 3.1.3 Primary Action Cards
+- **Chat with Haven Card:**
+  - Image background with gradient overlay
+  - Icon container with BlurView (chat bubble icon)
+  - Title and subtitle
+  - Rounded-full icon container
+  - Shadow and styling
+  
+- **Start Voice Session Card:**
+  - Image background with gradient overlay
+  - Icon container with BlurView (microphone icon)
+  - Title and subtitle
+  - Rounded-full icon container
+  - Shadow and styling
+
+#### 3.1.4 Feature List Section
+- **Mood Journal:**
+  - Action button with icon, title, subtitle
+  - Orange accent color
+  - Chevron right icon
+  
+- **Wellness Exercises:**
+  - Action button with icon, title, subtitle
+  - Green accent color
+  - Chevron right icon
+  
+- **Your Profile:**
+  - Action button with icon, title, subtitle
+  - Purple accent color
+  - Chevron right icon
+
+#### 3.1.5 Wellness Recommendations Section
+- Section title: "Recommended for You"
+- Horizontal scrollable carousel
+- Recommendation cards showing:
+  - **Guided Meditation** (audio, 10 min)
+  - **Managing Anxiety** (article)
+  - **Box Breathing** (video)
+  - **Gratitude Practice** (practice type)
+- Each card displays:
+  - Image thumbnail
+  - Title
+  - Type icon (headphones, videocam, article, favorite)
+  - Duration/type label
+  - Play button overlay for audio/video
+- Card width: 240px
+- Border radius: 12px
 
 **Design Requirements:**
+- Dark gradient background with ambient blobs (primary, purple, mint)
 - Clean, calming aesthetic with soft colors
 - Intuitive iconography for chat vs voice modes
 - Smooth transitions between modes
+- Text shadows for depth
+- Card shadows for elevation
 - Accessibility: Support for screen readers, high contrast mode
 
 **Technical Specifications:**
@@ -92,6 +173,14 @@ Single-screen interface that serves as the hub for all AI therapy interactions a
 - Lazy loading for recommended content
 - Cache wellness content for offline access
 - Real-time sync of user interaction state
+- Navigation to:
+  - Chat screen
+  - Voice screen
+  - Journal screen
+  - Wellness exercises (breathing)
+  - Profile modal
+  - Notifications modal
+  - Gratitude practice
 
 ---
 
@@ -226,14 +315,55 @@ AI detects when user needs professional human support and presents therapist opt
   - "Message Therapist" (secondary option)
   - "Back to List"
 
+**Modal Implementation:**
+- Bottom sheet modal presentation
+- Slides up from bottom with backdrop blur
+- Drag handle at top for dismissal
+- Dark gradient background with ambient blobs
+- Scrollable therapist list
+- Header text: "Based on our talk, I think a specialist could help."
+- Subtitle: "Here are 3 recommendations from Haven."
+
+**Therapist Card Design:**
+- Profile photo with online indicator
+- Name, credentials, and specializations
+- Star rating and review count
+- Hourly rate display
+- "Learn More" button
+- Card styling with dark surface, borders, and shadows
+- Border radius: 24px (rounded-xl)
+
+**Therapist Profile Screen:**
+- Full-screen detail view
+- Header with back button, title, and share button
+- Profile section with:
+  - Large circular avatar with gradient border
+  - Verification badge
+  - Name with PhD badge
+  - Title and specialization
+- Quick stats cards (Experience, Rating, Price per session)
+- About section with "Read more" link
+- Treatment approaches with tags
+- Education section with icons
+- Location section with:
+  - Map image background
+  - Map pin with location name
+  - "Online Available" badge
+  - Visit info (Video & In-Person)
+- Bottom action bar with:
+  - Message button (outline style)
+  - Book Consultation button (primary with shadow)
+  - BlurView backdrop for glassmorphism effect
+
 **User Flow:**
 1. AI determines human therapist needed
-2. Modal slides up from bottom with explanation: "I think speaking with a licensed therapist would be beneficial. Here are some specialists who can help."
-3. User views therapist list
-4. User taps on therapist card
-5. Card expands with animation to show full details
-6. User taps "Book Consultation"
-7. Payment modal appears
+2. Modal slides up from bottom with explanation: "Based on our talk, I think a specialist could help. Here are 3 recommendations from Haven."
+3. User views therapist list in modal
+4. User taps "Learn More" on therapist card
+5. Navigate to full therapist profile screen
+6. User views detailed information
+7. User taps "Book Consultation"
+8. Payment modal appears
 
 ### 5.2 Payment System
 **Feature ID:** PAYMENT-001
@@ -243,24 +373,47 @@ Secure payment processing for therapist consultations supporting both fiat and c
 
 **Payment Modal Requirements:**
 
+**Modal Implementation:**
+- Bottom sheet modal presentation
+- Slides up from bottom with backdrop blur
+- Drag handle at top
+- Dark gradient background with ambient blobs
+- Header with "Secure Checkout" badge and lock icon
+- Scrollable content area
+
 **Display Information:**
-- Session type (e.g., "50-minute consultation")
-- Therapist name
-- Total cost
-- Session date/time (if pre-selected)
+- Large price display ($150.00) with typography emphasis
+- Session details card showing:
+  - Therapist avatar with online indicator
+  - Therapist name
+  - Session date and time (e.g., "Oct 24, 10:00 - 10:50 AM")
+  - Consultation badge
+  - Card styling with dark surface, borders, and shadows
+  - Border radius: 25px
 
 **Payment Options:**
 - **Fiat Currency:**
-  - Credit/Debit card (Visa, Mastercard, Amex)
-  - Apple Pay
-  - Google Pay
-  - ACH bank transfer (for US users)
+  - Apple Pay button (black background, iOS icon, rounded-40)
+  - Google Pay button (white background, colored text, rounded-40)
+  - Credit/Debit card option (future)
+  - ACH bank transfer (for US users, future)
   
 - **Cryptocurrency:**
-  - Bitcoin (BTC)
-  - Ethereum (ETH)
-  - USDC (stablecoin)
+  - Bitcoin (BTC) with icon and color
+  - Ethereum (ETH) with icon and color
+  - USDC (stablecoin) with icon and color
+  - Radio button selection
+  - Selected state with primary border and background
+  - "Live Rates" badge with pulsing dot indicator
   - Display crypto amount with real-time conversion rate
+  - Border radius: 30px for crypto option cards
+
+**Additional Features:**
+- "Add New Payment Method" button with dashed border
+- Footer with:
+  - "Confirm Payment" button (primary with shadow, rounded-40)
+  - Security badge: "AES-256 Encrypted & HIPAA Compliant"
+  - BlurView backdrop for glassmorphism effect
 
 **Technical Specifications:**
 - PCI DSS compliant payment processing
@@ -302,10 +455,15 @@ Guided breathing exercises to help users manage anxiety, stress, and panic attac
 **Exercise Types:**
 
 1. **Box Breathing (4-4-4-4)**
-   - Inhale: 4 seconds
-   - Hold: 4 seconds
-   - Exhale: 4 seconds
-   - Hold: 4 seconds
+   - Inhale: 4 seconds (customizable 1-10 seconds)
+   - Hold: 4 seconds (customizable 1-10 seconds)
+   - Exhale: 4 seconds (customizable 1-10 seconds)
+   - Hold: 4 seconds (customizable 1-10 seconds)
+   - Default: 4-4-4-4 pattern
+   - Visual: Animated square box with glowing path indicator
+   - Traveling dot animation around box perimeter
+   - Breathing orb that scales with inhale/exhale
+   - Wave-like pulsing effect inside the box
 
 2. **4-7-8 Breathing (Sleep Aid)**
    - Inhale: 4 seconds
@@ -319,30 +477,53 @@ Guided breathing exercises to help users manage anxiety, stress, and panic attac
 **Interface Requirements:**
 
 **Visual Design:**
-- Animated circle or shape that expands/contracts with breath
+- Animated square box with rounded corners (Box Breathing)
+- Glowing path indicator highlighting current phase (top, right, bottom, left)
+- Traveling dot animation moving around box perimeter
+- Breathing orb in center that expands/contracts with breath
+- Wave-like pulsing effect inside the box
 - Color changes: Calm blue (inhale) → Soft purple (hold) → Gentle green (exhale)
-- Text instructions: "Breathe in", "Hold", "Breathe out"
-- Countdown timer for each phase
+- Text instructions: "Breathe In", "Hold", "Breathe Out"
+- Countdown timer for each phase (displays remaining seconds)
 - Cycle counter (e.g., "Cycle 3 of 5")
+- Progress bar showing overall completion
+- Remaining time display
 
 **Audio Component:**
-- Optional soothing background music
-- Voice guidance: "Breathe in through your nose..."
+- Optional soothing background music (Rain, Forest, Zen options)
+- Voice guidance: "Breathe in through your nose..." (toggleable)
 - Gentle chimes or tones marking transitions
-- Volume controls
+- Volume controls (mute/unmute)
+- Music selection (Rain, Forest, Zen)
 
-**Customization Options:**
-- Exercise duration (3, 5, 10 minutes)
-- Breathing pattern selection
-- Speed adjustment for breathing pace
-- Music on/off toggle
+**Customization Options (Settings Modal):**
+- **Rhythm Duration:**
+  - Inhale duration: 1-10 seconds (slider)
+  - Hold duration: 1-10 seconds (slider)
+  - Exhale duration: 1-10 seconds (slider)
+- **Experience:**
+  - Haptic feedback toggle (on/off)
+  - Voice guidance toggle (on/off)
+- **Background Music:**
+  - Enable music toggle (on/off)
+  - Music selection: Rain, Forest, Zen
+- **Reset to Defaults** option
+
+**Controls:**
+- Restart button (resets cycle, animations, and timers)
+- Play/Pause button (pauses/resumes breathing cycle)
+- Volume/Mute button (toggles background music)
 
 **Technical Specifications:**
-- Smooth animations (60 FPS)
-- Haptic feedback on phase transitions (mobile)
+- Smooth animations (60 FPS) using react-native-reanimated
+- Haptic feedback on phase transitions and countdown seconds (mobile)
+- Background music playback using expo-av
+- Voice guidance using expo-speech (native) or Web Speech API (web)
+- Settings persistence using AsyncStorage
 - Offline capability
 - Progress tracking and history
 - Integration with health apps (Apple Health, Google Fit)
+- Settings modal with bottom sheet presentation
 
 **User Flow:**
 1. AI suggests: "Would you like to try a breathing exercise? It might help you feel calmer."
@@ -350,9 +531,11 @@ Guided breathing exercises to help users manage anxiety, stress, and panic attac
 3. Navigate to breathing exercise screen
 4. User selects exercise type (or AI recommends one)
 5. Exercise begins with visual and audio guidance
-6. User completes exercise
-7. Return to main screen with option to log how they feel
-8. AI continues conversation considering user's improved state
+6. User can access settings via settings button in header
+7. User can pause, restart, or mute during exercise
+8. User completes exercise
+9. Return to main screen with option to log how they feel
+10. AI continues conversation considering user's improved state
 
 ---
 
@@ -375,11 +558,13 @@ Structured journaling prompts to help users process emotions and track mood patt
 
 **Journaling Interface:**
 - Guided prompts generated by AI based on conversation context
-- Free-form writing space
-- Mood tagging (happy, sad, anxious, angry, calm, etc.)
-- Intensity slider (1-10)
+- Free-form writing space (large text area)
+- Mood tagging (Happy, Calm, Anxious, Sad, Angry) with icons
+- Intensity slider (1-10) with dynamic color gradient (cool blue to hot red)
 - Optional image/photo attachment
 - Voice-to-text capability
+- Date display in header (e.g., "Today, Oct 24")
+- History button in header to view past entries
 
 **AI-Generated Prompts Examples:**
 - "What's one thing that made you smile today?"
@@ -387,11 +572,44 @@ Structured journaling prompts to help users process emotions and track mood patt
 - "What would you say to a friend experiencing this?"
 - "What's one small thing you can control right now?"
 
+**Mood Selection:**
+- Horizontal scrollable chip selection
+- Active mood highlighted with primary color and shadow
+- Inactive moods with dark surface and border
+- Icon representation for each mood
+
+**Intensity Slider:**
+- Range: 1-10
+- Dynamic color based on intensity value:
+  - 1-3: Cool blues
+  - 4-6: Yellow-greens
+  - 7-9: Oranges
+  - 10: Hot red
+- Intensity badge showing current value with matching color
+- "Mild" to "Intense" labels
+
+**Mood History Screen:**
+- Calendar view with mood dots for each day
+- Month navigation (previous/next)
+- Color-coded mood legend
+- Haven Insights card with:
+  - SVG graph showing mood trends
+  - Textual insights about patterns
+  - Gradient background with blur effect
+- Recent Entries list showing:
+  - Date and time
+  - Mood icon and label
+  - Intensity value
+  - Entry description preview
+- "End of history" marker
+- Filter button in header
+
 **Mood Tracking:**
 - Visual mood calendar (color-coded days)
-- Mood trend graphs (weekly/monthly)
+- Mood trend graphs (weekly/monthly) with SVG visualization
 - Pattern recognition: AI identifies triggers and patterns
 - Insights: "You tend to feel anxious on Sunday evenings"
+- Calendar navigation (previous/next month)
 
 **Technical Specifications:**
 - Local-first storage with cloud backup
@@ -400,16 +618,21 @@ Structured journaling prompts to help users process emotions and track mood patt
 - Reminder notifications (configurable)
 - Search functionality across entries
 - Maximum entry size: 10,000 characters
+- Calendar generation with dynamic month/year support
+- SVG graph rendering for mood trends
 
 **User Flow:**
 1. AI detects journaling would be beneficial
 2. AI suggests: "Writing down your thoughts might help you process this. Would you like to try journaling?"
 3. Navigate to journaling screen
-4. AI provides personalized prompt
-5. User writes entry
-6. User tags mood and intensity
-7. Entry saved
-8. Option to share insights with AI for continued conversation
+4. AI provides personalized prompt (displayed in card)
+5. User writes entry in text area
+6. User selects mood from chips
+7. User adjusts intensity slider
+8. User saves entry
+9. Entry saved to history
+10. User can access history via History button
+11. Option to share insights with AI for continued conversation
 
 ### 6.2 Progressive Muscle Relaxation (PMR)
 **Feature ID:** AI-ACTION-004
@@ -502,10 +725,13 @@ Daily gratitude exercises to shift focus toward positive aspects and build resil
 
 **Practice Formats:**
 
-**1. Three Good Things:**
+**1. Three Good Things (Primary Implementation):**
 - List 3 good things from today
-- Explain why each happened
-- How it made you feel
+- Numbered input fields (1, 2, 3) with focus indicators
+- Placeholder examples for each field
+- Focus state with left border indicator and shadow glow
+- Photo upload section (optional) with dashed border button
+- Inspirational quote section at bottom
 
 **2. Gratitude Letter:**
 - Write letter to someone they're grateful for
@@ -529,23 +755,43 @@ Daily gratitude exercises to shift focus toward positive aspects and build resil
 
 **Visual Design:**
 - Warm, uplifting color palette (golds, warm yellows, soft oranges)
-- Gratitude streak counter (days in a row)
-- Achievement badges (7-day, 30-day, 100-day streaks)
-- Beautiful gratitude gallery view
-- Optional sharing to Haven community (anonymous)
+- Gradient background with ambient blobs (amber and primary color)
+- Gratitude streak counter in header (fire icon + number)
+- Streak badge is pressable and navigates to history
+- Number badges for each input field (primary color)
+- Focus indicators on active input fields
+- Photo upload button with icon container
+- Inspirational quote section with quote icon
+- Save Entry button with gradient footer
+
+**Gratitude History Screen:**
+- Modal presentation (bottom sheet)
+- AI Growth Insights card with:
+  - Gradient background with blur effect
+  - Bar chart visualization (SVG)
+  - Textual insights about growth patterns
+- Recent Entries list showing:
+  - Date
+  - Icon (favorite/heart)
+  - Title/description
+  - Optional tags
+  - Entry description preview
+- "End of history" marker
+- Filter button in header
 
 **Features:**
 - Daily reminder notifications (customizable time)
-- Gratitude history/archive
+- Gratitude history/archive accessible via streak badge
 - Reflection on past gratitudes
 - AI-generated insights: "You've expressed gratitude for nature 12 times this month"
 - Option to revisit during difficult moments
+- Streak tracking with visual badge
 
 **Gamification Elements:**
-- Streak tracking
+- Streak tracking (displayed in header badge)
 - Unlockable gratitude prompts
 - Celebration animations for milestones
-- Progress visualization
+- Progress visualization (bar chart in history)
 
 **Technical Specifications:**
 - Push notification system for reminders
@@ -553,6 +799,8 @@ Daily gratitude exercises to shift focus toward positive aspects and build resil
 - Image optimization for photo gratitudes
 - Export gratitude journal as PDF
 - Privacy controls for community sharing
+- SVG bar chart rendering for growth visualization
+- Modal presentation using BottomSheetModal
 
 **AI Integration:**
 - Personalized prompt generation based on user history
@@ -564,12 +812,140 @@ Daily gratitude exercises to shift focus toward positive aspects and build resil
 1. AI detects need for perspective shift
 2. AI suggests: "Taking a moment to notice what's going well can be really helpful. Would you like to practice gratitude together?"
 3. Navigate to gratitude practice
-4. User selects format or AI recommends one
-5. User completes practice
-6. Optional: Share to community or keep private
-7. Positive reinforcement from AI
-8. Log entry to streak tracker
-9. Return to conversation with refreshed perspective
+4. User sees hero text: "What went well today?"
+5. User fills in three numbered input fields
+6. Optional: User uploads photo
+7. User views inspirational quote
+8. User saves entry
+9. Streak counter updates
+10. User can tap streak badge to view history
+11. Positive reinforcement from AI
+12. Return to conversation with refreshed perspective
+
+---
+
+## 6.4 Notifications System
+**Feature ID:** UI-002
+
+**Description:**  
+In-app notification system to keep users informed about reminders, updates, and important information.
+
+**Interface Requirements:**
+
+**Notifications Screen:**
+- Modal presentation (bottom sheet)
+- Header with back button, "Notifications" title, and settings button
+- Background glow gradient at top
+- Scrollable notification list
+
+**Notification Sections:**
+- **TODAY** section with "Clear All" button
+- **YESTERDAY** section (read notifications with reduced opacity)
+
+**Notification Card Design:**
+- Colored icon container (matching notification type)
+- Unread indicator with pulse animation (for unread notifications)
+- Title text
+- Time display (e.g., "2 hours ago")
+- Description text
+- Border radius: 16px (rounded-2xl)
+- Icon container border radius: 12px (rounded-xl)
+
+**Notification Types:**
+- Journal reminders
+- Gratitude practice reminders
+- Breathing exercise suggestions
+- Therapist appointment reminders
+- System updates
+- Achievement notifications
+
+**Features:**
+- Unread/read state management
+- Pulse animation for unread indicators
+- Clear all functionality for today's notifications
+- Time-based grouping (Today, Yesterday, Older)
+- Bottom gradient fade effect
+
+**Technical Specifications:**
+- Local notification storage
+- Push notification integration (future)
+- Notification settings (future)
+- Modal presentation using BottomSheetModal
+
+**User Flow:**
+1. User taps notifications icon in header
+2. Notifications modal slides up
+3. User views notifications grouped by date
+4. User can clear all today's notifications
+5. User can tap individual notifications (future: navigate to related content)
+6. User closes modal
+
+---
+
+## 6.5 User Profile & Journey
+**Feature ID:** UI-003
+
+**Description:**  
+User profile screen displaying personal information, journey statistics, achievements, and settings.
+
+**Interface Requirements:**
+
+**Profile Screen:**
+- Modal presentation (bottom sheet)
+- Header with back button, "Profile" title, and menu button
+- Dark gradient background with ambient blobs
+
+**Profile Section:**
+- Circular profile image with gradient border
+- Edit button overlay
+- User name display
+- "Joined [Month] [Year]" badge
+- Profile image shadow and styling
+
+**Your Journey Section:**
+- Glass panel card with BlurView backdrop
+- Statistics display:
+  - Days active
+  - Sessions completed
+  - Streaks maintained
+  - Achievements unlocked
+- Border radius: 32px (rounded-2xl)
+
+**Achievements Section:**
+- Section title: "ACHIEVEMENTS"
+- 2x2 grid layout
+- Achievement cards showing:
+  - Icon
+  - Title
+  - Description
+  - Locked/completed state
+- Completed achievements: colored with icon
+- Locked achievements: grayed out with lock icon
+- Border radius: 24px (rounded-xl)
+
+**Settings Section:**
+- Section title: "SETTINGS"
+- Settings items:
+  - Account Privacy
+  - Connected Apps
+  - Log Out button (destructive style)
+- Border radius: 24px (rounded-xl) for each item
+
+**Technical Specifications:**
+- User data management
+- Achievement tracking
+- Settings persistence
+- Modal presentation using BottomSheetModal
+- Glassmorphism effects with BlurView
+
+**User Flow:**
+1. User taps profile icon/button
+2. Profile modal slides up
+3. User views profile information
+4. User can view journey statistics
+5. User can view achievements
+6. User can access settings
+7. User can log out
 
 ---
 
