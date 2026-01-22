@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -13,7 +13,8 @@ import { useStreamingMessage } from '@/hooks/useStreamingMessage';
 import { useConversationContext } from '@/contexts/ConversationContext';
 import { cacheMessages, getCachedMessages } from '@/utils/messageCache';
 import { groupMessagesByDate, formatMessageTime } from '@/utils/timeUtils';
-import type { Message as ApiMessage } from '@/services/api/chat';
+import { useUIStore } from '@/store';
+import type { Message as ApiMessage } from '@/services/chats';
 
 interface Message {
   id: string | number;
@@ -49,6 +50,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
 
   const { currentConversation, updateConversationId } = useConversationContext();
   const currentConversationId = conversationId || currentConversation?.id || null;
+  const { showAlert } = useUIStore();
 
   const sendMessageMutation = useSendMessage();
   const { data: conversationData, isLoading: isLoadingConversation } = useConversation(
@@ -119,26 +121,29 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         });
       }
       if (sentiment?.crisisIndicators && sentiment.crisisIndicators.length > 0) {
-        Alert.alert(
-          'Support Available',
-          "I've noticed some concerning indicators in your message. Would you like to speak with a human therapist?",
-          [
+        showAlert({
+          title: 'Support Available',
+          message: "I've noticed some concerning indicators in your message. Would you like to speak with a human therapist?",
+          type: 'warning',
+          buttons: [
             { text: 'Continue Chat', style: 'cancel' },
             {
               text: 'Talk to Human',
               onPress: onTalkToHuman,
             },
-          ]
-        );
+          ],
+        });
       }
       resetStream();
     },
     onError: (error) => {
       setLoadingState('idle');
       setIsTyping(false);
-      Alert.alert('Error', error.message || 'Failed to send message. Please try again.', [
-        { text: 'OK' },
-      ]);
+      showAlert({
+        title: 'Error',
+        message: error.message || 'Failed to send message. Please try again.',
+        type: 'error',
+      });
       resetStream();
     },
   });
@@ -313,17 +318,18 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
 
           // Check for crisis indicators
           if (response.sentiment?.crisisIndicators && response.sentiment.crisisIndicators.length > 0) {
-            Alert.alert(
-              'Support Available',
-              "I've noticed some concerning indicators in your message. Would you like to speak with a human therapist?",
-              [
+            showAlert({
+              title: 'Support Available',
+              message: "I've noticed some concerning indicators in your message. Would you like to speak with a human therapist?",
+              type: 'warning',
+              buttons: [
                 { text: 'Continue Chat', style: 'cancel' },
                 {
                   text: 'Talk to Human',
                   onPress: onTalkToHuman,
                 },
-              ]
-            );
+              ],
+            });
           }
         }
       } catch (error: any) {
@@ -341,9 +347,11 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
           }
           return updated;
         });
-        Alert.alert('Error', error?.message || 'Failed to send message. Please try again.', [
-          { text: 'OK' },
-        ]);
+        showAlert({
+          title: 'Error',
+          message: error?.message || 'Failed to send message. Please try again.',
+          type: 'error',
+        });
       } finally {
         setIsTyping(false);
         setLoadingState('idle');

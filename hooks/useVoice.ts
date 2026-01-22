@@ -5,7 +5,7 @@ import {
   type ProcessVoiceMessageResponse,
   type TextToSpeechRequest,
   type TextToSpeechResponse,
-} from '@/services/api/voice'
+} from '@/services/voice'
 
 /**
  * React Query hooks for voice functionality

@@ -5,7 +5,7 @@ import {
   type SendMessageResponse,
   type ConversationHistoryResponse,
   type ConversationResponse,
-} from '@/services/api/chat'
+} from '@/services/chats'
 import { retryWithBackoff, isRetryableError } from '@/utils/retry'
 import { cacheMessages, addToOfflineQueue } from '@/utils/messageCache'
 

@@ -1,7 +1,7 @@
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3333'
+import { API_CONFIG, getApiUrl } from '@/constants/api'
+import type { ApiError } from '@/types/api'
 
 /**
  * API Client with authentication and error handling
@@ -11,8 +11,8 @@ class ApiClient {
 
   constructor() {
     this.client = axios.create({
-      baseURL: `${API_BASE_URL}/api/v1`,
-      timeout: 30000,
+      baseURL: getApiUrl(''),
+      timeout: API_CONFIG.TIMEOUT,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -138,12 +138,6 @@ class ApiClient {
     const response = await this.client.delete<T>(url, config)
     return response.data
   }
-}
-
-export interface ApiError {
-  message: string
-  status: number
-  data: any
 }
 
 export const apiClient = new ApiClient()
