@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ConversationProvider } from '@/contexts/ConversationContext';
+import { GlobalAlertModal } from '@/components/ui';
 import '../global.css';
 
 // Create a client for React Query
@@ -49,6 +50,7 @@ export default function RootLayout() {
             <Stack.Screen name="notifications" />
             <Stack.Screen name="profile" />
               </Stack>
+              <GlobalAlertModal />
             </GluestackUIProvider>
           </SafeAreaProvider>
         </ConversationProvider>

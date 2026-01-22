@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
-import { streamingService, type StreamingMessageEvent } from '@/services/api/streaming'
+import { streamingService, type StreamingMessageEvent } from '@/services/streaming'
 import { retryWithBackoff, isRetryableError } from '@/utils/retry'
 
 interface UseStreamingMessageOptions {

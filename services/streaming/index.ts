@@ -1,17 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
-
-export interface StreamingMessageEvent {
-  type: 'start' | 'chunk' | 'complete' | 'error'
-  conversationId?: number
-  messageId?: number
-  content?: string
-  sentiment?: {
-    sentiment: 'positive' | 'neutral' | 'negative'
-    crisisIndicators: string[]
-    confidence: number
-  }
-  message?: string
-}
+import { getWebSocketUrl, API_ENDPOINTS } from '@/constants/api'
+import type { StreamingMessageEvent } from '@/types/api'
 
 /**
  * WebSocket-based Streaming Service
@@ -33,9 +22,8 @@ export class WebSocketStreamingService {
         return
       }
 
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3333'
-      const wsUrl = apiUrl.replace('http://', 'ws://').replace('https://', 'wss://')
-      const url = `${wsUrl}/streaming?token=${encodeURIComponent(token)}`
+      const wsUrl = getWebSocketUrl(API_ENDPOINTS.WEBSOCKET.STREAMING)
+      const url = `${wsUrl}?token=${encodeURIComponent(token)}`
 
       this.ws = new WebSocket(url)
 
@@ -201,3 +189,6 @@ export class WebSocketStreamingService {
 
 // Export singleton instance
 export const streamingService = new WebSocketStreamingService()
+
+// Re-export type for convenience
+export type { StreamingMessageEvent }

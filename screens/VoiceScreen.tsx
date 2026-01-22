@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -18,6 +18,7 @@ import { cn } from '@/utils/cn';
 import { recordAudio, stopRecordingAndGetBase64, playAudioFromBase64 } from '@/utils/voiceHelper';
 import { useProcessVoiceMessage } from '@/hooks/useVoice';
 import { useConversationContext } from '@/contexts/ConversationContext';
+import { useUIStore } from '@/store';
 
 type VoiceState = 'idle' | 'listening' | 'thinking' | 'speaking';
 
@@ -316,7 +317,11 @@ export const VoiceScreen: React.FC<VoiceScreenProps> = ({
       // Haptic feedback
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } catch (error: any) {
-      Alert.alert('Error', error?.message || 'Failed to start recording');
+      showAlert({
+        title: 'Error',
+        message: error?.message || 'Failed to start recording',
+        type: 'error',
+      });
       setVoiceState('idle');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
@@ -365,14 +370,15 @@ export const VoiceScreen: React.FC<VoiceScreenProps> = ({
 
       // Check for crisis indicators
       if (response.sentiment?.crisisIndicators && response.sentiment.crisisIndicators.length > 0) {
-        Alert.alert(
-          'Support Available',
-          "I've noticed some concerning indicators. Would you like to speak with a human therapist?",
-          [
+        showAlert({
+          title: 'Support Available',
+          message: "I've noticed some concerning indicators. Would you like to speak with a human therapist?",
+          type: 'warning',
+          buttons: [
             { text: 'Continue', style: 'cancel' },
             { text: 'Talk to Human', onPress: () => onKeyboardPress?.() },
-          ]
-        );
+          ],
+        });
       }
 
       // Play AI response audio
@@ -382,7 +388,11 @@ export const VoiceScreen: React.FC<VoiceScreenProps> = ({
       setVoiceState('idle');
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch (error: any) {
-      Alert.alert('Error', error?.message || 'Failed to process voice message');
+      showAlert({
+        title: 'Error',
+        message: error?.message || 'Failed to process voice message',
+        type: 'error',
+      });
       setVoiceState('idle');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
