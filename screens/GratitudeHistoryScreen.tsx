@@ -1,92 +1,94 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Icon } from '@/components/ui/Icon';
+import { gratitudeService } from '@/services/gratitude';
+import type { Gratitude, GratitudeInsights } from '@/services/gratitude';
+import { useUIStore } from '@/store';
+import { GratitudeEntryDetailModal } from '@/components/gratitude/GratitudeEntryDetailModal';
 
 interface GratitudeHistoryScreenProps {
   onBack?: () => void;
   onEntryPress?: (entryId: string) => void;
 }
 
-interface GratitudeEntry {
-  id: string;
-  date: string;
-  day: number;
-  month: string;
-  title: string;
-  icon: string;
-  iconColor: string;
-  description: string;
-  tag?: {
-    label: string;
-    color: string;
-  };
-}
+// Helper function to format date
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  const day = date.getDate();
+  const month = date.toLocaleDateString('en-US', { month: 'short' });
+  return { day, month, date: dateString };
+};
 
-const gratitudeEntries: GratitudeEntry[] = [
-  {
-    id: '1',
-    date: '2023-10-24',
-    day: 24,
-    month: 'Oct',
-    title: 'Morning Sun',
-    icon: 'wb_sunny',
-    iconColor: '#f59e0b',
-    description: 'The way the light hit the leaves this morning was absolutely magical...',
-    tag: {
-      label: 'High Impact',
-      color: '#d97706',
-    },
-  },
-  {
-    id: '2',
-    date: '2023-10-23',
-    day: 23,
-    month: 'Oct',
-    title: 'Warm Coffee',
-    icon: 'coffee',
-    iconColor: '#60a5fa',
-    description: 'Grateful for that first sip of coffee before the house woke up. Pure peace.',
-  },
-  {
-    id: '3',
-    date: '2023-10-21',
-    day: 21,
-    month: 'Oct',
-    title: 'Friendship',
-    icon: 'group',
-    iconColor: '#a78bfa',
-    description: 'Sarah listened to me for an hour today. So lucky to have a friend like her.',
-    tag: {
-      label: 'Shared',
-      color: '#d97706',
-    },
-  },
-  {
-    id: '4',
-    date: '2023-10-20',
-    day: 20,
-    month: 'Oct',
-    title: 'My Dog',
-    icon: 'pets',
-    iconColor: '#34d399',
-    description: 'Even when I\'m sad, Buster knows exactly how to cheer me up.',
-  },
-];
-
-const weeklyData = [
-  { week: 'W1', height: 40, isSelected: false },
-  { week: 'W2', height: 65, isSelected: false },
-  { week: 'W3', height: 50, isSelected: false },
-  { week: 'W4', height: 85, isSelected: true },
-];
+// Helper function to get icon and color based on entry content
+const getEntryIcon = (entries: string[]): { icon: string; color: string } => {
+  const text = entries.join(' ').toLowerCase();
+  if (text.includes('family') || text.includes('mom') || text.includes('dad')) {
+    return { icon: 'family_restroom', color: '#f59e0b' };
+  }
+  if (text.includes('friend') || text.includes('colleague')) {
+    return { icon: 'group', color: '#a78bfa' };
+  }
+  if (text.includes('nature') || text.includes('sunset') || text.includes('outdoor')) {
+    return { icon: 'wb_sunny', color: '#f59e0b' };
+  }
+  if (text.includes('coffee') || text.includes('food') || text.includes('meal')) {
+    return { icon: 'coffee', color: '#60a5fa' };
+  }
+  if (text.includes('pet') || text.includes('dog') || text.includes('cat')) {
+    return { icon: 'pets', color: '#34d399' };
+  }
+  return { icon: 'favorite', color: '#f59e0b' };
+};
 
 export const GratitudeHistoryScreen: React.FC<GratitudeHistoryScreenProps> = ({
   onBack,
   onEntryPress,
 }) => {
+  const { showAlert } = useUIStore();
+  const [gratitudes, setGratitudes] = useState<Gratitude[]>([]);
+  const [insights, setInsights] = useState<GratitudeInsights | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedEntry, setSelectedEntry] = useState<Gratitude | null>(null);
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const [historyData, insightsData] = await Promise.all([
+          gratitudeService.getHistory({ limit: 50 }),
+          gratitudeService.getInsights(),
+        ]);
+        setGratitudes(historyData.data);
+        setInsights(insightsData);
+      } catch (error: any) {
+        console.error('Error fetching gratitude history:', error);
+        showAlert({
+          type: 'error',
+          title: 'Error',
+          message: error?.message || 'Failed to load gratitude history. Please try again.',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Prepare chart data from monthly trend
+  const chartData = insights?.monthlyTrend.map((month, index) => ({
+    week: month.month.split(' ')[0], // Get month abbreviation
+    height: Math.max(20, (month.count / (insights.monthlyTrend.reduce((max, m) => Math.max(max, m.count), 0) || 1)) * 100),
+    isSelected: index === insights.monthlyTrend.length - 1, // Select current month
+  })) || [];
+
+  // Get top theme
+  const topTheme = insights?.mostCommonThemes[0];
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Background Gradient */}
@@ -150,7 +152,7 @@ export const GratitudeHistoryScreen: React.FC<GratitudeHistoryScreenProps> = ({
             <View style={styles.chartContainer}>
               <Text style={styles.chartLabel}>Entries</Text>
               <View style={styles.barChart}>
-                {weeklyData.map((week, index) => (
+                {chartData.length > 0 ? chartData.map((week, index) => (
                   <View key={index} style={styles.barColumn}>
                     <View
                       style={[
@@ -182,75 +184,123 @@ export const GratitudeHistoryScreen: React.FC<GratitudeHistoryScreenProps> = ({
                       {week.week}
                     </Text>
                   </View>
-                ))}
+                )) : (
+                  <View style={styles.emptyChart}>
+                    <Text style={styles.emptyChartText}>No data yet</Text>
+                  </View>
+                )}
               </View>
             </View>
 
             {/* Insights */}
-            <View style={styles.insightsList}>
-              <View style={styles.insightItem}>
-                <View style={styles.insightIcon}>
-                  <Icon name="psychology_alt" size={14} color="#f59e0b" />
-                </View>
-                <Text style={styles.insightText}>
-                  Your focus on <Text style={styles.insightBold}>"Nature"</Text> has increased your
-                  overall positivity rating by 15%.
-                </Text>
+            {insights && (
+              <View style={styles.insightsList}>
+                {topTheme && (
+                  <View style={styles.insightItem}>
+                    <View style={styles.insightIcon}>
+                      <Icon name="psychology_alt" size={14} color="#f59e0b" />
+                    </View>
+                    <Text style={styles.insightText}>
+                      Your focus on <Text style={styles.insightBold}>"{topTheme.theme}"</Text> appears {topTheme.count} times in your entries.
+                    </Text>
+                  </View>
+                )}
+                {insights.currentStreak > 0 && (
+                  <View style={styles.insightItem}>
+                    <View style={[styles.insightIcon, { backgroundColor: 'rgba(249, 115, 22, 0.1)' }]}>
+                      <Icon name="local_fire_department" size={14} color="#f97316" />
+                    </View>
+                    <Text style={styles.insightText}>
+                      You've maintained a <Text style={styles.insightBold}>{insights.currentStreak}-day streak!</Text>{' '}
+                      {insights.currentStreak >= 7 ? 'Consistency is building your emotional resilience.' : 'Keep it up!'}
+                    </Text>
+                  </View>
+                )}
+                {insights.entriesThisMonth > 0 && (
+                  <View style={styles.insightItem}>
+                    <View style={styles.insightIcon}>
+                      <Icon name="calendar_month" size={14} color="#f59e0b" />
+                    </View>
+                    <Text style={styles.insightText}>
+                      You've written <Text style={styles.insightBold}>{insights.entriesThisMonth} entries</Text> this month.
+                      {insights.entriesLastMonth > 0 && insights.entriesThisMonth > insights.entriesLastMonth && ' That\'s more than last month!'}
+                    </Text>
+                  </View>
+                )}
               </View>
-              <View style={styles.insightItem}>
-                <View style={[styles.insightIcon, { backgroundColor: 'rgba(249, 115, 22, 0.1)' }]}>
-                  <Icon name="local_fire_department" size={14} color="#f97316" />
-                </View>
-                <Text style={styles.insightText}>
-                  You've maintained a <Text style={styles.insightBold}>12-day streak!</Text>{' '}
-                  Consistency is building your emotional resilience.
-                </Text>
-              </View>
-            </View>
+            )}
           </View>
         </View>
 
         {/* Recent Entries */}
         <Text style={styles.sectionTitle}>RECENT ENTRIES</Text>
-        <View style={styles.entriesList}>
-          {gratitudeEntries.map((entry) => (
-            <TouchableOpacity
-              key={entry.id}
-              style={styles.entryCard}
-              onPress={() => onEntryPress?.(entry.id)}
-              activeOpacity={0.95}
-            >
-              <View style={styles.entryDate}>
-                <Text style={styles.entryMonth}>{entry.month}</Text>
-                <Text style={styles.entryDay}>{entry.day}</Text>
-              </View>
-              <View style={styles.entryContent}>
-                <View style={styles.entryHeader}>
-                  <View style={styles.entryTitleRow}>
-                    <Icon name={entry.icon} size={18} color={entry.iconColor} />
-                    <Text style={styles.entryTitle}>{entry.title}</Text>
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#f59e0b" />
+          </View>
+        ) : gratitudes.length > 0 ? (
+          <View style={styles.entriesList}>
+            {gratitudes.map((gratitude) => {
+              const { day, month } = formatDate(gratitude.entryDate);
+              const { icon, color } = getEntryIcon(gratitude.entries);
+              const firstEntry = gratitude.entries[0] || '';
+              const preview = firstEntry.length > 60 ? firstEntry.substring(0, 60) + '...' : firstEntry;
+
+              return (
+                <TouchableOpacity
+                  key={gratitude.id}
+                  style={styles.entryCard}
+                  onPress={() => {
+                    setSelectedEntry(gratitude);
+                    setIsDetailModalVisible(true);
+                    onEntryPress?.(gratitude.id.toString());
+                  }}
+                  activeOpacity={0.95}
+                >
+                  <View style={styles.entryDate}>
+                    <Text style={styles.entryMonth}>{month}</Text>
+                    <Text style={styles.entryDay}>{day}</Text>
                   </View>
-                  {entry.tag && (
-                    <View style={[styles.entryTag, { backgroundColor: 'rgba(217, 119, 6, 0.1)' }]}>
-                      <Text style={[styles.entryTagText, { color: entry.tag.color }]}>
-                        {entry.tag.label}
-                      </Text>
+                  <View style={styles.entryContent}>
+                    <View style={styles.entryHeader}>
+                      <View style={styles.entryTitleRow}>
+                        <Icon name={icon} size={18} color={color} />
+                        <Text style={styles.entryTitle} numberOfLines={1}>
+                          {gratitude.entries.length} {gratitude.entries.length === 1 ? 'Entry' : 'Entries'}
+                        </Text>
+                      </View>
                     </View>
-                  )}
-                </View>
-                <Text style={styles.entryDescription} numberOfLines={1}>
-                  {entry.description}
-                </Text>
-              </View>
-              <Icon name="chevron_right" size={18} color="#4b5563" />
-            </TouchableOpacity>
-          ))}
-        </View>
+                    <Text style={styles.entryDescription} numberOfLines={2}>
+                      {preview}
+                    </Text>
+                  </View>
+                  <Icon name="chevron_right" size={18} color="#4b5563" />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Icon name="inbox" size={48} color="#6b7280" />
+            <Text style={styles.emptyText}>No gratitude entries yet</Text>
+            <Text style={styles.emptySubtext}>Start your gratitude practice today!</Text>
+          </View>
+        )}
 
         <View style={styles.endMarker}>
           <Text style={styles.endMarkerText}>End of history</Text>
         </View>
       </ScrollView>
+
+      {/* Entry Detail Modal */}
+      <GratitudeEntryDetailModal
+        visible={isDetailModalVisible}
+        gratitude={selectedEntry}
+        onClose={() => {
+          setIsDetailModalVisible(false);
+          setSelectedEntry(null);
+        }}
+      />
     </SafeAreaView>
   );
 };
@@ -509,5 +559,36 @@ const styles = StyleSheet.create({
   endMarkerText: {
     fontSize: 12,
     color: '#9ca3af',
+  },
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#9ca3af',
+    marginTop: 12,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+  },
+  emptyChart: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyChartText: {
+    fontSize: 12,
+    color: '#6b7280',
   },
 });

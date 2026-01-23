@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Icon } from '@/components/ui/Icon';
+import { gratitudeService } from '@/services/gratitude';
+import { useUIStore } from '@/store';
 
 interface GratitudeScreenProps {
   onBack?: () => void;
@@ -17,14 +19,86 @@ export const GratitudeScreen: React.FC<GratitudeScreenProps> = ({
   onHistory,
 }) => {
   const insets = useSafeAreaInsets();
+  const { showAlert } = useUIStore();
   const [gratitudes, setGratitudes] = useState(['', '', '']);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
-  const [streak] = useState(12);
+  const [streak, setStreak] = useState(0);
+  const [quote, setQuote] = useState<{ text: string; author: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+
+  // Fetch streak and quote on mount
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        setIsLoadingData(true);
+        const [streakData, quoteData] = await Promise.all([
+          gratitudeService.getStreak(),
+          gratitudeService.getRandomQuote(),
+        ]);
+        setStreak(streakData.streak);
+        setQuote(quoteData);
+      } catch (error: any) {
+        console.error('Error fetching initial data:', error);
+        showAlert({
+          type: 'error',
+          title: 'Error',
+          message: error?.message || 'Failed to load data. Please try again.',
+        });
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    fetchInitialData();
+  }, []);
 
   const updateGratitude = (index: number, value: string) => {
     const newGratitudes = [...gratitudes];
     newGratitudes[index] = value;
     setGratitudes(newGratitudes);
+  };
+
+  const handleSave = async () => {
+    // Validate that at least one entry is filled
+    const filledEntries = gratitudes.filter((entry) => entry.trim().length > 0);
+    if (filledEntries.length === 0) {
+      showAlert({
+        type: 'error',
+        title: 'Validation Error',
+        message: 'Please enter at least one gratitude entry.',
+      });
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      await gratitudeService.create({
+        entries: filledEntries,
+      });
+
+      showAlert({
+        type: 'success',
+        title: 'Success',
+        message: 'Gratitude entry saved successfully!',
+      });
+
+      // Refresh streak after saving
+      const streakData = await gratitudeService.getStreak();
+      setStreak(streakData.streak);
+
+      // Call the onSave callback if provided
+      onSave?.();
+    } catch (error: any) {
+      console.error('Error saving gratitude entry:', error);
+      showAlert({
+        type: 'error',
+        title: 'Error',
+        message: error?.message || 'Failed to save gratitude entry. Please try again.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const placeholders = [
@@ -128,11 +202,13 @@ export const GratitudeScreen: React.FC<GratitudeScreenProps> = ({
         </View>
 
         {/* Quote Section */}
-        <View style={styles.quoteSection}>
-          <Icon name="format_quote" size={48} color="rgba(245, 158, 11, 0.5)" />
-          <Text style={styles.quoteText}>"Gratitude turns what we have into enough."</Text>
-          <Text style={styles.quoteAuthor}>— Aesop</Text>
-        </View>
+        {quote && (
+          <View style={styles.quoteSection}>
+            <Icon name="format_quote" size={48} color="rgba(245, 158, 11, 0.5)" />
+            <Text style={styles.quoteText}>"{quote.text}"</Text>
+            <Text style={styles.quoteAuthor}>— {quote.author}</Text>
+          </View>
+        )}
         {/* Bottom Action Bar with Gradient */}
         <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
           {/* <LinearGradient
@@ -140,9 +216,20 @@ export const GratitudeScreen: React.FC<GratitudeScreenProps> = ({
           locations={[0, 0.5, 1]}
           style={StyleSheet.absoluteFill}
         /> */}
-          <TouchableOpacity style={styles.saveButton} onPress={onSave} activeOpacity={0.98}>
-            <Icon name="check_circle" size={20} color="#ffffff" />
-            <Text style={styles.saveButtonText}>Save Entry</Text>
+          <TouchableOpacity
+            style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}
+            onPress={handleSave}
+            activeOpacity={0.98}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#ffffff" />
+            ) : (
+              <Icon name="check_circle" size={20} color="#ffffff" />
+            )}
+            <Text style={styles.saveButtonText}>
+              {isLoading ? 'Saving...' : 'Save Entry'}
+            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -435,5 +522,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#ffffff',
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
   },
 });

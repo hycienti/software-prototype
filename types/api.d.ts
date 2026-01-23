@@ -152,6 +152,93 @@ export interface User {
   createdAt?: string;
 }
 
+// Gratitude Types
+export interface Gratitude {
+  id: number;
+  entries: string[];
+  photoUrl: string | null;
+  entryDate: string;
+  metadata: Record<string, any> | null;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface CreateGratitudeRequest {
+  entries: string[];
+  photoUrl?: string;
+  entryDate?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface UpdateGratitudeRequest {
+  entries?: string[];
+  photoUrl?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface GratitudeResponse {
+  gratitude: Gratitude;
+}
+
+export interface GratitudeListResponse {
+  data: Gratitude[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    lastPage: number;
+  };
+}
+
+export interface GratitudeStreakResponse {
+  streak: number;
+  lastEntryDate: string | null;
+}
+
+export interface GratitudeInsights {
+  totalEntries: number;
+  currentStreak: number;
+  longestStreak: number;
+  entriesThisMonth: number;
+  entriesLastMonth: number;
+  mostCommonThemes: Array<{ theme: string; count: number }>;
+  monthlyTrend: Array<{ month: string; count: number }>;
+}
+
+export interface GratitudeQuote {
+  text: string;
+  author: string;
+}
+
+// Achievement Types
+export interface Achievement {
+  id: number;
+  type: string;
+  title: string;
+  description: string | null;
+  icon: string | null;
+  iconColor: string | null;
+  iconBgColor: string | null;
+  threshold: number | null;
+  progress: number;
+  isCompleted: boolean;
+  completedAt: string | null;
+  createdAt: string;
+}
+
+export interface AchievementListResponse {
+  data: Achievement[];
+  stats: {
+    total: number;
+    completed: number;
+    inProgress: number;
+  };
+}
+
+export interface AchievementResponse {
+  achievement: Achievement;
+}
+
 export interface AuthToken {
   type: 'bearer';
   value: string;
