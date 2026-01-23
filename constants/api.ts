@@ -71,6 +71,21 @@ export const API_ENDPOINTS = {
     DELETE: '/user/me',
   },
 
+  // Gratitude
+  GRATITUDE: {
+    BASE: '/gratitudes',
+    STREAK: '/gratitudes/streak',
+    INSIGHTS: '/gratitudes/insights',
+    RANDOM_QUOTE: '/gratitudes/quotes/random',
+    BY_ID: (id: number) => `/gratitudes/${id}`,
+  },
+
+  // Achievements
+  ACHIEVEMENTS: {
+    BASE: '/achievements',
+    BY_ID: (id: number) => `/achievements/${id}`,
+  },
+
   // Conversations
   CONVERSATIONS: {
     BASE: '/conversations',

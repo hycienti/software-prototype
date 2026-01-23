@@ -1,10 +1,12 @@
-import React, { useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Icon } from '@/components/ui/Icon';
 import { useAuthStore } from '@/store';
 import { userService } from '@/services/user';
+import { achievementsService } from '@/services/achievements';
+import type { Achievement } from '@/services/achievements';
 
 interface ProfileScreenProps {
   onBack?: () => void;
@@ -16,54 +18,6 @@ interface ProfileScreenProps {
   onLogOut?: () => void;
 }
 
-interface Achievement {
-  id: string;
-  title: string;
-  description: string;
-  icon: string;
-  iconColor: string;
-  iconBgColor: string;
-  isCompleted: boolean;
-}
-
-const achievements: Achievement[] = [
-  {
-    id: '1',
-    title: 'First Breath',
-    description: 'Completed 1st session',
-    icon: 'mindfulness',
-    iconColor: '#19b3e6',
-    iconBgColor: 'rgba(25, 179, 230, 0.2)',
-    isCompleted: true,
-  },
-  {
-    id: '2',
-    title: '7-Day Streak',
-    description: 'Consistency is key',
-    icon: 'emoji_events',
-    iconColor: '#34d399',
-    iconBgColor: 'rgba(52, 211, 153, 0.2)',
-    isCompleted: true,
-  },
-  {
-    id: '3',
-    title: 'Night Owl',
-    description: 'Complete 3 night sessions',
-    icon: 'nightlight',
-    iconColor: '#94a3b8',
-    iconBgColor: 'rgba(255, 255, 255, 0.05)',
-    isCompleted: false,
-  },
-  {
-    id: '4',
-    title: 'Zen Master',
-    description: '1000 minutes total',
-    icon: 'self_improvement',
-    iconColor: '#94a3b8',
-    iconBgColor: 'rgba(255, 255, 255, 0.05)',
-    isCompleted: false,
-  },
-];
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   onBack,
@@ -75,6 +29,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   onLogOut,
 }) => {
   const { user, updateUser } = useAuthStore();
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [isLoadingAchievements, setIsLoadingAchievements] = useState(true);
 
   // Fetch fresh user data on mount
   useEffect(() => {
@@ -92,6 +48,25 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
     fetchUserProfile();
   }, []); // Only run on mount
+
+  // Fetch achievements on mount
+  useEffect(() => {
+    const fetchAchievements = async () => {
+      try {
+        setIsLoadingAchievements(true);
+        const response = await achievementsService.getAll();
+        // Filter to show only gratitude-related achievements or show all
+        setAchievements(response.data);
+      } catch (error) {
+        console.error('Failed to fetch achievements:', error);
+        // Silently fail - achievements will remain empty
+      } finally {
+        setIsLoadingAchievements(false);
+      }
+    };
+
+    fetchAchievements();
+  }, []);
   return (
     <View style={styles.container}>
       {/* Background Glow Gradient */}
@@ -194,47 +169,60 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               <Text style={styles.viewAllText}>View All</Text>
             </TouchableOpacity>
           </View>
-          <View style={styles.achievementsGrid}>
-            {achievements.map((achievement) => (
-              <TouchableOpacity
-                key={achievement.id}
-                style={[
-                  styles.achievementCard,
-                  !achievement.isCompleted && styles.achievementCardLocked,
-                ]}
-                activeOpacity={0.95}
-              >
-                <View
+          {isLoadingAchievements ? (
+            <View style={styles.achievementsLoading}>
+              <ActivityIndicator size="small" color="#19b3e6" />
+            </View>
+          ) : achievements.length > 0 ? (
+            <View style={styles.achievementsGrid}>
+              {achievements.slice(0, 4).map((achievement) => (
+                <TouchableOpacity
+                  key={achievement.id}
                   style={[
-                    styles.achievementIcon,
-                    { backgroundColor: achievement.iconBgColor },
+                    styles.achievementCard,
+                    !achievement.isCompleted && styles.achievementCardLocked,
                   ]}
+                  activeOpacity={0.95}
                 >
-                  <Icon
-                    name={achievement.icon}
-                    size={24}
-                    color={achievement.isCompleted ? achievement.iconColor : 'rgba(255, 255, 255, 0.3)'}
-                  />
-                </View>
-                <Text
-                  style={[
-                    styles.achievementTitle,
-                    !achievement.isCompleted && styles.achievementTitleLocked,
-                  ]}
-                >
-                  {achievement.title}
-                </Text>
-                <Text
-                  style={[
-                    styles.achievementDescription,
-                    !achievement.isCompleted && styles.achievementDescriptionLocked,
-                  ]}
-                >
-                  {achievement.description}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+                  <View
+                    style={[
+                      styles.achievementIcon,
+                      { backgroundColor: achievement.iconBgColor || 'rgba(25, 179, 230, 0.2)' },
+                    ]}
+                  >
+                    <Icon
+                      name={achievement.icon || 'emoji_events'}
+                      size={24}
+                      color={achievement.isCompleted ? (achievement.iconColor || '#19b3e6') : 'rgba(255, 255, 255, 0.3)'}
+                    />
+                  </View>
+                  <Text
+                    style={[
+                      styles.achievementTitle,
+                      !achievement.isCompleted && styles.achievementTitleLocked,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {achievement.title}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.achievementDescription,
+                      !achievement.isCompleted && styles.achievementDescriptionLocked,
+                    ]}
+                    numberOfLines={2}
+                  >
+                    {achievement.description || `${achievement.progress}/${achievement.threshold || '?'}`}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.achievementsEmpty}>
+              <Text style={styles.achievementsEmptyText}>No achievements yet</Text>
+              <Text style={styles.achievementsEmptySubtext}>Start your gratitude practice to unlock achievements!</Text>
+            </View>
+          )}
         </View>
 
         {/* Settings Section */}
@@ -519,6 +507,27 @@ const styles = StyleSheet.create({
   },
   achievementDescriptionLocked: {
     color: 'rgba(255, 255, 255, 0.3)',
+  },
+  achievementsLoading: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  achievementsEmpty: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  achievementsEmptyText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.5)',
+  },
+  achievementsEmptySubtext: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.3)',
+    textAlign: 'center',
   },
   settingsList: {
     flexDirection: 'column',
