@@ -203,6 +203,12 @@ export interface GratitudeInsights {
   entriesLastMonth: number;
   mostCommonThemes: Array<{ theme: string; count: number }>;
   monthlyTrend: Array<{ month: string; count: number }>;
+  aiInsights?: {
+    weeklySummary: string;
+    keyPatterns: string[];
+    growthObservations: string[];
+    gentleSuggestions: string[];
+  };
 }
 
 export interface GratitudeQuote {
@@ -301,6 +307,12 @@ export interface MoodInsights {
   monthlyTrend: Array<{ month: string; averageIntensity: number; dominantMood: string }>;
   patterns: Array<{ pattern: string; description: string; confidence: number }>;
   streak: number;
+  aiInsights?: {
+    weeklySummary: string;
+    keyPatterns: string[];
+    emotionalInsights: string[];
+    supportiveSuggestions: string[];
+  };
 }
 
 export interface AuthToken {

@@ -177,37 +177,95 @@ export const GratitudeHistoryScreen: React.FC<GratitudeHistoryScreenProps> = ({
             {/* Insights */}
             {insightsData && (
               <View style={styles.insightsList}>
-                {topTheme && (
-                  <View style={styles.insightItem}>
-                    <View style={styles.insightIcon}>
-                      <Icon name="psychology_alt" size={14} color="#f59e0b" />
+                {/* AI Weekly Summary */}
+                {insightsData.aiInsights?.weeklySummary && (
+                  <View style={styles.aiSummaryCard}>
+                    <View style={styles.aiSummaryHeader}>
+                      <Icon name="auto_awesome" size={16} color="#f59e0b" />
+                      <Text style={styles.aiSummaryTitle}>This Week's Summary</Text>
                     </View>
-                    <Text style={styles.insightText}>
-                      Your focus on <Text style={styles.insightBold}>"{topTheme.theme}"</Text> appears {topTheme.count} times in your entries.
-                    </Text>
+                    <Text style={styles.aiSummaryText}>{insightsData.aiInsights.weeklySummary}</Text>
                   </View>
                 )}
-                {insightsData.currentStreak > 0 && (
-                  <View style={styles.insightItem}>
-                    <View style={[styles.insightIcon, { backgroundColor: 'rgba(249, 115, 22, 0.1)' }]}>
-                      <Icon name="local_fire_department" size={14} color="#f97316" />
-                    </View>
-                    <Text style={styles.insightText}>
-                      You've maintained a <Text style={styles.insightBold}>{insightsData.currentStreak}-day streak!</Text>{' '}
-                      {insightsData.currentStreak >= 7 ? 'Consistency is building your emotional resilience.' : 'Keep it up!'}
-                    </Text>
-                  </View>
+
+                {/* AI Key Patterns */}
+                {insightsData.aiInsights?.keyPatterns && insightsData.aiInsights.keyPatterns.length > 0 && (
+                  <>
+                    {insightsData.aiInsights.keyPatterns.map((pattern, index) => (
+                      <View key={`ai-pattern-${index}`} style={styles.insightItem}>
+                        <View style={styles.insightIcon}>
+                          <Icon name="lightbulb" size={14} color="#f59e0b" />
+                        </View>
+                        <Text style={styles.insightText}>{pattern}</Text>
+                      </View>
+                    ))}
+                  </>
                 )}
-                {insightsData.entriesThisMonth > 0 && (
-                  <View style={styles.insightItem}>
-                    <View style={styles.insightIcon}>
-                      <Icon name="calendar_month" size={14} color="#f59e0b" />
-                    </View>
-                    <Text style={styles.insightText}>
-                      You've written <Text style={styles.insightBold}>{insightsData.entriesThisMonth} entries</Text> this month.
-                      {insightsData.entriesLastMonth > 0 && insightsData.entriesThisMonth > insightsData.entriesLastMonth && ' That\'s more than last month!'}
-                    </Text>
-                  </View>
+
+                {/* AI Growth Observations */}
+                {insightsData.aiInsights?.growthObservations && insightsData.aiInsights.growthObservations.length > 0 && (
+                  <>
+                    {insightsData.aiInsights.growthObservations.map((observation, index) => (
+                      <View key={`ai-growth-${index}`} style={styles.insightItem}>
+                        <View style={[styles.insightIcon, { backgroundColor: 'rgba(52, 211, 153, 0.1)' }]}>
+                          <Icon name="trending_up" size={14} color="#34d399" />
+                        </View>
+                        <Text style={styles.insightText}>{observation}</Text>
+                      </View>
+                    ))}
+                  </>
+                )}
+
+                {/* AI Gentle Suggestions */}
+                {insightsData.aiInsights?.gentleSuggestions && insightsData.aiInsights.gentleSuggestions.length > 0 && (
+                  <>
+                    {insightsData.aiInsights.gentleSuggestions.map((suggestion, index) => (
+                      <View key={`ai-suggestion-${index}`} style={styles.insightItem}>
+                        <View style={[styles.insightIcon, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
+                          <Icon name="tips_and_updates" size={14} color="#3b82f6" />
+                        </View>
+                        <Text style={styles.insightText}>{suggestion}</Text>
+                      </View>
+                    ))}
+                  </>
+                )}
+
+                {/* Fallback to basic insights if AI insights not available */}
+                {!insightsData.aiInsights && (
+                  <>
+                    {topTheme && (
+                      <View style={styles.insightItem}>
+                        <View style={styles.insightIcon}>
+                          <Icon name="psychology_alt" size={14} color="#f59e0b" />
+                        </View>
+                        <Text style={styles.insightText}>
+                          Your focus on <Text style={styles.insightBold}>"{topTheme.theme}"</Text> appears {topTheme.count} times in your entries.
+                        </Text>
+                      </View>
+                    )}
+                    {insightsData.currentStreak > 0 && (
+                      <View style={styles.insightItem}>
+                        <View style={[styles.insightIcon, { backgroundColor: 'rgba(249, 115, 22, 0.1)' }]}>
+                          <Icon name="local_fire_department" size={14} color="#f97316" />
+                        </View>
+                        <Text style={styles.insightText}>
+                          You've maintained a <Text style={styles.insightBold}>{insightsData.currentStreak}-day streak!</Text>{' '}
+                          {insightsData.currentStreak >= 7 ? 'Consistency is building your emotional resilience.' : 'Keep it up!'}
+                        </Text>
+                      </View>
+                    )}
+                    {insightsData.entriesThisMonth > 0 && (
+                      <View style={styles.insightItem}>
+                        <View style={styles.insightIcon}>
+                          <Icon name="calendar_month" size={14} color="#f59e0b" />
+                        </View>
+                        <Text style={styles.insightText}>
+                          You've written <Text style={styles.insightBold}>{insightsData.entriesThisMonth} entries</Text> this month.
+                          {insightsData.entriesLastMonth > 0 && insightsData.entriesThisMonth > insightsData.entriesLastMonth && ' That\'s more than last month!'}
+                        </Text>
+                      </View>
+                    )}
+                  </>
                 )}
               </View>
             )}
@@ -449,6 +507,33 @@ const styles = StyleSheet.create({
   insightBold: {
     fontWeight: '600',
     color: '#ffffff',
+  },
+  aiSummaryCard: {
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.2)',
+  },
+  aiSummaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  aiSummaryTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#f59e0b',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  aiSummaryText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#e2e8f0',
+    fontWeight: '400',
   },
   sectionTitle: {
     fontSize: 12,
