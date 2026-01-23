@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Icon } from '@/components/ui/Icon';
+import { useAuthStore } from '@/store';
+import { userService } from '@/services/user';
 
 interface ProfileScreenProps {
   onBack?: () => void;
@@ -72,6 +74,24 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   onConnectedApps,
   onLogOut,
 }) => {
+  const { user, updateUser } = useAuthStore();
+
+  // Fetch fresh user data on mount
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user) return;
+
+      try {
+        const response = await userService.getProfile();
+        updateUser(response.user);
+      } catch (error) {
+        console.error('Failed to fetch user profile:', error);
+        // Silently fail - use existing user data from store
+      }
+    };
+
+    fetchUserProfile();
+  }, []); // Only run on mount
   return (
     <View style={styles.container}>
       {/* Background Glow Gradient */}
@@ -120,10 +140,16 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               </View>
             </TouchableOpacity>
           </View>
-          <Text style={styles.userName}>Alex Morgan</Text>
+          <Text style={styles.userName}>
+            {user?.fullName || 'User'}
+          </Text>
           <View style={styles.joinBadge}>
             <Icon name="calendar_month" size={14} color="#19b3e6" />
-            <Text style={styles.joinText}>Joined Jan 2026</Text>
+            <Text style={styles.joinText}>
+              {user?.createdAt
+                ? `Joined ${new Date(user.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
+                : 'Recently joined'}
+            </Text>
           </View>
         </View>
 

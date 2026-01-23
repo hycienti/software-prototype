@@ -148,6 +148,8 @@ export interface User {
   fullName: string | null;
   avatarUrl: string | null;
   emailVerified: boolean;
+  lastLoginAt?: string | null;
+  createdAt?: string;
 }
 
 export interface AuthToken {
