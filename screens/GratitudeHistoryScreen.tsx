@@ -7,6 +7,7 @@ import { Icon } from '@/components/ui/Icon';
 import { gratitudeService } from '@/services/gratitude';
 import type { Gratitude, GratitudeInsights } from '@/services/gratitude';
 import { useUIStore } from '@/store';
+import { GratitudeEntryDetailModal } from '@/components/gratitude/GratitudeEntryDetailModal';
 
 interface GratitudeHistoryScreenProps {
   onBack?: () => void;
@@ -50,6 +51,8 @@ export const GratitudeHistoryScreen: React.FC<GratitudeHistoryScreenProps> = ({
   const [gratitudes, setGratitudes] = useState<Gratitude[]>([]);
   const [insights, setInsights] = useState<GratitudeInsights | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedEntry, setSelectedEntry] = useState<Gratitude | null>(null);
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -247,7 +250,11 @@ export const GratitudeHistoryScreen: React.FC<GratitudeHistoryScreenProps> = ({
                 <TouchableOpacity
                   key={gratitude.id}
                   style={styles.entryCard}
-                  onPress={() => onEntryPress?.(gratitude.id.toString())}
+                  onPress={() => {
+                    setSelectedEntry(gratitude);
+                    setIsDetailModalVisible(true);
+                    onEntryPress?.(gratitude.id.toString());
+                  }}
                   activeOpacity={0.95}
                 >
                   <View style={styles.entryDate}>
@@ -284,6 +291,16 @@ export const GratitudeHistoryScreen: React.FC<GratitudeHistoryScreenProps> = ({
           <Text style={styles.endMarkerText}>End of history</Text>
         </View>
       </ScrollView>
+
+      {/* Entry Detail Modal */}
+      <GratitudeEntryDetailModal
+        visible={isDetailModalVisible}
+        gratitude={selectedEntry}
+        onClose={() => {
+          setIsDetailModalVisible(false);
+          setSelectedEntry(null);
+        }}
+      />
     </SafeAreaView>
   );
 };
