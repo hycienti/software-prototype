@@ -86,6 +86,14 @@ export const API_ENDPOINTS = {
     BY_ID: (id: number) => `/achievements/${id}`,
   },
 
+  // Mood
+  MOOD: {
+    BASE: '/moods',
+    STREAK: '/moods/streak',
+    INSIGHTS: '/moods/insights',
+    BY_ID: (id: number) => `/moods/${id}`,
+  },
+
   // Conversations
   CONVERSATIONS: {
     BASE: '/conversations',

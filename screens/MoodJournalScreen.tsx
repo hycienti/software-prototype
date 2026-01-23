@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import Slider from '@react-native-community/slider';
 import { Icon } from '@/components/ui/Icon';
+import { useCreateMood } from '@/hooks/useMood';
+import type { MoodType } from '@/types/api';
 
 const moods = [
   { id: 'happy', label: 'Happy', icon: 'sentiment_satisfied' },
@@ -26,9 +28,12 @@ export const MoodJournalScreen: React.FC<MoodJournalScreenProps> = ({
   onHistory,
 }) => {
   const insets = useSafeAreaInsets();
-  const [selectedMood, setSelectedMood] = useState('happy');
+  const [selectedMood, setSelectedMood] = useState<MoodType>('happy');
   const [intensity, setIntensity] = useState(7);
   const [journalText, setJournalText] = useState('');
+  
+  const createMoodMutation = useCreateMood();
+  const isLoading = createMoodMutation.isPending;
 
   // Get color based on intensity (cooler to hotter)
   const getIntensityColor = (value: number): string => {
@@ -68,6 +73,38 @@ export const MoodJournalScreen: React.FC<MoodJournalScreenProps> = ({
   const intensityColor = getIntensityColor(intensity);
   const intensityBadgeBg = hexToRgba(intensityColor, 0.1);
 
+  const handleSave = () => {
+    if (!selectedMood || intensity < 1 || intensity > 10) {
+      return;
+    }
+
+    createMoodMutation.mutate(
+      {
+        mood: selectedMood,
+        intensity,
+        notes: journalText.trim() || undefined,
+      },
+      {
+        onSuccess: () => {
+          // Clear the form
+          setJournalText('');
+          setIntensity(7);
+          setSelectedMood('happy');
+          // Call the onSave callback if provided
+          onSave?.();
+        },
+      }
+    );
+  };
+
+  // Format date for header
+  const today = new Date();
+  const formattedDate = today.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+  });
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header with Backdrop Blur */}
@@ -77,7 +114,7 @@ export const MoodJournalScreen: React.FC<MoodJournalScreenProps> = ({
           <TouchableOpacity onPress={onBack} style={styles.headerButton} activeOpacity={0.7}>
             <Icon name="close" size={24} color="#6b7280" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Today, Oct 24</Text>
+          <Text style={styles.headerTitle}>{formattedDate}</Text>
           <TouchableOpacity style={styles.historyButton} onPress={onHistory} activeOpacity={0.7}>
             <Text style={styles.historyText}>History</Text>
           </TouchableOpacity>
@@ -193,11 +230,16 @@ export const MoodJournalScreen: React.FC<MoodJournalScreenProps> = ({
           style={StyleSheet.absoluteFill}
         />
         <TouchableOpacity
-          style={styles.saveButton}
-          onPress={onSave}
+          style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}
+          onPress={handleSave}
           activeOpacity={0.98}
+          disabled={isLoading}
         >
-          <Text style={styles.saveButtonText}>Save Entry</Text>
+          {isLoading ? (
+            <ActivityIndicator size="small" color="#ffffff" />
+          ) : (
+            <Text style={styles.saveButtonText}>Save Entry</Text>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -436,5 +478,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#ffffff',
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
   },
 });

@@ -1,82 +1,29 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Icon } from '@/components/ui/Icon';
 import Svg, { Path, Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
+import { useMoodHistory, useMoodInsights, useMoodEntry } from '@/hooks/useMood';
+import { MoodEntryDetailModal } from '@/components/mood/MoodEntryDetailModal';
+import type { Mood, MoodInsights } from '@/services/mood';
 
 interface MoodHistoryScreenProps {
   onBack?: () => void;
   onEntryPress?: (entryId: string) => void;
 }
 
-interface MoodEntry {
-  id: string;
-  date: string;
-  day: number;
-  month: string;
-  mood: 'happy' | 'anxious' | 'calm' | 'sad';
-  moodLabel: string;
-  intensity: number;
-  description: string;
-}
-
-const moodEntries: MoodEntry[] = [
-  {
-    id: '1',
-    date: '2023-10-24',
-    day: 24,
-    month: 'Oct',
-    mood: 'happy',
-    moodLabel: 'Happy',
-    intensity: 7,
-    description: 'Finally finished that big project at work and feel a huge sense of relief...',
-  },
-  {
-    id: '2',
-    date: '2023-10-23',
-    day: 23,
-    month: 'Oct',
-    mood: 'anxious',
-    moodLabel: 'Anxious',
-    intensity: 4,
-    description: 'Woke up feeling a bit overwhelmed by the news, tried to meditate but...',
-  },
-  {
-    id: '3',
-    date: '2023-10-21',
-    day: 21,
-    month: 'Oct',
-    mood: 'calm',
-    moodLabel: 'Calm',
-    intensity: 5,
-    description: 'Nothing special today, just a quiet Sunday reading at the cafe.',
-  },
-  {
-    id: '4',
-    date: '2023-10-20',
-    day: 20,
-    month: 'Oct',
-    mood: 'sad',
-    moodLabel: 'Sad',
-    intensity: 3,
-    description: 'Missed my family a lot today. Called mom but she didn\'t pick up...',
-  },
-  {
-    id: '5',
-    date: '2023-10-18',
-    day: 18,
-    month: 'Oct',
-    mood: 'happy',
-    moodLabel: 'Happy',
-    intensity: 8,
-    description: 'Met up with Sarah for lunch, we laughed so hard my stomach hurt.',
-  },
-];
+// Helper function to format date
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  const day = date.getDate();
+  const month = date.toLocaleDateString('en-US', { month: 'short' });
+  return { day, month, date: dateString };
+};
 
 // Helper function to get calendar data for a given month/year
-const getCalendarData = (year: number, month: number, moodEntries: MoodEntry[]) => {
+const getCalendarData = (year: number, month: number, moods: Mood[]) => {
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
   const daysInMonth = lastDay.getDate();
@@ -84,10 +31,10 @@ const getCalendarData = (year: number, month: number, moodEntries: MoodEntry[]) 
 
   // Create a map of date strings to moods for quick lookup
   const moodMap = new Map<string, string | null>();
-  moodEntries.forEach((entry) => {
-    const entryDate = new Date(entry.date);
+  moods.forEach((entry) => {
+    const entryDate = new Date(entry.entryDate);
     if (entryDate.getFullYear() === year && entryDate.getMonth() === month) {
-      moodMap.set(entry.date, entry.mood);
+      moodMap.set(entry.entryDate, entry.mood);
     }
   });
 
@@ -140,6 +87,8 @@ const getMoodColor = (mood: string | null): string => {
       return '#fbbf24';
     case 'sad':
       return '#60a5fa';
+    case 'angry':
+      return '#ef4444';
     default:
       return 'transparent';
   }
@@ -155,8 +104,27 @@ const getMoodIcon = (mood: string): string => {
       return 'spa';
     case 'sad':
       return 'water_drop';
+    case 'angry':
+      return 'local_fire_department';
     default:
       return 'sentiment_neutral';
+  }
+};
+
+const getMoodLabel = (mood: string): string => {
+  switch (mood) {
+    case 'happy':
+      return 'Happy';
+    case 'calm':
+      return 'Calm';
+    case 'anxious':
+      return 'Anxious';
+    case 'sad':
+      return 'Sad';
+    case 'angry':
+      return 'Angry';
+    default:
+      return 'Unknown';
   }
 };
 
@@ -164,10 +132,36 @@ export const MoodHistoryScreen: React.FC<MoodHistoryScreenProps> = ({
   onBack,
   onEntryPress,
 }) => {
-  const [currentDate, setCurrentDate] = useState(new Date(2023, 9, 1)); // October 2023
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedEntryId, setSelectedEntryId] = useState<number | null>(null);
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
 
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth();
+
+  // Use React Query hooks for data fetching
+  const { data: historyData, isLoading: isLoadingHistory } = useMoodHistory({ limit: 100 });
+  const { data: insights, isLoading: isLoadingInsights } = useMoodInsights();
+  const { data: selectedEntryData } = useMoodEntry(selectedEntryId);
+
+  const moods: Mood[] = (historyData as any)?.data || [];
+  const isLoading = isLoadingHistory || isLoadingInsights;
+  const insightsData = insights as MoodInsights | undefined;
+  const selectedEntry = selectedEntryData?.mood || null;
+
+  const handleEntryPress = (entryId: string) => {
+    const id = parseInt(entryId, 10);
+    if (!isNaN(id)) {
+      setSelectedEntryId(id);
+      setIsDetailModalVisible(true);
+      onEntryPress?.(entryId);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsDetailModalVisible(false);
+    setSelectedEntryId(null);
+  };
 
   const monthNames = [
     'January',
@@ -194,7 +188,36 @@ export const MoodHistoryScreen: React.FC<MoodHistoryScreenProps> = ({
     setCurrentDate(new Date(currentYear, currentMonth + 1, 1));
   };
 
-  const calendarData = getCalendarData(currentYear, currentMonth, moodEntries);
+  const calendarData = useMemo(() => {
+    return getCalendarData(currentYear, currentMonth, moods);
+  }, [currentYear, currentMonth, moods]);
+
+  // Prepare graph data from weekly trend
+  const graphData = useMemo(() => {
+    if (!insightsData?.weeklyTrend || insightsData.weeklyTrend.length === 0) return null;
+    
+    const trend = insightsData.weeklyTrend;
+    const maxIntensity = Math.max(...trend.map(t => t.averageIntensity), 10);
+    const points = trend.map((week, index) => {
+      const x = (index / (trend.length - 1 || 1)) * 300;
+      const y = 100 - (week.averageIntensity / maxIntensity) * 70; // Scale to 0-70 range
+      return { x, y };
+    });
+
+    // Create smooth path
+    let path = `M ${points[0].x},${points[0].y}`;
+    for (let i = 1; i < points.length; i++) {
+      const prev = points[i - 1];
+      const curr = points[i];
+      const cp1x = prev.x + (curr.x - prev.x) / 3;
+      const cp1y = prev.y;
+      const cp2x = curr.x - (curr.x - prev.x) / 3;
+      const cp2y = curr.y;
+      path += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${curr.x},${curr.y}`;
+    }
+
+    return { path, points };
+  }, [insightsData]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -327,112 +350,169 @@ export const MoodHistoryScreen: React.FC<MoodHistoryScreenProps> = ({
             </View>
 
           {/* Graph */}
-          <View style={styles.graphContainer}>
-            <Svg width="100%" height={96} viewBox="0 0 300 100" preserveAspectRatio="none">
-              <Defs>
-                <SvgLinearGradient id="gradientGraph" x1="0" x2="0" y1="0" y2="1">
-                  <Stop offset="0%" stopColor="#19b3e6" stopOpacity="0.2" />
-                  <Stop offset="100%" stopColor="#19b3e6" stopOpacity="0" />
-                </SvgLinearGradient>
-              </Defs>
-              <Path
-                d="M0,70 C40,70 60,30 100,35 S160,85 200,60 S260,10 300,30"
-                fill="none"
-                stroke="#19b3e6"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-              <Path
-                d="M0,70 C40,70 60,30 100,35 S160,85 200,60 S260,10 300,30 V110 H0 Z"
-                fill="url(#gradientGraph)"
-              />
-              <Circle cx="100" cy="35" r="3" fill="#ffffff" stroke="#19b3e6" strokeWidth="2" />
-              <Circle cx="200" cy="60" r="3" fill="#ffffff" stroke="#19b3e6" strokeWidth="2" />
-              <Circle cx="300" cy="30" r="3" fill="#ffffff" stroke="#19b3e6" strokeWidth="2" />
-            </Svg>
-            <View style={styles.graphLabels}>
-              <Text style={styles.graphLabel}>Mon</Text>
-              <Text style={styles.graphLabel}>Wed</Text>
-              <Text style={styles.graphLabel}>Fri</Text>
-              <Text style={styles.graphLabel}>Today</Text>
+          {graphData ? (
+            <View style={styles.graphContainer}>
+              <Svg width="100%" height={96} viewBox="0 0 300 100" preserveAspectRatio="none">
+                <Defs>
+                  <SvgLinearGradient id="gradientGraph" x1="0" x2="0" y1="0" y2="1">
+                    <Stop offset="0%" stopColor="#19b3e6" stopOpacity="0.2" />
+                    <Stop offset="100%" stopColor="#19b3e6" stopOpacity="0" />
+                  </SvgLinearGradient>
+                </Defs>
+                <Path
+                  d={`${graphData.path} V110 H0 Z`}
+                  fill="url(#gradientGraph)"
+                />
+                <Path
+                  d={graphData.path}
+                  fill="none"
+                  stroke="#19b3e6"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+                {graphData.points.map((point, index) => (
+                  <Circle
+                    key={index}
+                    cx={point.x}
+                    cy={point.y}
+                    r="3"
+                    fill="#ffffff"
+                    stroke="#19b3e6"
+                    strokeWidth="2"
+                  />
+                ))}
+              </Svg>
+              <View style={styles.graphLabels}>
+                {insightsData?.weeklyTrend?.slice(0, 4).map((week, index) => (
+                  <Text key={index} style={styles.graphLabel}>
+                    {week.week.split(' ')[0]}
+                  </Text>
+                ))}
+              </View>
             </View>
-          </View>
+          ) : (
+            <View style={styles.emptyGraph}>
+              <Text style={styles.emptyGraphText}>No data yet</Text>
+            </View>
+          )}
 
           {/* Insights */}
-          <View style={styles.insightsList}>
-            <View style={styles.insightItem}>
-              <View style={styles.insightIcon}>
-                <Icon name="lightbulb" size={14} color="#19b3e6" />
-              </View>
-              <Text style={styles.insightText}>
-                I noticed your mood tends to lift after{' '}
-                <Text style={styles.insightBold}>evening journaling</Text>.
-              </Text>
+          {insightsData && (
+            <View style={styles.insightsList}>
+              {insightsData.patterns?.slice(0, 3).map((pattern, index) => (
+                <View key={index} style={styles.insightItem}>
+                  <View style={styles.insightIcon}>
+                    <Icon name="lightbulb" size={14} color="#19b3e6" />
+                  </View>
+                  <Text style={styles.insightText}>
+                    {pattern.description}
+                  </Text>
+                </View>
+              ))}
+              {insightsData.streak > 0 && (
+                <View style={styles.insightItem}>
+                  <View style={[styles.insightIcon, { backgroundColor: 'rgba(52, 211, 153, 0.1)' }]}>
+                    <Icon name="local_fire_department" size={14} color="#f97316" />
+                  </View>
+                  <Text style={styles.insightText}>
+                    You've maintained a <Text style={styles.insightBold}>{insightsData.streak}-day tracking streak!</Text>
+                  </Text>
+                </View>
+              )}
+              {insightsData.moodDistribution?.[0] && (
+                <View style={styles.insightItem}>
+                  <View style={styles.insightIcon}>
+                    <Icon name="self_improvement" size={14} color="#34d399" />
+                  </View>
+                  <Text style={styles.insightText}>
+                    Your most common mood is <Text style={styles.insightBold}>{getMoodLabel(insightsData.moodDistribution[0].mood)}</Text> ({insightsData.moodDistribution[0].percentage}% of entries).
+                  </Text>
+                </View>
+              )}
             </View>
-            <View style={styles.insightItem}>
-              <View style={[styles.insightIcon, { backgroundColor: 'rgba(52, 211, 153, 0.1)' }]}>
-                <Icon name="self_improvement" size={14} color="#34d399" />
-              </View>
-              <Text style={styles.insightText}>
-                You've been feeling more "Calm" since starting{' '}
-                <Text style={styles.insightBold}>box breathing</Text>.
-              </Text>
-            </View>
-          </View>
+          )}
           </View>
         </View>
 
         {/* Recent Entries */}
         <Text style={styles.sectionTitle}>RECENT ENTRIES</Text>
-        <View style={styles.entriesList}>
-          {moodEntries.map((entry) => (
-            <TouchableOpacity
-              key={entry.id}
-              style={styles.entryCard}
-              onPress={() => onEntryPress?.(entry.id)}
-              activeOpacity={0.95}
-            >
-              <View style={styles.entryDate}>
-                <Text style={styles.entryMonth}>{entry.month}</Text>
-                <Text style={styles.entryDay}>{entry.day}</Text>
-              </View>
-              <View style={styles.entryContent}>
-                <View style={styles.entryHeader}>
-                  <View style={styles.entryMoodRow}>
-                    <Icon name={getMoodIcon(entry.mood)} size={18} color={getMoodColor(entry.mood)} />
-                    <Text style={styles.entryMoodLabel}>{entry.moodLabel}</Text>
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#19b3e6" />
+          </View>
+        ) : moods.length > 0 ? (
+          <View style={styles.entriesList}>
+            {moods.slice(0, 20).map((entry) => {
+              const { day, month } = formatDate(entry.entryDate);
+              const preview = entry.notes
+                ? entry.notes.length > 60
+                  ? entry.notes.substring(0, 60) + '...'
+                  : entry.notes
+                : 'No notes';
+
+              return (
+                <TouchableOpacity
+                  key={entry.id}
+                  style={styles.entryCard}
+                  onPress={() => handleEntryPress(entry.id.toString())}
+                  activeOpacity={0.95}
+                >
+                  <View style={styles.entryDate}>
+                    <Text style={styles.entryMonth}>{month}</Text>
+                    <Text style={styles.entryDay}>{day}</Text>
                   </View>
-                  <View
-                    style={[
-                      styles.intensityBadge,
-                      entry.intensity >= 7
-                        ? { backgroundColor: 'rgba(25, 179, 230, 0.1)' }
-                        : { backgroundColor: 'rgba(255, 255, 255, 0.05)' },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.intensityText,
-                        entry.intensity >= 7 ? { color: '#19b3e6' } : { color: '#6b7280' },
-                      ]}
-                    >
-                      {entry.intensity}/10
+                  <View style={styles.entryContent}>
+                    <View style={styles.entryHeader}>
+                      <View style={styles.entryMoodRow}>
+                        <Icon name={getMoodIcon(entry.mood)} size={18} color={getMoodColor(entry.mood)} />
+                        <Text style={styles.entryMoodLabel}>{getMoodLabel(entry.mood)}</Text>
+                      </View>
+                      <View
+                        style={[
+                          styles.intensityBadge,
+                          entry.intensity >= 7
+                            ? { backgroundColor: 'rgba(25, 179, 230, 0.1)' }
+                            : { backgroundColor: 'rgba(255, 255, 255, 0.05)' },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.intensityText,
+                            entry.intensity >= 7 ? { color: '#19b3e6' } : { color: '#6b7280' },
+                          ]}
+                        >
+                          {entry.intensity}/10
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.entryDescription} numberOfLines={2}>
+                      {preview}
                     </Text>
                   </View>
-                </View>
-                <Text style={styles.entryDescription} numberOfLines={1}>
-                  {entry.description}
-                </Text>
-              </View>
-              <Icon name="chevron_right" size={18} color="#4b5563" />
-            </TouchableOpacity>
-          ))}
-        </View>
+                  <Icon name="chevron_right" size={18} color="#4b5563" />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Icon name="inbox" size={48} color="#6b7280" />
+            <Text style={styles.emptyText}>No mood entries yet</Text>
+            <Text style={styles.emptySubtext}>Start tracking your mood today!</Text>
+          </View>
+        )}
 
         <View style={styles.endMarker}>
           <Text style={styles.endMarkerText}>End of history</Text>
         </View>
       </ScrollView>
+
+      {/* Mood Entry Detail Modal */}
+      <MoodEntryDetailModal
+        visible={isDetailModalVisible}
+        mood={selectedEntry}
+        onClose={handleCloseModal}
+      />
     </SafeAreaView>
   );
 };
@@ -759,5 +839,36 @@ const styles = StyleSheet.create({
   endMarkerText: {
     fontSize: 12,
     color: '#9ca3af',
+  },
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#9ca3af',
+    marginTop: 12,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+  },
+  emptyGraph: {
+    height: 96,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyGraphText: {
+    fontSize: 12,
+    color: '#6b7280',
   },
 });
