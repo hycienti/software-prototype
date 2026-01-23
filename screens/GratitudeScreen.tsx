@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Icon } from '@/components/ui/Icon';
-import { gratitudeService } from '@/services/gratitude';
-import { useUIStore } from '@/store';
+import { useGratitudeStreak, useGratitudeQuote, useCreateGratitude } from '@/hooks/useGratitude';
 
 interface GratitudeScreenProps {
   onBack?: () => void;
@@ -19,39 +18,16 @@ export const GratitudeScreen: React.FC<GratitudeScreenProps> = ({
   onHistory,
 }) => {
   const insets = useSafeAreaInsets();
-  const { showAlert } = useUIStore();
   const [gratitudes, setGratitudes] = useState(['', '', '']);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
-  const [streak, setStreak] = useState(0);
-  const [quote, setQuote] = useState<{ text: string; author: string } | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingData, setIsLoadingData] = useState(true);
+  
+  // Use React Query hooks for data fetching
+  const { data: streakData } = useGratitudeStreak();
+  const { data: quote } = useGratitudeQuote();
+  const createGratitudeMutation = useCreateGratitude();
 
-  // Fetch streak and quote on mount
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        setIsLoadingData(true);
-        const [streakData, quoteData] = await Promise.all([
-          gratitudeService.getStreak(),
-          gratitudeService.getRandomQuote(),
-        ]);
-        setStreak(streakData.streak);
-        setQuote(quoteData);
-      } catch (error: any) {
-        console.error('Error fetching initial data:', error);
-        showAlert({
-          type: 'error',
-          title: 'Error',
-          message: error?.message || 'Failed to load data. Please try again.',
-        });
-      } finally {
-        setIsLoadingData(false);
-      }
-    };
-
-    fetchInitialData();
-  }, []);
+  const streak = streakData?.streak || 0;
+  const isLoading = createGratitudeMutation.isPending;
 
   const updateGratitude = (index: number, value: string) => {
     const newGratitudes = [...gratitudes];
@@ -63,42 +39,20 @@ export const GratitudeScreen: React.FC<GratitudeScreenProps> = ({
     // Validate that at least one entry is filled
     const filledEntries = gratitudes.filter((entry) => entry.trim().length > 0);
     if (filledEntries.length === 0) {
-      showAlert({
-        type: 'error',
-        title: 'Validation Error',
-        message: 'Please enter at least one gratitude entry.',
-      });
       return;
     }
 
-    try {
-      setIsLoading(true);
-      await gratitudeService.create({
-        entries: filledEntries,
-      });
-
-      showAlert({
-        type: 'success',
-        title: 'Success',
-        message: 'Gratitude entry saved successfully!',
-      });
-
-      // Refresh streak after saving
-      const streakData = await gratitudeService.getStreak();
-      setStreak(streakData.streak);
-
-      // Call the onSave callback if provided
-      onSave?.();
-    } catch (error: any) {
-      console.error('Error saving gratitude entry:', error);
-      showAlert({
-        type: 'error',
-        title: 'Error',
-        message: error?.message || 'Failed to save gratitude entry. Please try again.',
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    createGratitudeMutation.mutate(
+      { entries: filledEntries },
+      {
+        onSuccess: () => {
+          // Clear the form
+          setGratitudes(['', '', '']);
+          // Call the onSave callback if provided
+          onSave?.();
+        },
+      }
+    );
   };
 
   const placeholders = [

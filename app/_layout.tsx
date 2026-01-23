@@ -7,12 +7,19 @@ import { ConversationProvider } from '@/contexts/ConversationContext';
 import { GlobalAlertModal } from '@/components/ui';
 import '../global.css';
 
-// Create a client for React Query
+// Create a client for React Query with optimized defaults
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
+      refetchOnMount: true,
+      refetchOnReconnect: true,
+      staleTime: 0, // Consider data stale immediately (can be overridden per query)
+      gcTime: 5 * 60 * 1000, // Keep unused data in cache for 5 minutes
+    },
+    mutations: {
+      retry: 1,
     },
   },
 });

@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Icon } from '@/components/ui/Icon';
-import { gratitudeService } from '@/services/gratitude';
 import type { Gratitude, GratitudeInsights } from '@/services/gratitude';
-import { useUIStore } from '@/store';
+import { useGratitudeHistory, useGratitudeInsights } from '@/hooks/useGratitude';
 import { GratitudeEntryDetailModal } from '@/components/gratitude/GratitudeEntryDetailModal';
 
 interface GratitudeHistoryScreenProps {
@@ -47,47 +46,30 @@ export const GratitudeHistoryScreen: React.FC<GratitudeHistoryScreenProps> = ({
   onBack,
   onEntryPress,
 }) => {
-  const { showAlert } = useUIStore();
-  const [gratitudes, setGratitudes] = useState<Gratitude[]>([]);
-  const [insights, setInsights] = useState<GratitudeInsights | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [selectedEntry, setSelectedEntry] = useState<Gratitude | null>(null);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        const [historyData, insightsData] = await Promise.all([
-          gratitudeService.getHistory({ limit: 50 }),
-          gratitudeService.getInsights(),
-        ]);
-        setGratitudes(historyData.data);
-        setInsights(insightsData);
-      } catch (error: any) {
-        console.error('Error fetching gratitude history:', error);
-        showAlert({
-          type: 'error',
-          title: 'Error',
-          message: error?.message || 'Failed to load gratitude history. Please try again.',
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // Use React Query hooks for data fetching
+  const { data: historyData, isLoading: isLoadingHistory } = useGratitudeHistory({ limit: 50 });
+  const { data: insights, isLoading: isLoadingInsights } = useGratitudeInsights();
 
-    fetchData();
-  }, []);
+  const gratitudes: Gratitude[] = (historyData as any)?.data || [];
+  const isLoading = isLoadingHistory || isLoadingInsights;
+  const insightsData = (insights as unknown) as GratitudeInsights | undefined;
 
   // Prepare chart data from monthly trend
-  const chartData = insights?.monthlyTrend.map((month, index) => ({
-    week: month.month.split(' ')[0], // Get month abbreviation
-    height: Math.max(20, (month.count / (insights.monthlyTrend.reduce((max, m) => Math.max(max, m.count), 0) || 1)) * 100),
-    isSelected: index === insights.monthlyTrend.length - 1, // Select current month
-  })) || [];
+  const chartData = useMemo(() => {
+    if (!insightsData?.monthlyTrend) return [];
+    const maxCount = insightsData.monthlyTrend.reduce((max: number, m: { count: number }) => Math.max(max, m.count), 0) || 1;
+    return insightsData.monthlyTrend.map((month: { month: string; count: number }, index: number) => ({
+      week: month.month.split(' ')[0], // Get month abbreviation
+      height: Math.max(20, (month.count / maxCount) * 100),
+      isSelected: index === insightsData.monthlyTrend.length - 1, // Select current month
+    }));
+  }, [insightsData]);
 
   // Get top theme
-  const topTheme = insights?.mostCommonThemes[0];
+  const topTheme = insightsData?.mostCommonThemes?.[0];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -152,7 +134,7 @@ export const GratitudeHistoryScreen: React.FC<GratitudeHistoryScreenProps> = ({
             <View style={styles.chartContainer}>
               <Text style={styles.chartLabel}>Entries</Text>
               <View style={styles.barChart}>
-                {chartData.length > 0 ? chartData.map((week, index) => (
+                {chartData.length > 0 ? chartData.map((week: { week: string; height: number; isSelected: boolean }, index: number) => (
                   <View key={index} style={styles.barColumn}>
                     <View
                       style={[
@@ -193,7 +175,7 @@ export const GratitudeHistoryScreen: React.FC<GratitudeHistoryScreenProps> = ({
             </View>
 
             {/* Insights */}
-            {insights && (
+            {insightsData && (
               <View style={styles.insightsList}>
                 {topTheme && (
                   <View style={styles.insightItem}>
@@ -205,25 +187,25 @@ export const GratitudeHistoryScreen: React.FC<GratitudeHistoryScreenProps> = ({
                     </Text>
                   </View>
                 )}
-                {insights.currentStreak > 0 && (
+                {insightsData.currentStreak > 0 && (
                   <View style={styles.insightItem}>
                     <View style={[styles.insightIcon, { backgroundColor: 'rgba(249, 115, 22, 0.1)' }]}>
                       <Icon name="local_fire_department" size={14} color="#f97316" />
                     </View>
                     <Text style={styles.insightText}>
-                      You've maintained a <Text style={styles.insightBold}>{insights.currentStreak}-day streak!</Text>{' '}
-                      {insights.currentStreak >= 7 ? 'Consistency is building your emotional resilience.' : 'Keep it up!'}
+                      You've maintained a <Text style={styles.insightBold}>{insightsData.currentStreak}-day streak!</Text>{' '}
+                      {insightsData.currentStreak >= 7 ? 'Consistency is building your emotional resilience.' : 'Keep it up!'}
                     </Text>
                   </View>
                 )}
-                {insights.entriesThisMonth > 0 && (
+                {insightsData.entriesThisMonth > 0 && (
                   <View style={styles.insightItem}>
                     <View style={styles.insightIcon}>
                       <Icon name="calendar_month" size={14} color="#f59e0b" />
                     </View>
                     <Text style={styles.insightText}>
-                      You've written <Text style={styles.insightBold}>{insights.entriesThisMonth} entries</Text> this month.
-                      {insights.entriesLastMonth > 0 && insights.entriesThisMonth > insights.entriesLastMonth && ' That\'s more than last month!'}
+                      You've written <Text style={styles.insightBold}>{insightsData.entriesThisMonth} entries</Text> this month.
+                      {insightsData.entriesLastMonth > 0 && insightsData.entriesThisMonth > insightsData.entriesLastMonth && ' That\'s more than last month!'}
                     </Text>
                   </View>
                 )}
@@ -240,7 +222,7 @@ export const GratitudeHistoryScreen: React.FC<GratitudeHistoryScreenProps> = ({
           </View>
         ) : gratitudes.length > 0 ? (
           <View style={styles.entriesList}>
-            {gratitudes.map((gratitude) => {
+            {gratitudes.map((gratitude: Gratitude) => {
               const { day, month } = formatDate(gratitude.entryDate);
               const { icon, color } = getEntryIcon(gratitude.entries);
               const firstEntry = gratitude.entries[0] || '';

@@ -1,12 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Icon } from '@/components/ui/Icon';
 import { useAuthStore } from '@/store';
-import { userService } from '@/services/user';
-import { achievementsService } from '@/services/achievements';
-import type { Achievement } from '@/services/achievements';
+import { useUserProfile } from '@/hooks/useUser';
+import { useAchievements } from '@/hooks/useAchievements';
 
 interface ProfileScreenProps {
   onBack?: () => void;
@@ -28,45 +27,35 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   onConnectedApps,
   onLogOut,
 }) => {
-  const { user, updateUser } = useAuthStore();
-  const [achievements, setAchievements] = useState<Achievement[]>([]);
-  const [isLoadingAchievements, setIsLoadingAchievements] = useState(true);
+  const { user: authUser, updateUser } = useAuthStore();
+  const { data: userProfile } = useUserProfile();
+  const { data: achievementsData, isLoading: isLoadingAchievements } = useAchievements();
+  const lastSyncedProfileId = useRef<number | null>(null);
 
-  // Fetch fresh user data on mount
+  // Update auth store when profile data is fetched (only once per profile update)
   useEffect(() => {
-    const fetchUserProfile = async () => {
-      if (!user) return;
-
-      try {
-        const response = await userService.getProfile();
-        updateUser(response.user);
-      } catch (error) {
-        console.error('Failed to fetch user profile:', error);
-        // Silently fail - use existing user data from store
+    if (userProfile && authUser && userProfile.id === authUser.id) {
+      // Only sync if this is a new profile fetch (different ID or first time)
+      if (lastSyncedProfileId.current !== userProfile.id) {
+        // Only update if the data has actually changed
+        const hasChanged = 
+          userProfile.fullName !== authUser.fullName ||
+          userProfile.email !== authUser.email ||
+          userProfile.avatarUrl !== authUser.avatarUrl ||
+          userProfile.emailVerified !== authUser.emailVerified;
+        
+        if (hasChanged) {
+          updateUser(userProfile);
+        }
+        lastSyncedProfileId.current = userProfile.id;
       }
-    };
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userProfile?.id, userProfile?.fullName, userProfile?.email, userProfile?.avatarUrl, userProfile?.emailVerified]);
 
-    fetchUserProfile();
-  }, []); // Only run on mount
-
-  // Fetch achievements on mount
-  useEffect(() => {
-    const fetchAchievements = async () => {
-      try {
-        setIsLoadingAchievements(true);
-        const response = await achievementsService.getAll();
-        // Filter to show only gratitude-related achievements or show all
-        setAchievements(response.data);
-      } catch (error) {
-        console.error('Failed to fetch achievements:', error);
-        // Silently fail - achievements will remain empty
-      } finally {
-        setIsLoadingAchievements(false);
-      }
-    };
-
-    fetchAchievements();
-  }, []);
+  // Use profile data if available, otherwise fall back to auth store user
+  const user = userProfile || authUser;
+  const achievements = achievementsData?.data || [];
   return (
     <View style={styles.container}>
       {/* Background Glow Gradient */}

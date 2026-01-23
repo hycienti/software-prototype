@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, ImageBackground, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,7 +7,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card';
 import { cn } from '@/utils/cn';
 import { useAuthStore } from '@/store';
-import { userService } from '@/services/user';
+import { useUserProfile } from '@/hooks/useUser';
 import { getFirstName, getGreeting } from '@/utils/user';
 
 const recommendations = [
@@ -60,29 +60,33 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onNotificationsPress,
   onRecommendationPress,
 }) => {
-  const { user, updateUser } = useAuthStore();
-  const [isLoadingUser, setIsLoadingUser] = useState(false);
+  const { user: authUser, updateUser } = useAuthStore();
+  const { data: userProfile } = useUserProfile();
+  const lastSyncedProfileId = React.useRef<number | null>(null);
 
-  // Fetch fresh user data on mount
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      if (!user) return;
-
-      try {
-        setIsLoadingUser(true);
-        const response = await userService.getProfile();
-        updateUser(response.user);
-      } catch (error) {
-        console.error('Failed to fetch user profile:', error);
-        // Silently fail - use existing user data from store
-      } finally {
-        setIsLoadingUser(false);
+  // Update auth store when profile data is fetched (only once per profile update)
+  React.useEffect(() => {
+    if (userProfile && authUser && userProfile.id === authUser.id) {
+      // Only sync if this is a new profile fetch (different ID or first time)
+      if (lastSyncedProfileId.current !== userProfile.id) {
+        // Only update if the data has actually changed
+        const hasChanged = 
+          userProfile.fullName !== authUser.fullName ||
+          userProfile.email !== authUser.email ||
+          userProfile.avatarUrl !== authUser.avatarUrl ||
+          userProfile.emailVerified !== authUser.emailVerified;
+        
+        if (hasChanged) {
+          updateUser(userProfile);
+        }
+        lastSyncedProfileId.current = userProfile.id;
       }
-    };
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userProfile?.id, userProfile?.fullName, userProfile?.email, userProfile?.avatarUrl, userProfile?.emailVerified]);
 
-    fetchUserProfile();
-  }, []); // Only run on mount
-
+  // Use profile data if available, otherwise fall back to auth store user
+  const user = userProfile || authUser;
   const firstName = getFirstName(user?.fullName);
   const greeting = getGreeting();
 
