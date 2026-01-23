@@ -399,35 +399,93 @@ export const MoodHistoryScreen: React.FC<MoodHistoryScreenProps> = ({
           {/* Insights */}
           {insightsData && (
             <View style={styles.insightsList}>
-              {insightsData.patterns?.slice(0, 3).map((pattern, index) => (
-                <View key={index} style={styles.insightItem}>
-                  <View style={styles.insightIcon}>
-                    <Icon name="lightbulb" size={14} color="#19b3e6" />
+              {/* AI Weekly Summary */}
+              {insightsData.aiInsights?.weeklySummary && (
+                <View style={styles.aiSummaryCard}>
+                  <View style={styles.aiSummaryHeader}>
+                    <Icon name="auto_awesome" size={16} color="#19b3e6" />
+                    <Text style={styles.aiSummaryTitle}>This Week's Summary</Text>
                   </View>
-                  <Text style={styles.insightText}>
-                    {pattern.description}
-                  </Text>
-                </View>
-              ))}
-              {insightsData.streak > 0 && (
-                <View style={styles.insightItem}>
-                  <View style={[styles.insightIcon, { backgroundColor: 'rgba(52, 211, 153, 0.1)' }]}>
-                    <Icon name="local_fire_department" size={14} color="#f97316" />
-                  </View>
-                  <Text style={styles.insightText}>
-                    You've maintained a <Text style={styles.insightBold}>{insightsData.streak}-day tracking streak!</Text>
-                  </Text>
+                  <Text style={styles.aiSummaryText}>{insightsData.aiInsights.weeklySummary}</Text>
                 </View>
               )}
-              {insightsData.moodDistribution?.[0] && (
-                <View style={styles.insightItem}>
-                  <View style={styles.insightIcon}>
-                    <Icon name="self_improvement" size={14} color="#34d399" />
-                  </View>
-                  <Text style={styles.insightText}>
-                    Your most common mood is <Text style={styles.insightBold}>{getMoodLabel(insightsData.moodDistribution[0].mood)}</Text> ({insightsData.moodDistribution[0].percentage}% of entries).
-                  </Text>
-                </View>
+
+              {/* AI Key Patterns */}
+              {insightsData.aiInsights?.keyPatterns && insightsData.aiInsights.keyPatterns.length > 0 && (
+                <>
+                  {insightsData.aiInsights.keyPatterns.map((pattern, index) => (
+                    <View key={`ai-pattern-${index}`} style={styles.insightItem}>
+                      <View style={styles.insightIcon}>
+                        <Icon name="lightbulb" size={14} color="#19b3e6" />
+                      </View>
+                      <Text style={styles.insightText}>{pattern}</Text>
+                    </View>
+                  ))}
+                </>
+              )}
+
+              {/* AI Emotional Insights */}
+              {insightsData.aiInsights?.emotionalInsights && insightsData.aiInsights.emotionalInsights.length > 0 && (
+                <>
+                  {insightsData.aiInsights.emotionalInsights.map((insight, index) => (
+                    <View key={`ai-emotional-${index}`} style={styles.insightItem}>
+                      <View style={[styles.insightIcon, { backgroundColor: 'rgba(52, 211, 153, 0.1)' }]}>
+                        <Icon name="self_improvement" size={14} color="#34d399" />
+                      </View>
+                      <Text style={styles.insightText}>{insight}</Text>
+                    </View>
+                  ))}
+                </>
+              )}
+
+              {/* AI Supportive Suggestions */}
+              {insightsData.aiInsights?.supportiveSuggestions && insightsData.aiInsights.supportiveSuggestions.length > 0 && (
+                <>
+                  {insightsData.aiInsights.supportiveSuggestions.map((suggestion, index) => (
+                    <View key={`ai-suggestion-${index}`} style={styles.insightItem}>
+                      <View style={[styles.insightIcon, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
+                        <Icon name="tips_and_updates" size={14} color="#3b82f6" />
+                      </View>
+                      <Text style={styles.insightText}>{suggestion}</Text>
+                    </View>
+                  ))}
+                </>
+              )}
+
+              {/* Fallback to basic insights if AI insights not available */}
+              {!insightsData.aiInsights && (
+                <>
+                  {insightsData.patterns?.slice(0, 3).map((pattern, index) => (
+                    <View key={index} style={styles.insightItem}>
+                      <View style={styles.insightIcon}>
+                        <Icon name="lightbulb" size={14} color="#19b3e6" />
+                      </View>
+                      <Text style={styles.insightText}>
+                        {pattern.description}
+                      </Text>
+                    </View>
+                  ))}
+                  {insightsData.streak > 0 && (
+                    <View style={styles.insightItem}>
+                      <View style={[styles.insightIcon, { backgroundColor: 'rgba(52, 211, 153, 0.1)' }]}>
+                        <Icon name="local_fire_department" size={14} color="#f97316" />
+                      </View>
+                      <Text style={styles.insightText}>
+                        You've maintained a <Text style={styles.insightBold}>{insightsData.streak}-day tracking streak!</Text>
+                      </Text>
+                    </View>
+                  )}
+                  {insightsData.moodDistribution?.[0] && (
+                    <View style={styles.insightItem}>
+                      <View style={styles.insightIcon}>
+                        <Icon name="self_improvement" size={14} color="#34d399" />
+                      </View>
+                      <Text style={styles.insightText}>
+                        Your most common mood is <Text style={styles.insightBold}>{getMoodLabel(insightsData.moodDistribution[0].mood)}</Text> ({insightsData.moodDistribution[0].percentage}% of entries).
+                      </Text>
+                    </View>
+                  )}
+                </>
               )}
             </View>
           )}
@@ -747,6 +805,33 @@ const styles = StyleSheet.create({
   insightBold: {
     fontWeight: '600',
     color: '#ffffff',
+  },
+  aiSummaryCard: {
+    backgroundColor: 'rgba(25, 179, 230, 0.1)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(25, 179, 230, 0.2)',
+  },
+  aiSummaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  aiSummaryTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#19b3e6',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  aiSummaryText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#e2e8f0',
+    fontWeight: '400',
   },
   sectionTitle: {
     fontSize: 12,
