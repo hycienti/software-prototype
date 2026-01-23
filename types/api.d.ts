@@ -137,3 +137,66 @@ export interface StreamingMessageEvent {
   sentiment?: SentimentAnalysis;
   message?: string;
 }
+
+// ============================================================================
+// Authentication Types
+// ============================================================================
+
+export interface User {
+  id: number;
+  email: string;
+  fullName: string | null;
+  avatarUrl: string | null;
+  emailVerified: boolean;
+}
+
+export interface AuthToken {
+  type: 'bearer';
+  value: string;
+  expiresAt: string | null;
+}
+
+export interface AuthResponse {
+  user: User;
+  token: AuthToken;
+}
+
+export interface SendOtpRequest {
+  email: string;
+}
+
+export interface SendOtpResponse {
+  message: string;
+  expiresIn: number; // seconds
+}
+
+export interface VerifyOtpRequest {
+  email: string;
+  code: string; // 6-digit code
+}
+
+export interface VerifyOtpResponse {
+  requiresSignup: boolean;
+  email?: string;
+  user?: User;
+  token?: AuthToken;
+  message?: string;
+}
+
+export interface CompleteSignupRequest {
+  email: string;
+  fullName: string;
+}
+
+export interface CompleteSignupResponse {
+  user: User;
+  token: AuthToken;
+}
+
+export interface RefreshTokenResponse {
+  token: AuthToken;
+}
+
+export interface LogoutResponse {
+  message: string;
+}

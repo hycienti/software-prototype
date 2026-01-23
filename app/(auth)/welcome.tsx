@@ -1,19 +1,40 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Asset } from 'expo-asset';
-import { AppleIcon } from '@/components/ui/AppleIcon';
-import { GoogleIcon } from '@/components/ui/GoogleIcon';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useAuth } from '@/hooks/useAuth';
+import { EmailInputModal } from '@/components/auth/EmailInputModal';
+import { OtpVerificationModal } from '@/components/auth/OtpVerificationModal';
+import { FullnameInputModal } from '@/components/auth/FullnameInputModal';
 
 export default function WelcomePage() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [videoUri, setVideoUri] = useState<string | null>(null);
+  
+  // Auth flow state
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [showFullnameModal, setShowFullnameModal] = useState(false);
+  const [email, setEmail] = useState('');
+  const [otpExpiresIn, setOtpExpiresIn] = useState(600);
+  
+  // Auth hook with navigation on success
+  const { isLoading, sendOtp, verifyOtp, completeSignup } = useAuth({
+    onSuccess: () => {
+      // Navigate to main app on successful authentication
+      router.replace('/(tabs)');
+    },
+    onError: (error) => {
+      // Error handling is done in the hook via UI store alerts
+      console.error('Authentication error:', error);
+    },
+  });
   
   // Load video asset
   useEffect(() => {
@@ -61,14 +82,58 @@ export default function WelcomePage() {
     }
   }, [player, videoUri]);
 
-  const handleAppleLogin = () => {
-    // TODO: Implement Apple OAuth
-    router.replace('/(tabs)');
+  const handleGetStarted = () => {
+    setShowEmailModal(true);
   };
 
-  const handleGoogleLogin = () => {
-    // TODO: Implement Google OAuth
-    router.replace('/(tabs)');
+  const handleEmailSubmit = async (submittedEmail: string) => {
+    try {
+      const response = await sendOtp(submittedEmail);
+      setEmail(submittedEmail);
+      setOtpExpiresIn(response.expiresIn);
+      setShowEmailModal(false);
+      setShowOtpModal(true);
+    } catch (error) {
+      // Error is handled in the hook
+      throw error;
+    }
+  };
+
+  const handleOtpVerify = async (code: string) => {
+    try {
+      const result = await verifyOtp(email, code);
+      setShowOtpModal(false);
+      
+      if (result.requiresSignup) {
+        // New user - show fullname input
+        setShowFullnameModal(true);
+      }
+      // Existing user - auth hook will handle navigation
+    } catch (error) {
+      // Error is handled in the hook
+      throw error;
+    }
+  };
+
+  const handleOtpResend = async () => {
+    try {
+      const response = await sendOtp(email);
+      setOtpExpiresIn(response.expiresIn);
+    } catch (error) {
+      // Error is handled in the hook
+      throw error;
+    }
+  };
+
+  const handleFullnameSubmit = async (fullName: string) => {
+    try {
+      await completeSignup(email, fullName);
+      setShowFullnameModal(false);
+      // Auth hook will handle navigation
+    } catch (error) {
+      // Error is handled in the hook
+      throw error;
+    }
   };
 
   return (
@@ -149,23 +214,11 @@ export default function WelcomePage() {
 
             <View style={styles.buttonContainer}>
               <TouchableOpacity
-                onPress={handleAppleLogin}
-                style={[styles.appleButton, { marginBottom: 16 }]}
-                activeOpacity={0.98}>
-                <View style={{ marginRight: 12 }}>
-                  <AppleIcon size={24} color="#0f172a" />
-                </View>
-                <Text style={styles.appleButtonText}>Continue with Apple</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={handleGoogleLogin}
-                style={styles.googleButton}
-                activeOpacity={0.98}>
-                <View style={{ marginRight: 12 }}>
-                  <GoogleIcon size={24} />
-                </View>
-                <Text style={styles.googleButtonText}>Continue with Google</Text>
+                onPress={handleGetStarted}
+                style={[styles.primaryButton, isLoading && styles.buttonDisabled]}
+                activeOpacity={0.98}
+                disabled={isLoading}>
+                <Text style={styles.primaryButtonText}>Get Started</Text>
               </TouchableOpacity>
             </View>
 
@@ -178,6 +231,38 @@ export default function WelcomePage() {
           </View>
         </View>
       </View>
+
+      {/* Auth Modals */}
+      <EmailInputModal
+        visible={showEmailModal}
+        onClose={() => setShowEmailModal(false)}
+        onSubmit={handleEmailSubmit}
+        isLoading={isLoading}
+      />
+
+      <OtpVerificationModal
+        visible={showOtpModal}
+        email={email}
+        onClose={() => {
+          setShowOtpModal(false);
+          setEmail('');
+        }}
+        onVerify={handleOtpVerify}
+        onResend={handleOtpResend}
+        isLoading={isLoading}
+        expiresIn={otpExpiresIn}
+      />
+
+      <FullnameInputModal
+        visible={showFullnameModal}
+        email={email}
+        onClose={() => {
+          setShowFullnameModal(false);
+          setEmail('');
+        }}
+        onSubmit={handleFullnameSubmit}
+        isLoading={isLoading}
+      />
     </SafeAreaView>
   );
 }
@@ -318,29 +403,7 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 'auto',
   },
-  appleButton: {
-    height: 56,
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#ffffff',
-    borderRadius: 50,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  appleButtonText: {
-    fontSize: 17,
-    fontWeight: '600',
-    letterSpacing: -0.01,
-    color: '#0f172a',
-  },
-  googleButton: {
+  primaryButton: {
     height: 56,
     width: '100%',
     flexDirection: 'row',
@@ -356,7 +419,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  googleButtonText: {
+  primaryButtonText: {
     fontSize: 17,
     fontWeight: '600',
     letterSpacing: -0.01,
@@ -378,5 +441,8 @@ const styles = StyleSheet.create({
   bottomSpacer: {
     height: 16,
     width: '100%',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
 });

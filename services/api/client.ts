@@ -3,6 +3,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { API_CONFIG, getApiUrl } from '@/constants/api'
 import type { ApiError } from '@/types/api'
 
+// Lazy import to avoid circular dependency
+let authStore: { clearAuth: () => Promise<void> } | null = null
+
+const getAuthStore = async () => {
+  if (!authStore) {
+    const { useAuthStore } = await import('@/store')
+    authStore = useAuthStore.getState()
+  }
+  return authStore
+}
+
 /**
  * API Client with authentication and error handling
  */
@@ -48,17 +59,25 @@ class ApiClient {
           // Handle specific error status codes
           switch (error.response.status) {
             case 401:
-              // Unauthorized - clear token and redirect to login
-              await AsyncStorage.removeItem('auth_token')
-              // You might want to trigger a navigation event here
+              // Unauthorized - clear token and auth state
+              try {
+                await AsyncStorage.removeItem('auth_token')
+                const store = await getAuthStore()
+                if (store) {
+                  await store.clearAuth()
+                }
+                console.log('Authentication expired - cleared auth state')
+              } catch (clearError) {
+                console.error('Error clearing auth on 401:', clearError)
+              }
               break
             case 403:
               // Forbidden
-              console.error('Access forbidden')
+              console.error('Access forbidden:', error.response.data)
               break
             case 404:
               // Not found
-              console.error('Resource not found')
+              console.error('Resource not found:', error.response.data)
               break
             case 422:
               // Validation error

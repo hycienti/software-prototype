@@ -6,6 +6,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { User, AuthToken } from '@/types/api';
 
 // ============================================================================
 // UI Store (for modals, alerts, etc.)
@@ -85,27 +86,97 @@ export const useConversationStore = create<ConversationStore>()(
 );
 
 // ============================================================================
-// Auth Store (optional - for auth state management)
+// Auth Store (for auth state management)
 // ============================================================================
 
 interface AuthStore {
   isAuthenticated: boolean;
-  token: string | null;
-  setAuth: (token: string | null) => void;
-  clearAuth: () => void;
+  user: User | null;
+  token: AuthToken | null;
+  isLoading: boolean;
+  setAuth: (user: User, token: AuthToken) => Promise<void>;
+  updateToken: (token: AuthToken) => Promise<void>;
+  updateUser: (user: Partial<User>) => void;
+  clearAuth: () => Promise<void>;
+  setLoading: (loading: boolean) => void;
 }
+
+const AUTH_TOKEN_KEY = 'auth_token';
+const AUTH_USER_KEY = 'auth_user';
 
 export const useAuthStore = create<AuthStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       isAuthenticated: false,
+      user: null,
       token: null,
-      setAuth: (token) => set({ isAuthenticated: !!token, token }),
-      clearAuth: () => set({ isAuthenticated: false, token: null }),
+      isLoading: false,
+
+      setAuth: async (user: User, token: AuthToken) => {
+        try {
+          // Store token in AsyncStorage for API client interceptor
+          await AsyncStorage.setItem(AUTH_TOKEN_KEY, token.value);
+          
+          set({
+            isAuthenticated: true,
+            user,
+            token,
+            isLoading: false,
+          });
+        } catch (error) {
+          console.error('Error setting auth:', error);
+          set({ isLoading: false });
+          throw error;
+        }
+      },
+
+      updateToken: async (token: AuthToken) => {
+        try {
+          await AsyncStorage.setItem(AUTH_TOKEN_KEY, token.value);
+          set({ token });
+        } catch (error) {
+          console.error('Error updating token:', error);
+          throw error;
+        }
+      },
+
+      updateUser: (userData: Partial<User>) => {
+        const currentUser = get().user;
+        if (currentUser) {
+          set({
+            user: { ...currentUser, ...userData },
+          });
+        }
+      },
+
+      clearAuth: async () => {
+        try {
+          await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
+          await AsyncStorage.removeItem(AUTH_USER_KEY);
+          set({
+            isAuthenticated: false,
+            user: null,
+            token: null,
+            isLoading: false,
+          });
+        } catch (error) {
+          console.error('Error clearing auth:', error);
+        }
+      },
+
+      setLoading: (loading: boolean) => {
+        set({ isLoading: loading });
+      },
     }),
     {
       name: 'auth-storage',
       storage: createJSONStorage(() => AsyncStorage),
+      // Only persist user and token, not loading state
+      partialize: (state) => ({
+        isAuthenticated: state.isAuthenticated,
+        user: state.user,
+        token: state.token,
+      }),
     }
   )
 );

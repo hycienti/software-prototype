@@ -2,6 +2,52 @@
  * API Configuration and Endpoints
  */
 
+/**
+ * Validate environment configuration
+ * Logs warnings for missing optional configs and errors for critical missing configs
+ */
+const validateEnvironment = () => {
+  const warnings: string[] = []
+  const errors: string[] = []
+
+  // API URL validation
+  const apiUrl = process.env.EXPO_PUBLIC_API_URL
+  if (!apiUrl) {
+    warnings.push(
+      'EXPO_PUBLIC_API_URL is not set. Using default: http://localhost:3333'
+    )
+  } else {
+    try {
+      new URL(apiUrl)
+    } catch {
+      errors.push(`EXPO_PUBLIC_API_URL is invalid: ${apiUrl}`)
+    }
+  }
+
+  // Email service validation (optional but recommended)
+  // Note: RESEND_API_KEY is configured on the backend
+
+  // Log warnings and errors
+  if (warnings.length > 0) {
+    console.warn('⚠️ Environment Configuration Warnings:', warnings)
+  }
+  if (errors.length > 0) {
+    console.error('❌ Environment Configuration Errors:', errors)
+    throw new Error(
+      `Environment configuration errors detected:\n${errors.join('\n')}`
+    )
+  }
+
+  if (warnings.length === 0 && errors.length === 0) {
+    console.log('✅ Environment configuration validated successfully')
+  }
+}
+
+// Validate on module load (only in development)
+if (__DEV__) {
+  validateEnvironment()
+}
+
 export const API_CONFIG = {
   BASE_URL: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3333',
   API_VERSION: 'v1',
@@ -11,13 +57,11 @@ export const API_CONFIG = {
 export const API_ENDPOINTS = {
   // Authentication
   AUTH: {
-    LOGIN: '/auth/login',
-    REGISTER: '/auth/register',
-    LOGOUT: '/auth/logout',
+    SEND_OTP: '/auth/send-otp',
+    VERIFY_OTP: '/auth/verify-otp',
+    COMPLETE_SIGNUP: '/auth/complete-signup',
     REFRESH: '/auth/refresh',
-    GOOGLE: '/auth/google',
-    APPLE: '/auth/apple',
-    PROFILE: '/auth/profile',
+    LOGOUT: '/auth/logout',
   },
 
   // Conversations
