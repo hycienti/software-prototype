@@ -239,6 +239,70 @@ export interface AchievementResponse {
   achievement: Achievement;
 }
 
+// Mood Types
+export type MoodType = 'happy' | 'calm' | 'anxious' | 'sad' | 'angry';
+
+export interface Mood {
+  id: number;
+  mood: MoodType;
+  intensity: number;
+  notes: string | null;
+  photoUrl: string | null;
+  entryDate: string;
+  tags: string[] | null;
+  metadata: Record<string, any> | null;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface CreateMoodRequest {
+  mood: MoodType;
+  intensity: number;
+  notes?: string;
+  photoUrl?: string;
+  entryDate?: string;
+  tags?: string[];
+  metadata?: Record<string, any>;
+}
+
+export interface UpdateMoodRequest {
+  mood?: MoodType;
+  intensity?: number;
+  notes?: string;
+  photoUrl?: string;
+  tags?: string[];
+  metadata?: Record<string, any>;
+}
+
+export interface MoodResponse {
+  mood: Mood;
+}
+
+export interface MoodListResponse {
+  data: Mood[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    lastPage: number;
+  };
+}
+
+export interface MoodStreakResponse {
+  streak: number;
+  lastEntryDate: string | null;
+}
+
+export interface MoodInsights {
+  totalEntries: number;
+  averageIntensity: number;
+  moodDistribution: Array<{ mood: string; count: number; percentage: number }>;
+  weeklyTrend: Array<{ week: string; averageIntensity: number; dominantMood: string }>;
+  monthlyTrend: Array<{ month: string; averageIntensity: number; dominantMood: string }>;
+  patterns: Array<{ pattern: string; description: string; confidence: number }>;
+  streak: number;
+}
+
 export interface AuthToken {
   type: 'bearer';
   value: string;
