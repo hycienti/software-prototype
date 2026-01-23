@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, ImageBackground, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -9,6 +9,8 @@ import { cn } from '@/utils/cn';
 import { useAuthStore } from '@/store';
 import { useUserProfile } from '@/hooks/useUser';
 import { getFirstName, getGreeting } from '@/utils/user';
+import { SideMenu } from '@/components/navigation/SideMenu';
+import { useRouter } from 'expo-router';
 
 const recommendations = [
   {
@@ -60,6 +62,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onNotificationsPress,
   onRecommendationPress,
 }) => {
+  const router = useRouter();
+  const [isMenuVisible, setIsMenuVisible] = useState(false);
   const { user: authUser, updateUser } = useAuthStore();
   const { data: userProfile } = useUserProfile();
   const lastSyncedProfileId = React.useRef<number | null>(null);
@@ -111,7 +115,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       </View>
 
       <View style={styles.headerContainer}>
-        <TouchableOpacity style={styles.headerButton} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={() => setIsMenuVisible(true)}
+          activeOpacity={0.7}
+        >
           <Icon name="menu" size={30} color="#ffffff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Haven</Text>
@@ -123,6 +131,34 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <Icon name="notifications" size={24} color="#ffffff" />
         </TouchableOpacity>
       </View>
+
+      {/* Side Menu */}
+      <SideMenu
+        visible={isMenuVisible}
+        onClose={() => setIsMenuVisible(false)}
+        onCrisisPress={() => {
+          // TODO: Navigate to crisis resources
+          console.log('Crisis Resources pressed');
+        }}
+        onTherapistPress={() => {
+          router.push('/therapists');
+        }}
+        onWellnessPress={() => {
+          onWellnessPress?.();
+        }}
+        onCommunityPress={() => {
+          // TODO: Navigate to community forums
+          console.log('Community Forums pressed');
+        }}
+        onHelpPress={() => {
+          // TODO: Navigate to help & support
+          console.log('Help & Support pressed');
+        }}
+        onAboutPress={() => {
+          // TODO: Navigate to about page
+          console.log('About Haven pressed');
+        }}
+      />
 
       <ScrollView className="relative z-10 flex-1" showsVerticalScrollIndicator={false}>
         <View className="w-full">
