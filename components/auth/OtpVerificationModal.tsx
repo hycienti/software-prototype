@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { Button } from '@/components/ui/Button';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 interface OtpVerificationModalProps {
@@ -128,6 +130,31 @@ export const OtpVerificationModal: React.FC<OtpVerificationModalProps> = ({
         style={styles.container}
       >
         <View style={styles.content}>
+          {/* Background gradients matching welcome page */}
+          <BlurView intensity={100} tint="dark" style={StyleSheet.absoluteFill} />
+          <LinearGradient
+            colors={[
+              'rgba(17, 29, 33, 0.95)',
+              'rgba(17, 29, 33, 0.92)',
+              'rgba(15, 23, 42, 0.90)',
+              'rgba(15, 23, 42, 0.88)',
+            ]}
+            locations={[0, 0.3, 0.7, 1]}
+            style={StyleSheet.absoluteFill}
+          />
+          {/* Accent gradient overlay */}
+          <LinearGradient
+            colors={[
+              'rgba(25, 179, 230, 0.08)',
+              'rgba(79, 209, 197, 0.05)',
+              'transparent',
+            ]}
+            locations={[0, 0.5, 1]}
+            style={StyleSheet.absoluteFill}
+          />
+
+          <View style={styles.dragHandle} />
+
           <Animated.View entering={FadeInDown.duration(400)} style={styles.header}>
             <Text style={styles.title}>Verify Your Email</Text>
             <Text style={styles.subtitle}>
@@ -139,21 +166,30 @@ export const OtpVerificationModal: React.FC<OtpVerificationModalProps> = ({
           <Animated.View entering={FadeInDown.duration(500).delay(100)} style={styles.codeContainer}>
             <View style={styles.codeInputs}>
               {code.map((digit, index) => (
-                <TextInput
+                <Animated.View
                   key={index}
-                  ref={(ref) => (inputRefs.current[index] = ref)}
-                  style={[styles.codeInput, error && styles.codeInputError]}
-                  value={digit}
-                  onChangeText={(value) => handleCodeChange(value, index)}
-                  onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, index)}
-                  keyboardType="number-pad"
-                  maxLength={1}
-                  selectTextOnFocus
-                  editable={!isLoading}
-                />
+                  entering={FadeInDown.duration(300).delay(150 + index * 50)}
+                  style={index < 5 && { marginRight: 12 }}
+                >
+                  <TextInput
+                    ref={(ref) => (inputRefs.current[index] = ref)}
+                    style={[styles.codeInput, error && styles.codeInputError]}
+                    value={digit}
+                    onChangeText={(value) => handleCodeChange(value, index)}
+                    onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, index)}
+                    keyboardType="number-pad"
+                    maxLength={1}
+                    selectTextOnFocus
+                    editable={!isLoading}
+                  />
+                </Animated.View>
               ))}
             </View>
-            {error && <Text style={styles.errorText}>{error}</Text>}
+            {error && (
+              <Animated.View entering={FadeInDown.duration(300)}>
+                <Text style={styles.errorText}>{error}</Text>
+              </Animated.View>
+            )}
           </Animated.View>
 
           <Animated.View entering={FadeInDown.duration(500).delay(200)} style={styles.footer}>
@@ -167,15 +203,18 @@ export const OtpVerificationModal: React.FC<OtpVerificationModalProps> = ({
                 <Text style={styles.resendText}>Resend Code</Text>
               </TouchableOpacity>
             )}
-            <Button
-              onPress={() => handleVerify()}
-              variant="primary"
-              size="lg"
-              disabled={isLoading || code.join('').length !== 6}
-              style={styles.button}
-            >
-              {isLoading ? 'Verifying...' : 'Verify'}
-            </Button>
+            <View style={styles.buttonWrapper}>
+              <Button
+                onPress={() => handleVerify()}
+                variant="primary"
+                size="lg"
+                disabled={isLoading || code.join('').length !== 6}
+                loading={isLoading}
+                className="w-full rounded-[50px]"
+              >
+                {isLoading ? 'Verifying...' : 'Verify'}
+              </Button>
+            </View>
           </Animated.View>
         </View>
       </KeyboardAvoidingView>
@@ -191,6 +230,14 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: 32,
+  },
+  dragHandle: {
+    width: 48,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(148, 163, 184, 0.5)',
+    marginBottom: 32,
+    alignSelf: 'center',
   },
   header: {
     marginBottom: 32,
@@ -211,6 +258,9 @@ const styles = StyleSheet.create({
   email: {
     fontWeight: '600',
     color: '#19b3e6',
+    textShadowColor: 'rgba(25, 179, 230, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   codeContainer: {
     marginBottom: 24,
@@ -221,19 +271,25 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   codeInput: {
-    width: 48,
-    height: 56,
-    backgroundColor: 'rgba(30, 41, 59, 0.8)',
-    borderRadius: 12,
+    width: 52,
+    height: 64,
+    backgroundColor: 'rgba(30, 41, 59, 0.6)',
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
     textAlign: 'center',
-    fontSize: 24,
-    fontWeight: '600',
+    fontSize: 28,
+    fontWeight: '700',
     color: '#ffffff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   codeInputError: {
     borderColor: '#ef4444',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
   },
   errorText: {
     fontSize: 14,
@@ -256,7 +312,12 @@ const styles = StyleSheet.create({
     color: '#19b3e6',
     marginBottom: 24,
   },
-  button: {
+  buttonWrapper: {
     width: '100%',
+    shadowColor: '#19b3e6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
 });
