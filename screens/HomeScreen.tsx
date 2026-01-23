@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, ImageBackground, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -6,6 +6,9 @@ import { BlurView } from 'expo-blur';
 import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card';
 import { cn } from '@/utils/cn';
+import { useAuthStore } from '@/store';
+import { userService } from '@/services/user';
+import { getFirstName, getGreeting } from '@/utils/user';
 
 const recommendations = [
   {
@@ -57,6 +60,32 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onNotificationsPress,
   onRecommendationPress,
 }) => {
+  const { user, updateUser } = useAuthStore();
+  const [isLoadingUser, setIsLoadingUser] = useState(false);
+
+  // Fetch fresh user data on mount
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user) return;
+
+      try {
+        setIsLoadingUser(true);
+        const response = await userService.getProfile();
+        updateUser(response.user);
+      } catch (error) {
+        console.error('Failed to fetch user profile:', error);
+        // Silently fail - use existing user data from store
+      } finally {
+        setIsLoadingUser(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, []); // Only run on mount
+
+  const firstName = getFirstName(user?.fullName);
+  const greeting = getGreeting();
+
   return (
     <SafeAreaView className="flex-1 bg-background-dark">
       {/* Dark Gradient Background */}
@@ -93,7 +122,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
       <ScrollView className="relative z-10 flex-1" showsVerticalScrollIndicator={false}>
         <View className="w-full">
-          <Text style={styles.greetingText}>Hello, Alex.{'\n'}How are you feeling today?</Text>
+          <Text style={styles.greetingText}>
+            {greeting}, {firstName}.{'\n'}How are you feeling today?
+          </Text>
         </View>
 
         <View className="flex-row gap-3 p-4" style={{ gap: 12 }}>

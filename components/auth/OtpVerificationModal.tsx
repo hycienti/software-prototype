@@ -241,6 +241,7 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 32,
+    alignItems: 'center',
   },
   title: {
     fontSize: 28,
@@ -248,6 +249,7 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     marginBottom: 8,
     letterSpacing: -0.5,
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,

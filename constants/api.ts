@@ -64,6 +64,13 @@ export const API_ENDPOINTS = {
     LOGOUT: '/auth/logout',
   },
 
+  // User
+  USER: {
+    ME: '/user/me',
+    UPDATE: '/user/me',
+    DELETE: '/user/me',
+  },
+
   // Conversations
   CONVERSATIONS: {
     BASE: '/conversations',
