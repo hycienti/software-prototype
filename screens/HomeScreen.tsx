@@ -11,6 +11,7 @@ import { useUserProfile } from '@/hooks/useUser';
 import { getFirstName, getGreeting } from '@/utils/user';
 import { SideMenu } from '@/components/navigation/SideMenu';
 import { useRouter } from 'expo-router';
+import Typography from '@/components/typography/default-typography';
 
 const recommendations = [
   {
@@ -162,9 +163,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
       <ScrollView className="relative z-10 flex-1" showsVerticalScrollIndicator={false}>
         <View className="w-full">
-          <Text style={styles.greetingText}>
+          <Typography  style={styles.greetingText} variant="h2" weight="bold" color="#ffffff">
             {greeting}, {firstName}.{'\n'}How are you feeling today?
-          </Text>
+          </Typography>
         </View>
 
         <View className="flex-row gap-3 p-4" style={{ gap: 12 }}>
@@ -350,7 +351,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   greetingText: {
-    fontSize: 28,
+    
     fontWeight: '700',
     lineHeight: 36,
     paddingHorizontal: 16,
