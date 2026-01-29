@@ -7,6 +7,8 @@ import { ConversationProvider } from '@/contexts/ConversationContext';
 import { GlobalAlertModal } from '@/components/ui';
 import '../global.css';
 
+import { ErrorBoundary } from '@/components/ErrorBoundary'
+
 // Create a client for React Query with optimized defaults
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,8 +25,6 @@ const queryClient = new QueryClient({
     },
   },
 });
-
-import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 export default function RootLayout() {
   return (

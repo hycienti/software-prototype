@@ -86,13 +86,13 @@ export async function addToOfflineQueue(
  * Get offline message queue
  */
 export async function getOfflineQueue(): Promise<
-  Array<{
+  {
     conversationId: number | null
     message: string
     mode: 'text' | 'voice'
     timestamp: string
     retries: number
-  }>
+  }[]
 > {
   try {
     const queue = await AsyncStorage.getItem(OFFLINE_QUEUE_KEY)

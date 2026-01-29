@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react'
 import { authService } from '@/services/auth'
-import { useAuthStore } from '@/store'
-import { useUIStore } from '@/store'
+import { useAuthStore , useUIStore } from '@/store'
 import type { ApiError } from '@/types/api'
 
 interface UseAuthOptions {

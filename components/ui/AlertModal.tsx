@@ -17,11 +17,11 @@ interface AlertModalProps {
   title: string;
   message: string;
   type?: 'info' | 'error' | 'warning' | 'success';
-  buttons?: Array<{
+  buttons?: {
     text: string;
     onPress?: () => void;
     style?: 'default' | 'cancel' | 'destructive';
-  }>;
+  }[];
   onClose: () => void;
 }
 

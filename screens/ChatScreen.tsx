@@ -67,7 +67,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     onStart: (convId, msgId) => {
       updateConversationId(convId);
       setLoadingState('generating');
-      // Add user message when streaming starts
+      
       setMessages((prev) => {
         const withoutTemp = prev.filter((msg) => !String(msg.id).startsWith('temp-'));
         return [
@@ -90,7 +90,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       });
     },
     onChunk: (chunk) => {
-      // Update the last assistant message with new content
+      
       setMessages((prev) => {
         const updated = [...prev];
         const lastAssistantIndex = updated.length - 1;
@@ -106,7 +106,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     onComplete: (msgId, sentiment) => {
       setLoadingState('complete');
       setIsTyping(false);
-      // Update the streaming message with final ID
+      
       if (msgId) {
         setMessages((prev) => {
           const updated = [...prev];
@@ -148,7 +148,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     },
   });
 
-  // Load conversation messages when conversationId is available
+  
   useEffect(() => {
     const loadMessages = async () => {
       if (conversationData?.messages) {
@@ -161,7 +161,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
           error: false,
         }));
         setMessages(formattedMessages);
-        // Cache messages
+        
         if (currentConversationId) {
           await cacheMessages(
             currentConversationId,
@@ -175,7 +175,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
           );
         }
       } else if (!currentConversationId && messages.length === 0) {
-        // Try to load from cache first
+        
         const cached = await getCachedMessages(0);
         if (cached && cached.length > 0) {
           setMessages(
@@ -189,11 +189,11 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             }))
           );
         } else {
-          // Show welcome message for new conversation
+          
           setMessages([
             {
               id: 'welcome',
-              text: "Hello, I'm Haven. I'm here to listen without judgment. How are you feeling today?",
+              text: "Hello, I'm Haven. I'm here to listen without judgment. How are you feeling today?.",
               isUser: false,
               timestamp: new Date().toISOString(),
             },
@@ -204,7 +204,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     loadMessages();
   }, [conversationData, currentConversationId]);
 
-  // Handle streaming content updates
+  
   useEffect(() => {
     if (streamedContent && isStreaming) {
       setMessages((prev) => {
@@ -216,7 +216,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             text: streamedContent,
           };
         } else {
-          // Create new assistant message if none exists
+          
           updated.push({
             id: `streaming-${Date.now()}`,
             text: streamedContent,
@@ -229,7 +229,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     }
   }, [streamedContent, isStreaming]);
 
-  // Scroll to bottom when new messages arrive (only if user hasn't scrolled up)
+  
   useEffect(() => {
     if (messages.length > 0 && scrollViewRef.current && !userHasScrolled) {
       setTimeout(() => {
@@ -238,7 +238,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     }
   }, [messages, userHasScrolled]);
 
-  // Handle scroll events
+  
   const handleScroll = useCallback((event: any) => {
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
     const isNearBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 100;
@@ -256,10 +256,10 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     async (text: string) => {
       if (!text.trim()) return;
 
-      // Haptic feedback
+      
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-      // Optimistically add user message
+      
       const tempId = `temp-${Date.now()}`;
       const userMessage: Message = {
         id: tempId,
@@ -275,26 +275,26 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
 
       try {
         if (useStreaming) {
-          // Use streaming - the hook handles conversation ID update via onStart callback
+          
           await streamMessage(currentConversationId, text);
-          // Remove temp message - real user message is added via streaming start event
+          
           setMessages((prev) => {
             return prev.filter((msg) => !String(msg.id).startsWith('temp-'));
           });
         } else {
-          // Use regular API
+          
           const response = await sendMessageMutation.mutateAsync({
             conversationId: currentConversationId || undefined,
             message: text,
             mode: 'text',
           });
 
-          // Update conversation ID if this was a new conversation
+          
           if (!currentConversationId && response.conversation.id) {
             updateConversationId(response.conversation.id);
           }
 
-          // Remove temp message and add real messages
+          
           setMessages((prev) => {
             const withoutTemp = prev.filter((msg) => !String(msg.id).startsWith('temp-'));
             return [
@@ -316,7 +316,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             ];
           });
 
-          // Check for crisis indicators
+          
           if (response.sentiment?.crisisIndicators && response.sentiment.crisisIndicators.length > 0) {
             showAlert({
               title: 'Support Available',
@@ -333,10 +333,10 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
           }
         }
       } catch (error: any) {
-        // Remove temp message on error
+        
         setMessages((prev) => {
           const withoutTemp = prev.filter((msg) => !String(msg.id).startsWith('temp-'));
-          // Mark last user message as error
+          
           const updated = [...withoutTemp];
           if (updated.length > 0 && updated[updated.length - 1].isUser) {
             updated[updated.length - 1] = {
