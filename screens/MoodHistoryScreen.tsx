@@ -38,7 +38,7 @@ const getCalendarData = (year: number, month: number, moods: Mood[]) => {
     }
   });
 
-  const calendarDays: Array<{ day: number; mood: string | null; isCurrentMonth: boolean }> = [];
+  const calendarDays: { day: number; mood: string | null; isCurrentMonth: boolean }[] = [];
 
   // Add days from previous month
   const prevMonthLastDay = new Date(year, month, 0).getDate();

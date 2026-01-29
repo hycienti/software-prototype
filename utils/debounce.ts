@@ -2,6 +2,9 @@
  * Debounce utility function
  */
 
+// Import React for the hook
+import React from 'react'
+
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number
@@ -39,6 +42,3 @@ export function useDebounce<T>(value: T, delay: number): T {
 
   return debouncedValue
 }
-
-// Import React for the hook
-import React from 'react'

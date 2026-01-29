@@ -76,7 +76,7 @@ export function formatMessageTime(timestamp: string | Date): string {
  */
 export function groupMessagesByDate<T extends { timestamp: string | Date }>(
   messages: T[]
-): Array<{ date: string; messages: T[] }> {
+): { date: string; messages: T[] }[] {
   const groups: Map<string, T[]> = new Map()
 
   for (const message of messages) {

@@ -201,8 +201,8 @@ export interface GratitudeInsights {
   longestStreak: number;
   entriesThisMonth: number;
   entriesLastMonth: number;
-  mostCommonThemes: Array<{ theme: string; count: number }>;
-  monthlyTrend: Array<{ month: string; count: number }>;
+  mostCommonThemes: { theme: string; count: number }[];
+  monthlyTrend: { month: string; count: number }[];
   aiInsights?: {
     weeklySummary: string;
     keyPatterns: string[];
@@ -302,10 +302,10 @@ export interface MoodStreakResponse {
 export interface MoodInsights {
   totalEntries: number;
   averageIntensity: number;
-  moodDistribution: Array<{ mood: string; count: number; percentage: number }>;
-  weeklyTrend: Array<{ week: string; averageIntensity: number; dominantMood: string }>;
-  monthlyTrend: Array<{ month: string; averageIntensity: number; dominantMood: string }>;
-  patterns: Array<{ pattern: string; description: string; confidence: number }>;
+  moodDistribution: { mood: string; count: number; percentage: number }[];
+  weeklyTrend: { week: string; averageIntensity: number; dominantMood: string }[];
+  monthlyTrend: { month: string; averageIntensity: number; dominantMood: string }[];
+  patterns: { pattern: string; description: string; confidence: number }[];
   streak: number;
   aiInsights?: {
     weeklySummary: string;
