@@ -4,6 +4,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/utils/cn';
 import { formatMessageTime } from '@/utils/timeUtils';
+import { MarkdownMessage } from './MarkdownMessage';
 
 interface ChatBubbleProps {
   message: string;
@@ -60,9 +61,7 @@ export const ChatBubble = React.memo<ChatBubbleProps>(({
             isUser ? styles.bubbleUser : styles.bubbleHaven
           ]}
         >
-          <Text style={[styles.messageText, isUser && styles.messageTextUser]}>
-            {message}
-          </Text>
+          <MarkdownMessage content={message} isUser={isUser} />
         </View>
         {formattedTimestamp && (
           <View style={[styles.timestampContainer, isUser && styles.timestampContainerUser]}>
