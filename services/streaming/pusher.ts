@@ -1,21 +1,44 @@
-import Pusher from 'pusher-js';
+import { Pusher, PusherEvent } from '@pusher/pusher-websocket-react-native';
 import { chatService } from '@/services/chats';
 import type { StreamingMessageEvent, SendMessageResponse } from '@/types/api';
-
 
 
 const PUSHER_KEY = process.env.EXPO_PUBLIC_PUSHER_KEY || '640987342798234'; 
 const PUSHER_CLUSTER = process.env.EXPO_PUBLIC_PUSHER_CLUSTER || 'mt1';
 
 export class PusherStreamingService {
-  private pusher: Pusher | null = null;
-  private channel: any = null;
+  private pusher: Pusher;
+  private currentChannelName: string | null = null;
+  private isInitialized = false;
 
-  private initPusher() {
-    if (!this.pusher) {
-      this.pusher = new Pusher(PUSHER_KEY, {
+  constructor() {
+    try {
+      this.pusher = Pusher.getInstance();
+      if (!this.pusher) {
+        throw new Error('Pusher.getInstance() returned null');
+      }
+    } catch (error) {
+      console.error('Failed to initialize Pusher native instance:', error);
+      throw new Error(
+        'Pusher native module is not properly linked. If you are using Expo, you must use a Development Client (npx expo run:ios/android) instead of Expo Go, or switch to the JS-only "pusher-js" library.'
+      );
+    }
+  }
+
+  private async initPusher() {
+    if (this.isInitialized) return;
+
+    try {
+      await this.pusher.init({
+        apiKey: PUSHER_KEY,
         cluster: PUSHER_CLUSTER,
       });
+      await this.pusher.connect();
+      this.isInitialized = true;
+    } catch (e) {
+      console.error('Error initializing pusher:', e);
+      // Don't set isInitialized to true if it fails
+      throw e; 
     }
   }
 
@@ -38,33 +61,26 @@ export class PusherStreamingService {
       }
     };
 
-    
+    // 1. Handle New Conversation (No ID) - Fallback to HTTP Request (simulate streaming)
     if (!conversationId) {
       try {
-        
-        
         const response = await chatService.sendMessage({
           message,
           mode: 'text',
           stream: false, 
         });
 
-        
         yield {
           type: 'start',
           conversationId: response.conversation.id,
           messageId: response.message.id,
         };
 
-        
-        
-        
         yield {
           type: 'chunk',
           content: response.response.content,
         };
 
-        
         yield {
           type: 'complete',
           messageId: response.response.id,
@@ -80,50 +96,53 @@ export class PusherStreamingService {
       }
     }
 
-    
+    // 2. Handle Existing Conversation - Use Pusher
     try {
-      this.initPusher();
+      await this.initPusher();
       const channelName = `conversation-${conversationId}`;
 
-      
-      if (!this.channel || this.channel.name !== channelName) {
-        if (this.channel) {
-          this.pusher?.unsubscribe(this.channel.name);
-        }
-        this.channel = this.pusher?.subscribe(channelName);
+      // Unsubscribe from previous channel if different
+      if (this.currentChannelName && this.currentChannelName !== channelName) {
+        await this.pusher.unsubscribe({ channelName: this.currentChannelName });
+        this.currentChannelName = null;
       }
 
-      
-      const handlePusherEvent = (type: string, data: any) => {
-        if (type === 'start') {
-          pushEvent({
-            type: 'start',
-            conversationId: conversationId,
-            messageId: data.messageId,
-          });
-        } else if (type === 'chunk') {
-          pushEvent({
-            type: 'chunk',
-            content: data.content,
-          });
-        } else if (type === 'error') {
-            
-            
-             pushEvent({
-                type: 'error',
-                message: data.message || 'Streaming error',
-             });
-        }
-        
-        
-      };
+      // Subscribe to new channel
+      if (this.currentChannelName !== channelName) {
+         await this.pusher.subscribe({
+          channelName,
+          onEvent: (event: PusherEvent) => {
+            try {
+              // event.data is usually a JSON string
+              const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+              const type = event.eventName;
 
-      this.channel.bind('stream:start', (data: any) => handlePusherEvent('start', data));
-      this.channel.bind('stream:chunk', (data: any) => handlePusherEvent('chunk', data));
-      this.channel.bind('stream:error', (data: any) => handlePusherEvent('error', data));
-      
+              if (type === 'stream:start') {
+                pushEvent({
+                  type: 'start',
+                  conversationId: conversationId,
+                  messageId: data.messageId,
+                });
+              } else if (type === 'stream:chunk') {
+                pushEvent({
+                  type: 'chunk',
+                  content: data.content,
+                });
+              } else if (type === 'stream:error') {
+                 pushEvent({
+                    type: 'error',
+                    message: data.message || 'Streaming error',
+                 });
+              }
+            } catch (err) {
+              console.error('Error parsing pusher event data:', err);
+            }
+          },
+        });
+        this.currentChannelName = channelName;
+      }
 
-      
+      // Trigger API call
       const apiPromise = chatService.sendMessage({
         conversationId,
         message,
@@ -131,10 +150,9 @@ export class PusherStreamingService {
         stream: true,
       });
 
-      
+      // Handle API completion
       apiPromise
         .then((response) => {
-          
           pushEvent({
             type: 'complete',
             messageId: response.response.id,
@@ -150,7 +168,7 @@ export class PusherStreamingService {
           isComplete = true; 
         });
 
-    
+      // Generator loop
       while (!isComplete || eventQueue.length > 0) {
         if (eventQueue.length > 0) {
           const event = eventQueue.shift()!;
@@ -159,17 +177,15 @@ export class PusherStreamingService {
           if (event.type === 'complete') break; 
         } else {
           if (hasError) break; 
-          
-          await new Promise<void>((resolve) => {
-            resolveNext = () => resolve();
+          // Wait for next event
+          const event = await new Promise<StreamingMessageEvent>((resolve) => {
+            resolveNext = resolve;
           });
+          yield event;
+          if (event.type === 'error') break;
+          if (event.type === 'complete') break;
         }
       }
-
-      
-      this.channel.unbind('stream:start');
-      this.channel.unbind('stream:chunk');
-      this.channel.unbind('stream:error');
       
     } catch (error: any) {
       const err = new Error(error.message || 'Streaming setup error');
@@ -178,12 +194,18 @@ export class PusherStreamingService {
     }
   }
 
-  disconnect() {
-    if (this.pusher) {
-      this.pusher.disconnect();
-      this.pusher = null;
-      this.channel = null;
+  async disconnect() {
+    if (this.currentChannelName) {
+      try {
+        await this.pusher.unsubscribe({ channelName: this.currentChannelName });
+        this.currentChannelName = null;
+      } catch (e) {
+        console.warn('Error unsubscribing:', e);
+      }
     }
+    // We don't necessarily need to disconnect the global pusher instance, 
+    // but if we wanted to:
+    // this.pusher.disconnect(); 
   }
 }
 

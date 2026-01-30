@@ -1,61 +1,56 @@
-/**
- * API Configuration and Endpoints
- */
+import Constants from 'expo-constants';
 
-/**
- * Validate environment configuration
- * Logs warnings for missing optional configs and errors for critical missing configs
- */
+const getBaseUrl = () => {
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+
+  
+  if (__DEV__) {
+    const debuggerHost = Constants.expoConfig?.hostUri;
+    const localhost = debuggerHost?.split(':')[0];
+    
+    if (localhost) {
+      return `http://${localhost}:3333`;
+    }
+  }
+
+  return 'http://localhost:3333';
+};
+
+
 const validateEnvironment = () => {
   const warnings: string[] = []
   const errors: string[] = []
 
-  // API URL validation
-  const apiUrl = process.env.EXPO_PUBLIC_API_URL
-  if (!apiUrl) {
-    warnings.push(
+  const apiUrl = getBaseUrl()
+  
+  if (!process.env.EXPO_PUBLIC_API_URL && apiUrl === 'http://localhost:3333') {
+     warnings.push(
       'EXPO_PUBLIC_API_URL is not set. Using default: http://localhost:3333'
     )
-  } else {
-    try {
-      new URL(apiUrl)
-    } catch {
-      errors.push(`EXPO_PUBLIC_API_URL is invalid: ${apiUrl}`)
-    }
   }
 
-  // Email service validation (optional but recommended)
-  // Note: RESEND_API_KEY is configured on the backend
-
-  // Log warnings and errors
+  
   if (warnings.length > 0) {
     console.warn('⚠️ Environment Configuration Warnings:', warnings)
   }
-  if (errors.length > 0) {
-    console.error('❌ Environment Configuration Errors:', errors)
-    throw new Error(
-      `Environment configuration errors detected:\n${errors.join('\n')}`
-    )
-  }
-
-  if (warnings.length === 0 && errors.length === 0) {
-    console.log('✅ Environment configuration validated successfully')
-  }
+  
+  console.log(`✅ Using API URL: ${apiUrl}`);
 }
 
-// Validate on module load (only in development)
 if (__DEV__) {
   validateEnvironment()
 }
 
 export const API_CONFIG = {
-  BASE_URL: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3333',
+  BASE_URL: getBaseUrl(),
   API_VERSION: 'v1',
   TIMEOUT: 30000,
 } as const;
 
 export const API_ENDPOINTS = {
-  // Authentication
+
   AUTH: {
     SEND_OTP: '/auth/send-otp',
     VERIFY_OTP: '/auth/verify-otp',
