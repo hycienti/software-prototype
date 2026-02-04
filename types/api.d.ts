@@ -55,6 +55,7 @@ export interface SendMessageRequest {
   conversationId?: number;
   message: string;
   mode?: 'text' | 'voice';
+  stream?: boolean;
 }
 
 export interface SendMessageResponse {
