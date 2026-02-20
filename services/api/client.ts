@@ -41,6 +41,9 @@ class ApiClient {
           if (token && config.headers) {
             config.headers.Authorization = `Bearer ${token}`
           }
+          if (config.data instanceof FormData && config.headers) {
+            delete config.headers['Content-Type']
+          }
         } catch (error) {
           console.error('Error getting auth token:', error)
         }

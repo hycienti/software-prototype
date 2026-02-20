@@ -24,7 +24,8 @@
         {
           "photosPermission": "Allow Haven to access your photos to add a photo memory."
         }
-      ]
+      ],
+      "expo-video"
     ],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
