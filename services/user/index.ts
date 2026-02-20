@@ -2,6 +2,12 @@ import { apiClient } from '@/services/api/client'
 import { API_ENDPOINTS } from '@/constants/api'
 import type { User } from '@/types/api'
 
+/** Standard API success shape from backend */
+interface ApiSuccess<T> {
+  success: true
+  data: T
+}
+
 /**
  * User API Service
  * Handles user profile operations
@@ -12,7 +18,11 @@ export const userService = {
    * @returns User profile data
    */
   async getProfile(): Promise<{ user: User }> {
-    return apiClient.get<{ user: User }>(API_ENDPOINTS.USER.ME)
+    const res = await apiClient.get<ApiSuccess<{ user: User }>>(API_ENDPOINTS.USER.ME)
+    if (typeof res === 'object' && (res as ApiSuccess<{ user: User }>).success && (res as ApiSuccess<{ user: User }>).data) {
+      return (res as ApiSuccess<{ user: User }>).data
+    }
+    return res as { user: User }
   },
 
   /**
@@ -21,7 +31,11 @@ export const userService = {
    * @returns Updated user profile
    */
   async updateProfile(data: { fullName?: string; avatarUrl?: string }): Promise<{ user: User }> {
-    return apiClient.patch<{ user: User }>(API_ENDPOINTS.USER.UPDATE, data)
+    const res = await apiClient.patch<ApiSuccess<{ user: User }>>(API_ENDPOINTS.USER.UPDATE, data)
+    if (typeof res === 'object' && (res as ApiSuccess<{ user: User }>).success && (res as ApiSuccess<{ user: User }>).data) {
+      return (res as ApiSuccess<{ user: User }>).data
+    }
+    return res as { user: User }
   },
 
   /**

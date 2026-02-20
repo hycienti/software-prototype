@@ -21,6 +21,9 @@ export function useUserProfile() {
     queryKey: userKeys.profile(),
     queryFn: async () => {
       const response = await userService.getProfile()
+      if (response?.user == null) {
+        throw new Error('User profile response missing user')
+      }
       return response.user
     },
     retry: 1,

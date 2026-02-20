@@ -1,6 +1,6 @@
 import Pusher from 'pusher-js';
 import { chatService } from '@/services/chats';
-import type { StreamingMessageEvent } from '@/types/api';
+import type { SentimentAnalysis, StreamingMessageEvent } from '@/types/api';
 
 const PUSHER_KEY = process.env.EXPO_PUBLIC_PUSHER_KEY || '640987342798234';
 const PUSHER_CLUSTER = process.env.EXPO_PUBLIC_PUSHER_CLUSTER || 'mt1';
@@ -126,6 +126,10 @@ export class PusherStreamingService {
       channel.bind('stream:error', (data: { message?: string; code?: string }) => {
         pushEvent({ type: 'error', message: data.message ?? data.code ?? 'Streaming error' });
       });
+      channel.bind('stream:complete', (data: { messageId?: number; sentiment?: SentimentAnalysis }) => {
+        pushEvent({ type: 'complete', messageId: data.messageId ?? 0, sentiment: data.sentiment });
+        isComplete = true;
+      });
       this.currentChannelName = channelName;
     }
 
@@ -138,6 +142,13 @@ export class PusherStreamingService {
 
     apiPromise
       .then((response) => {
+        // 202 Accepted: backend returned after save + stream:start; completion comes from Pusher or polling
+        if (response.status === 'streaming' && !response.response?.id) {
+          if (response.userMessageId != null) {
+            pushEvent({ type: 'start', conversationId, messageId: response.userMessageId });
+          }
+          return;
+        }
         pushEvent({
           type: 'complete',
           messageId: response.response.id,

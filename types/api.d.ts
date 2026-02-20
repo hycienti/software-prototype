@@ -58,11 +58,16 @@ export interface SendMessageRequest {
   stream?: boolean;
 }
 
+/** 200: full response; 202: streaming accepted, completion via Pusher/polling */
 export interface SendMessageResponse {
-  conversation: Conversation;
-  message: Message;
-  response: Message;
+  conversation?: Conversation;
+  message?: Message;
+  response?: Message;
   sentiment?: SentimentAnalysis;
+  /** Present when backend returns 202 (streaming accepted) */
+  conversationId?: number;
+  userMessageId?: number;
+  status?: 'streaming';
 }
 
 export type StreamStatus = 'pending' | 'complete' | 'error';
