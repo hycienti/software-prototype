@@ -1,4 +1,4 @@
-import { Pusher, PusherEvent } from '@pusher/pusher-websocket-react-native';
+import Pusher from 'pusher-js';
 import { chatService } from '@/services/chats';
 import type { StreamingMessageEvent } from '@/types/api';
 
@@ -10,39 +10,24 @@ const POLL_MAX_ATTEMPTS = 150; // ~90s max
 const WAIT_FOR_EVENT_MS = 60000; // after stream:start, wait max 60s for events then poll
 
 export class PusherStreamingService {
-  private pusher: Pusher;
+  private pusher: Pusher | null = null;
   private currentChannelName: string | null = null;
   private isInitialized = false;
 
   constructor() {
-    try {
-      this.pusher = Pusher.getInstance();
-      if (!this.pusher) {
-        throw new Error('Pusher.getInstance() returned null');
-      }
-    } catch (error) {
-      console.error('Failed to initialize Pusher native instance:', error);
-      throw new Error(
-        'Pusher native module is not properly linked. If you are using Expo, you must use a Development Client (npx expo run:ios/android) instead of Expo Go, or switch to the JS-only "pusher-js" library.'
-      );
-    }
+    // No native module – pusher-js works in Expo Go; init lazily in initPusher()
   }
 
-  private async initPusher() {
-    if (this.isInitialized) return;
+  private async initPusher(): Promise<Pusher> {
+    if (this.pusher && this.isInitialized) return this.pusher;
 
-    try {
-      await this.pusher.init({
-        apiKey: PUSHER_KEY,
-        cluster: PUSHER_CLUSTER,
-      });
-      await this.pusher.connect();
-      this.isInitialized = true;
-    } catch (e) {
-      console.error('Error initializing pusher:', e);
-      // Don't set isInitialized to true if it fails
-      throw e; 
-    }
+    this.pusher = new Pusher(PUSHER_KEY, {
+      cluster: PUSHER_CLUSTER,
+      enabledTransports: ['ws', 'wss'],
+    });
+    this.pusher.connect();
+    this.isInitialized = true;
+    return this.pusher;
   }
 
   async *streamMessage(
@@ -70,7 +55,7 @@ export class PusherStreamingService {
         const response = await chatService.sendMessage({
           message,
           mode: 'text',
-          stream: false, 
+          stream: false,
         });
 
         yield {
@@ -89,23 +74,23 @@ export class PusherStreamingService {
           messageId: response.response.id,
           sentiment: response.sentiment,
         };
-        
+
         return;
-      } catch (error: any) {
-        const err = new Error(error.message || 'Failed to send message');
+      } catch (error: unknown) {
+        const err = new Error(error instanceof Error ? error.message : 'Failed to send message');
         onError?.(err);
         yield { type: 'error', message: err.message };
         return;
       }
     }
 
-    // 2. Handle Existing Conversation - Try Pusher, fall back to polling or non-streaming
+    // 2. Handle Existing Conversation - Try Pusher, fall back to non-streaming
     let pusherReady = false;
     try {
       await this.initPusher();
       pusherReady = true;
-    } catch (error: any) {
-      // Pusher not available: fall back to non-streaming so it always works
+    } catch (error) {
+      // Pusher not available: fall back to non-streaming
       try {
         const response = await chatService.sendMessage({
           conversationId,
@@ -116,37 +101,30 @@ export class PusherStreamingService {
         yield { type: 'start', conversationId, messageId: response.message.id };
         yield { type: 'chunk', content: response.response.content };
         yield { type: 'complete', messageId: response.response.id, sentiment: response.sentiment };
-      } catch (err: any) {
-        const e = new Error(err.message || 'Failed to send message');
+      } catch (err: unknown) {
+        const e = new Error(err instanceof Error ? err.message : 'Failed to send message');
         onError?.(e);
         yield { type: 'error', message: e.message };
       }
       return;
     }
 
+    const pusher = this.pusher!;
     const channelName = `conversation-${conversationId}`;
     if (this.currentChannelName && this.currentChannelName !== channelName) {
-      await this.pusher.unsubscribe({ channelName: this.currentChannelName });
+      pusher.unsubscribe(this.currentChannelName);
       this.currentChannelName = null;
     }
     if (this.currentChannelName !== channelName) {
-      await this.pusher.subscribe({
-        channelName,
-        onEvent: (event: PusherEvent) => {
-          try {
-            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-            const type = event.eventName;
-            if (type === 'stream:start') {
-              pushEvent({ type: 'start', conversationId, messageId: data.messageId });
-            } else if (type === 'stream:chunk') {
-              pushEvent({ type: 'chunk', content: data.content });
-            } else if (type === 'stream:error') {
-              pushEvent({ type: 'error', message: data.message || data.code || 'Streaming error' });
-            }
-          } catch (err) {
-            console.error('Error parsing pusher event data:', err);
-          }
-        },
+      const channel = pusher.subscribe(channelName);
+      channel.bind('stream:start', (data: { messageId?: number }) => {
+        pushEvent({ type: 'start', conversationId, messageId: data.messageId ?? 0 });
+      });
+      channel.bind('stream:chunk', (data: { content?: string }) => {
+        pushEvent({ type: 'chunk', content: data.content ?? '' });
+      });
+      channel.bind('stream:error', (data: { message?: string; code?: string }) => {
+        pushEvent({ type: 'error', message: data.message ?? data.code ?? 'Streaming error' });
       });
       this.currentChannelName = channelName;
     }
@@ -169,7 +147,10 @@ export class PusherStreamingService {
       })
       .catch((error) => {
         onError?.(error instanceof Error ? error : new Error(String(error)));
-        pushEvent({ type: 'error', message: error instanceof Error ? error.message : 'Failed to send message' });
+        pushEvent({
+          type: 'error',
+          message: error instanceof Error ? error.message : 'Failed to send message',
+        });
         hasError = true;
         isComplete = true;
       });
@@ -207,7 +188,7 @@ export class PusherStreamingService {
           : new Promise<StreamingMessageEvent>((resolve) => {
               resolveNext = resolve;
             }));
-        if (event === null) break; // timeout – will fall back to polling below
+        if (event === null) break;
         if (event.type === 'start') {
           streamStartReceived = true;
           userMessageIdForPolling = event.messageId;
@@ -221,7 +202,6 @@ export class PusherStreamingService {
 
     clearTimeout(startTimeout);
 
-    // Polling fallback: we got stream:start but no complete (e.g. Pusher dropped) – poll until backend completes
     if (userMessageIdForPolling !== null && !isComplete && !hasError) {
       const pollResult = await this.pollStreamStatus(conversationId, userMessageIdForPolling);
       if (pollResult) for (const e of pollResult) yield e;
@@ -253,17 +233,14 @@ export class PusherStreamingService {
   }
 
   async disconnect() {
-    if (this.currentChannelName) {
+    if (this.currentChannelName && this.pusher) {
       try {
-        await this.pusher.unsubscribe({ channelName: this.currentChannelName });
+        this.pusher.unsubscribe(this.currentChannelName);
         this.currentChannelName = null;
       } catch (e) {
         console.warn('Error unsubscribing:', e);
       }
     }
-    // We don't necessarily need to disconnect the global pusher instance, 
-    // but if we wanted to:
-    // this.pusher.disconnect(); 
   }
 }
 
