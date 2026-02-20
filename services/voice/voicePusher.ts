@@ -16,6 +16,20 @@ let currentUserChannel: string | null = null
 let progressCallback: ((step: string) => void) | null = null
 const pendingByJobId = new Map<string, Pending>()
 
+type ChunkedVoiceBuffer = {
+  jobId: string
+  conversationId: number
+  transcript: string
+  response: ProcessVoiceMessageResponse['response']
+  audioFormat: string
+  sentiment?: ProcessVoiceMessageResponse['sentiment']
+  totalAudioChunks: number
+  totalResponseChunks: number
+  chunks: Map<number, string>
+  responseChunks: Map<number, string>
+}
+const chunkedBufferByJobId = new Map<string, ChunkedVoiceBuffer>()
+
 function getPusher(): Pusher {
   if (pusher) return pusher
   pusher = new Pusher(PUSHER_KEY, {
@@ -50,35 +64,131 @@ export async function subscribeToVoiceResults(
     const step = data?.step
     if (typeof step === 'string' && progressCallback) progressCallback(step)
   })
+
+  channel.bind('voice:result:start', (data: Record<string, unknown>) => {
+    try {
+      const jobId = data?.jobId as string | undefined
+      if (!jobId) return
+      const rawResponse = (data.response as { id?: number; content?: string; metadata?: Record<string, unknown> }) ?? {}
+      const totalAudioChunks = (data.totalAudioChunks as number) ?? (data.totalChunks as number) ?? 0
+      const totalResponseChunks = (data.totalResponseChunks as number) ?? 0
+      chunkedBufferByJobId.set(jobId, {
+        jobId,
+        conversationId: data.conversationId as number,
+        transcript: (data.transcript as string) ?? '',
+        response: {
+          id: rawResponse.id ?? 0,
+          content: (rawResponse.content as string) ?? '',
+          metadata: rawResponse.metadata,
+        },
+        audioFormat: (data.audioFormat as string) ?? 'mp3',
+        sentiment: data.sentiment as ProcessVoiceMessageResponse['sentiment'] | undefined,
+        totalAudioChunks,
+        totalResponseChunks,
+        chunks: new Map(),
+        responseChunks: new Map(),
+      })
+    } catch (err) {
+      console.error('Voice Pusher voice:result:start error', err)
+    }
+  })
+
+  channel.bind('voice:response:chunk', (data: Record<string, unknown>) => {
+    try {
+      const jobId = data?.jobId as string | undefined
+      if (!jobId) return
+      const buf = chunkedBufferByJobId.get(jobId)
+      if (!buf) return
+      const index = (data.index as number) ?? 0
+      const chunk = (data.chunk as string) ?? ''
+      buf.responseChunks.set(index, chunk)
+    } catch (err) {
+      console.error('Voice Pusher voice:response:chunk error', err)
+    }
+  })
+
+  channel.bind('voice:audio:chunk', (data: Record<string, unknown>) => {
+    try {
+      const jobId = data?.jobId as string | undefined
+      if (!jobId) return
+      const buf = chunkedBufferByJobId.get(jobId)
+      if (!buf) return
+      const index = (data.index as number) ?? 0
+      const chunk = (data.chunk as string) ?? ''
+      buf.chunks.set(index, chunk)
+    } catch (err) {
+      console.error('Voice Pusher voice:audio:chunk error', err)
+    }
+  })
+
+  channel.bind('voice:result:complete', (data: Record<string, unknown>) => {
+    try {
+      const jobId = data?.jobId as string | undefined
+      if (!jobId) return
+      const buf = chunkedBufferByJobId.get(jobId)
+      chunkedBufferByJobId.delete(jobId)
+      if (!buf) return
+      const pending = pendingByJobId.get(jobId)
+      if (!pending) return
+      pendingByJobId.delete(jobId)
+      const responseContent = Array.from(buf.responseChunks.keys())
+        .sort((a, b) => a - b)
+        .map((i) => buf.responseChunks.get(i) ?? '')
+        .join('')
+      const audioData = Array.from(buf.chunks.keys())
+        .sort((a, b) => a - b)
+        .map((i) => buf.chunks.get(i) ?? '')
+        .join('')
+      pending.resolve({
+        conversation: {
+          id: buf.conversationId,
+          title: null,
+          mode: 'voice',
+          createdAt: new Date().toISOString(),
+        },
+        transcript: buf.transcript,
+        response: { ...buf.response, content: responseContent },
+        audioData,
+        audioFormat: 'mp3',
+        sentiment: buf.sentiment,
+      })
+    } catch (err) {
+      console.error('Voice Pusher voice:result:complete error', err)
+    }
+  })
+
   channel.bind('voice:result', (data: Record<string, unknown>) => {
     try {
       const jobId = data?.jobId as string | undefined
       if (!jobId) return
-      const pending = pendingByJobId.get(jobId)
-      if (!pending) return
-      pendingByJobId.delete(jobId)
       const payload = data as {
         jobId: string
         conversationId: number
         transcript: string
         response: ProcessVoiceMessageResponse['response']
-        audioData: string
+        audioData?: string
         audioFormat: string
         sentiment?: ProcessVoiceMessageResponse['sentiment']
       }
-      pending.resolve({
-        conversation: {
-          id: payload.conversationId,
-          title: null,
-          mode: 'voice',
-          createdAt: new Date().toISOString(),
-        },
-        transcript: payload.transcript,
-        response: payload.response,
-        audioData: payload.audioData,
-        audioFormat: payload.audioFormat,
-        sentiment: payload.sentiment,
-      })
+      if (payload.audioData !== undefined) {
+        const pending = pendingByJobId.get(jobId)
+        if (pending) {
+          pendingByJobId.delete(jobId)
+          pending.resolve({
+            conversation: {
+              id: payload.conversationId,
+              title: null,
+              mode: 'voice',
+              createdAt: new Date().toISOString(),
+            },
+            transcript: payload.transcript,
+            response: payload.response,
+            audioData: payload.audioData,
+            audioFormat: 'mp3',
+            sentiment: payload.sentiment,
+          })
+        }
+      }
     } catch (err) {
       console.error('Voice Pusher event error', err)
     }
@@ -86,6 +196,7 @@ export async function subscribeToVoiceResults(
   channel.bind('voice:error', (data: Record<string, unknown> & { message?: string }) => {
     const jobId = data?.jobId as string | undefined
     if (!jobId) return
+    chunkedBufferByJobId.delete(jobId)
     const pending = pendingByJobId.get(jobId)
     if (pending) {
       pendingByJobId.delete(jobId)
@@ -122,6 +233,7 @@ export function waitForVoiceResult(
       const pending = pendingByJobId.get(jobId)
       if (pending) {
         pendingByJobId.delete(jobId)
+        chunkedBufferByJobId.delete(jobId)
         pending.reject(new Error('Voice response timed out. Please try again.'))
       }
     }, timeoutMs)

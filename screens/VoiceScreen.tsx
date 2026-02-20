@@ -48,6 +48,7 @@ export const VoiceScreen: React.FC<VoiceScreenProps> = ({
   const durationTimerRef = useRef<NodeJS.Timeout | null>(null);
   const meteringIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const stopRecordingRef = useRef<(() => Promise<void>) | null>(null);
+  const isRecordingRef = useRef(false);
 
   const audioRecorder = useAudioRecorder({
     ...RecordingPresets.HIGH_QUALITY,
@@ -193,11 +194,16 @@ export const VoiceScreen: React.FC<VoiceScreenProps> = ({
     );
   }, []);
 
-  // Cleanup recording on unmount
+  // Cleanup recording on unmount (use ref only; native audioRecorder may already be disposed)
   useEffect(() => {
     return () => {
-      if (audioRecorder.isRecording) {
-        audioRecorder.stop().catch(() => {});
+      if (isRecordingRef.current) {
+        isRecordingRef.current = false;
+        try {
+          audioRecorder.stop().catch(() => {});
+        } catch (_) {
+          // Native shared object may already be gone
+        }
       }
       if (silenceTimerRef.current) {
         clearTimeout(silenceTimerRef.current);
@@ -302,6 +308,7 @@ export const VoiceScreen: React.FC<VoiceScreenProps> = ({
       setAudioLevel(0);
       await audioRecorder.prepareToRecordAsync();
       audioRecorder.record();
+      isRecordingRef.current = true;
 
       // Duration timer and 60s cap
       durationTimerRef.current = setInterval(() => {
@@ -335,6 +342,7 @@ export const VoiceScreen: React.FC<VoiceScreenProps> = ({
 
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } catch (error: any) {
+      isRecordingRef.current = false;
       showAlert({
         title: 'Error',
         message: error?.message || 'Failed to start recording',
@@ -347,6 +355,8 @@ export const VoiceScreen: React.FC<VoiceScreenProps> = ({
 
   const handleStopRecording = useCallback(async () => {
     try {
+      if (!isRecordingRef.current) return;
+      isRecordingRef.current = false;
       if (!audioRecorder.isRecording) return;
 
       // Clear timers
