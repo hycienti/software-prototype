@@ -16,9 +16,9 @@ import Animated, {
 import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/utils/cn';
 import { recordAudio, stopRecordingAndGetBase64, playAudioFromBase64 } from '@/utils/voiceHelper';
-import { useProcessVoiceMessage } from '@/hooks/useVoice';
+import { useProcessVoiceMessageAsync } from '@/hooks/useVoice';
 import { useConversationContext } from '@/contexts/ConversationContext';
-import { useUIStore } from '@/store';
+import { useAuthStore, useUIStore } from '@/store';
 
 type VoiceState = 'idle' | 'listening' | 'thinking' | 'speaking';
 
@@ -41,7 +41,8 @@ export const VoiceScreen: React.FC<VoiceScreenProps> = ({
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const durationTimerRef = useRef<NodeJS.Timeout | null>(null);
   const audioLevelIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const processVoiceMutation = useProcessVoiceMessage();
+  const user = useAuthStore((s) => s.user);
+  const processVoiceMutation = useProcessVoiceMessageAsync(user?.id ?? null);
   const { currentConversation, updateConversationId } = useConversationContext();
 
   // Sync conversation ID from context

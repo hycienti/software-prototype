@@ -94,7 +94,7 @@ export const API_ENDPOINTS = {
     BASE: '/conversations',
     MESSAGE: '/conversations/message',
     HISTORY: '/conversations/history',
-    STREAM: (id: number) => `/conversations/stream/${id}`,
+    STREAM_STATUS: '/conversations/stream/status',
     BY_ID: (id: number) => `/conversations/${id}`,
     DELETE: (id: number) => `/conversations/${id}`,
   },
@@ -106,11 +106,6 @@ export const API_ENDPOINTS = {
     TTS: '/voice/tts',
     STT: '/voice/stt',
   },
-
-  // WebSocket
-  WEBSOCKET: {
-    STREAMING: '/streaming',
-  },
 } as const;
 
 /**
@@ -118,13 +113,4 @@ export const API_ENDPOINTS = {
  */
 export const getApiUrl = (endpoint: string): string => {
   return `${API_CONFIG.BASE_URL}/api/${API_CONFIG.API_VERSION}${endpoint}`;
-};
-
-/**
- * Get WebSocket URL
- */
-export const getWebSocketUrl = (path: string): string => {
-  const baseUrl = API_CONFIG.BASE_URL;
-  const wsUrl = baseUrl.replace('http://', 'ws://').replace('https://', 'wss://');
-  return `${wsUrl}${path}`;
 };

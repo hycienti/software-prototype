@@ -65,6 +65,17 @@ export interface SendMessageResponse {
   sentiment?: SentimentAnalysis;
 }
 
+export type StreamStatus = 'pending' | 'complete' | 'error';
+
+export interface StreamStatusResponse {
+  status: StreamStatus;
+  chunks?: string[];
+  fullContent?: string;
+  messageId?: number;
+  sentiment?: SentimentAnalysis;
+  error?: string;
+}
+
 export interface ConversationHistoryResponse {
   conversations: (Conversation & { messages: Message[] })[];
   pagination: PaginationResponse;
@@ -95,6 +106,12 @@ export interface ProcessVoiceMessageRequest {
   audioData: string; // Base64 encoded audio
   audioFormat?: 'mp3' | 'wav' | 'm4a' | 'ogg';
   language?: string;
+  async?: boolean;
+}
+
+export interface VoiceAsyncAcceptedResponse {
+  jobId: string;
+  status: 'processing';
 }
 
 export interface ProcessVoiceMessageResponse {

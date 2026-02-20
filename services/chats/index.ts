@@ -5,10 +5,17 @@ import type {
   Conversation,
   SendMessageRequest,
   SendMessageResponse,
+  StreamStatusResponse,
   ConversationHistoryResponse,
   ConversationResponse,
   PaginationParams,
 } from '@/types/api'
+
+/** Standard API success shape from backend */
+interface ApiSuccess<T> {
+  success: true
+  data: T
+}
 
 /**
  * Chat API Service
@@ -18,7 +25,29 @@ export const chatService = {
    * Send a text message and get AI response
    */
   async sendMessage(data: SendMessageRequest): Promise<SendMessageResponse> {
-    return apiClient.post<SendMessageResponse>(API_ENDPOINTS.CONVERSATIONS.MESSAGE, data)
+    const res = await apiClient.post<ApiSuccess<SendMessageResponse> | SendMessageResponse>(
+      API_ENDPOINTS.CONVERSATIONS.MESSAGE,
+      data
+    )
+    if (typeof res === 'object' && (res as ApiSuccess<SendMessageResponse>).success && (res as ApiSuccess<SendMessageResponse>).data) {
+      return (res as ApiSuccess<SendMessageResponse>).data
+    }
+    return res as SendMessageResponse
+  },
+
+  /**
+   * Get stream progress (polling fallback when Pusher is unavailable)
+   */
+  async getStreamStatus(
+    conversationId: number,
+    userMessageId: number
+  ): Promise<StreamStatusResponse> {
+    const url = `${API_ENDPOINTS.CONVERSATIONS.STREAM_STATUS}?conversationId=${conversationId}&userMessageId=${userMessageId}`
+    const res = await apiClient.get<ApiSuccess<StreamStatusResponse> | StreamStatusResponse>(url)
+    if (typeof res === 'object' && (res as ApiSuccess<StreamStatusResponse>).success && (res as ApiSuccess<StreamStatusResponse>).data) {
+      return (res as ApiSuccess<StreamStatusResponse>).data
+    }
+    return res as StreamStatusResponse
   },
 
   /**
@@ -62,6 +91,7 @@ export type {
   Conversation,
   SendMessageRequest,
   SendMessageResponse,
+  StreamStatusResponse,
   ConversationHistoryResponse,
   ConversationResponse,
 }
