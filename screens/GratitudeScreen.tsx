@@ -1,10 +1,21 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  StyleSheet,
+  ActivityIndicator,
+  Image,
+  Alert,
+} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { Icon } from '@/components/ui/Icon';
 import { useGratitudeStreak, useGratitudeQuote, useCreateGratitude } from '@/hooks/useGratitude';
+import { gratitudeService } from '@/services/gratitude';
 
 interface GratitudeScreenProps {
   onBack?: () => void;
@@ -20,13 +31,16 @@ export const GratitudeScreen: React.FC<GratitudeScreenProps> = ({
   const insets = useSafeAreaInsets();
   const [gratitudes, setGratitudes] = useState(['', '', '']);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
-  
-  // Use React Query hooks for data fetching
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [uploadPhotoLoading, setUploadPhotoLoading] = useState(false);
+
   const { data: streakData } = useGratitudeStreak();
-  const { data: quote } = useGratitudeQuote();
+  const { data: quoteResponse } = useGratitudeQuote();
   const createGratitudeMutation = useCreateGratitude();
 
   const streak = streakData?.streak || 0;
+  const quote = (quoteResponse as { data?: { text: string; author: string } })?.data ?? (quoteResponse as { text?: string; author?: string } | undefined);
   const isLoading = createGratitudeMutation.isPending;
 
   const updateGratitude = (index: number, value: string) => {
@@ -35,20 +49,66 @@ export const GratitudeScreen: React.FC<GratitudeScreenProps> = ({
     setGratitudes(newGratitudes);
   };
 
-  const handleSave = async () => {
-    // Validate that at least one entry is filled
-    const filledEntries = gratitudes.filter((entry) => entry.trim().length > 0);
-    if (filledEntries.length === 0) {
-      return;
+  const handlePickPhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission needed',
+          'Please allow access to your photos to add a photo memory.'
+        );
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+      if (result.canceled || !result.assets?.[0]?.uri) return;
+      const asset = result.assets[0];
+      setPhotoUri(asset.uri);
+      setUploadPhotoLoading(true);
+      try {
+        const { url } = await gratitudeService.uploadPhoto({
+          uri: asset.uri,
+          name: asset.fileName ?? 'photo.jpg',
+          type: asset.mimeType ?? 'image/jpeg',
+        });
+        setPhotoUrl(url);
+      } catch (err) {
+        setPhotoUri(null);
+        Alert.alert(
+          'Upload failed',
+          err instanceof Error ? err.message : 'Could not upload photo. Try again.'
+        );
+      } finally {
+        setUploadPhotoLoading(false);
+      }
+    } catch (err) {
+      Alert.alert(
+        'Could not open photos',
+        err instanceof Error ? err.message : 'Something went wrong. Try again or check app permissions.'
+      );
     }
+  };
+
+  const handleRemovePhoto = () => {
+    setPhotoUri(null);
+    setPhotoUrl(null);
+  };
+
+  const handleSave = async () => {
+    const filledEntries = gratitudes.filter((entry) => entry.trim().length > 0);
+    if (filledEntries.length === 0) return;
 
     createGratitudeMutation.mutate(
-      { entries: filledEntries },
+      { entries: filledEntries, photoUrl: photoUrl ?? undefined },
       {
         onSuccess: () => {
-          // Clear the form
           setGratitudes(['', '', '']);
-          // Call the onSave callback if provided
+          setPhotoUri(null);
+          setPhotoUrl(null);
           onSave?.();
         },
       }
@@ -146,21 +206,44 @@ export const GratitudeScreen: React.FC<GratitudeScreenProps> = ({
                 Photo Gratitude <Text style={styles.photoLabelOptional}>Optional</Text>
               </Text>
             </View>
-            <TouchableOpacity style={styles.photoButton} activeOpacity={0.95}>
-              <View style={styles.photoButtonIcon}>
-                <Icon name="add_a_photo" size={24} color="#64748b" />
+            {photoUri || photoUrl ? (
+              <View style={styles.photoPreviewContainer}>
+                <Image
+                  source={{ uri: photoUri ?? photoUrl ?? '' }}
+                  style={styles.photoPreview}
+                  resizeMode="cover"
+                />
+                {uploadPhotoLoading ? (
+                  <View style={styles.photoPreviewOverlay}>
+                    <ActivityIndicator size="small" color="#fff" />
+                  </View>
+                ) : null}
+                <TouchableOpacity
+                  style={styles.photoRemoveButton}
+                  onPress={handleRemovePhoto}
+                  disabled={uploadPhotoLoading}
+                  activeOpacity={0.8}
+                >
+                  <Icon name="close" size={20} color="#e2e8f0" />
+                </TouchableOpacity>
               </View>
-              <Text style={styles.photoButtonText}>Add a photo memory</Text>
-            </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.photoButton} onPress={handlePickPhoto} activeOpacity={0.95}>
+                <View style={styles.photoButtonIcon}>
+                  <Icon name="add_a_photo" size={24} color="#64748b" />
+                </View>
+                <Text style={styles.photoButtonText}>Add a photo memory</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
         {/* Quote Section */}
-        {quote && (
+        {quote?.text && (
           <View style={styles.quoteSection}>
             <Icon name="format_quote" size={48} color="rgba(245, 158, 11, 0.5)" />
             <Text style={styles.quoteText}>"{quote.text}"</Text>
-            <Text style={styles.quoteAuthor}>— {quote.author}</Text>
+            {quote.author ? <Text style={styles.quoteAuthor}>— {quote.author}</Text> : null}
           </View>
         )}
         {/* Bottom Action Bar with Gradient */}
@@ -420,6 +503,35 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: '#94a3b8',
+  },
+  photoPreviewContainer: {
+    width: '100%',
+    height: 200,
+    borderRadius: 24,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: 'rgba(55, 65, 81, 0.5)',
+  },
+  photoPreview: {
+    width: '100%',
+    height: '100%',
+  },
+  photoPreviewOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoRemoveButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   quoteSection: {
     marginTop: 48,

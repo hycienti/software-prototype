@@ -69,6 +69,7 @@ export const API_ENDPOINTS = {
   // Gratitude
   GRATITUDE: {
     BASE: '/gratitudes',
+    UPLOAD_PHOTO: '/gratitudes/upload-photo',
     STREAK: '/gratitudes/streak',
     INSIGHTS: '/gratitudes/insights',
     RANDOM_QUOTE: '/gratitudes/quotes/random',

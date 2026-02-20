@@ -24,6 +24,7 @@ const formatDate = (dateString: string) => {
 
 // Helper function to get calendar data for a given month/year
 const getCalendarData = (year: number, month: number, moods: Mood[]) => {
+  if (!Array.isArray(moods)) return [];
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
   const daysInMonth = lastDay.getDate();
@@ -144,10 +145,15 @@ export const MoodHistoryScreen: React.FC<MoodHistoryScreenProps> = ({
   const { data: insights, isLoading: isLoadingInsights } = useMoodInsights();
   const { data: selectedEntryData } = useMoodEntry(selectedEntryId);
 
-  const moods: Mood[] = (historyData as any)?.data || [];
+  const raw = (historyData as any)?.data;
+  const moods: Mood[] = Array.isArray(raw?.data) ? raw.data : (Array.isArray(raw) ? raw : []);
   const isLoading = isLoadingHistory || isLoadingInsights;
   const insightsData = insights as MoodInsights | undefined;
-  const selectedEntry = selectedEntryData?.mood || null;
+  // API returns { success: true, data: { mood: Mood } }; support both wrapped and unwrapped
+  const selectedEntry =
+    (selectedEntryData as { data?: { mood: Mood } } | undefined)?.data?.mood ??
+    (selectedEntryData as { mood?: Mood } | undefined)?.mood ??
+    null;
 
   const handleEntryPress = (entryId: string) => {
     const id = parseInt(entryId, 10);

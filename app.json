@@ -18,6 +18,12 @@
             "usesCleartextTraffic": true
           }
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Haven to access your photos to add a photo memory."
+        }
       ]
     ],
     "orientation": "portrait",

@@ -131,11 +131,16 @@ export function useCreateGratitude() {
       })
     },
     onError: (error: any) => {
-      console.error('Error saving gratitude entry:', error)
+      const apiMessage =
+        error?.data?.error?.message ??
+        error?.response?.data?.error?.message ??
+        error?.response?.data?.data?.error?.message
+      const message = apiMessage || error?.message || 'Failed to save gratitude entry. Please try again.'
+      console.error('Error saving gratitude entry:', message)
       showAlert({
         type: 'error',
         title: 'Error',
-        message: error?.message || 'Failed to save gratitude entry. Please try again.',
+        message,
       })
     },
   })

@@ -24,6 +24,31 @@ export const gratitudeService = {
   },
 
   /**
+   * Upload a photo for gratitude entry. Returns URL to use as photoUrl when creating a gratitude.
+   */
+  async uploadPhoto(file: {
+    uri: string
+    name?: string
+    type?: string
+  }): Promise<{ url: string }> {
+    const formData = new FormData()
+    formData.append('file', {
+      uri: file.uri,
+      name: file.name ?? 'photo.jpg',
+      type: file.type ?? 'image/jpeg',
+    } as unknown as Blob)
+    const res = await apiClient.post<{ success: boolean; data: { url: string } }>(
+      API_ENDPOINTS.GRATITUDE.UPLOAD_PHOTO,
+      formData
+    )
+    const url = (res as { data?: { url?: string } })?.data?.url
+    if (!url) {
+      throw new Error('Upload did not return URL')
+    }
+    return { url }
+  },
+
+  /**
    * Get user's gratitude entries with pagination
    */
   async getHistory(params?: {

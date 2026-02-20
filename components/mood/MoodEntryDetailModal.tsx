@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -88,22 +88,26 @@ export const MoodEntryDetailModal: React.FC<MoodEntryDetailModalProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
 
-  if (!mood) return null;
-
-  const entryDate = new Date(mood.entryDate);
-  const formattedDate = entryDate.toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-
-  const moodColor = getMoodColor(mood.mood);
-  const intensityColor = getIntensityColor(mood.intensity);
-
   return (
     <BottomSheetModal visible={visible} onClose={onClose} showBackdrop={true}>
       <View style={styles.container}>
+      {!mood ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#19b3e6" />
+          <Text style={styles.loadingText}>Loading entry...</Text>
+        </View>
+      ) : (() => {
+        const entryDate = new Date(mood.entryDate);
+        const formattedDate = entryDate.toLocaleDateString('en-US', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        });
+        const moodColor = getMoodColor(mood.mood);
+        const intensityColor = getIntensityColor(mood.intensity);
+        return (
+        <>
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerContent}>
@@ -215,6 +219,9 @@ export const MoodEntryDetailModal: React.FC<MoodEntryDetailModalProps> = ({
             )}
           </View>
         </ScrollView>
+        </>
+        );
+      })()}
       </View>
     </BottomSheetModal>
   );
@@ -224,6 +231,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#111d21',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 48,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#9ca3af',
   },
   header: {
     paddingHorizontal: 20,
