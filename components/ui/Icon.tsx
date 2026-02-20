@@ -87,6 +87,10 @@ const iconMap: Record<string, keyof typeof MaterialIcons.glyphMap> = {
   air: 'air',
   forest: 'park',
   logout: 'logout',
+  call_end: 'call-end',
+  mic_off: 'mic-off',
+  flip_camera_ios: 'flip-camera-ios',
+  dashboard: 'dashboard',
 };
 
 export const Icon: React.FC<IconProps> = ({ name, size = 24, color = '#6b7280' }) => {
