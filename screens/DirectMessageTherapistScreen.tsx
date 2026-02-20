@@ -23,6 +23,9 @@ import { ChatHeader } from '@/components/chat/ChatHeader';
 import { therapistMessagesService } from '@/services/therapistMessages';
 import type { TherapistThreadMessage as ApiMessage } from '@/types/api';
 
+const DEFAULT_AVATAR =
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuAMwb-cetFJqCtYFVevmjKD1ZHWxaXhuAkk6KOFUzdzYtTjXr3jI3oWgDXCZz-dD6K76ElAi6i1uBOPbnXKaFY0UBILhUKY90lwEMYaTZVf_YJrrBl8a77pYn67_CqF9bvgf48hv4K2mUqkNgPRhc9so4R5umLkwvmvP4I4n7i7YG3I9qR7f-dHF9aU_OrjJrayPeORCW3PkheM5OqRF6TkDhVg5_9L1PTaBHTivzsLNXso-kMjujHRT42AfbMy5A9uoiy8U1gbJpE';
+
 interface DirectMessageTherapistScreenProps {
   therapistId: number;
   therapistName?: string | null;
@@ -41,6 +44,8 @@ export function DirectMessageTherapistScreen({
   const [uploadingVoice, setUploadingVoice] = useState(false);
   const recordingRef = useRef<Audio.Recording | null>(null);
   const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const playbackSoundRef = useRef<Audio.Sound | null>(null);
+  const [playingVoiceUrl, setPlayingVoiceUrl] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const listRef = useRef<FlatList>(null);
 
@@ -210,6 +215,57 @@ export function DirectMessageTherapistScreen({
     }
   }, [isRecording, startRecording, stopRecordingAndSend]);
 
+  const stopPlayback = useCallback(async () => {
+    if (!playbackSoundRef.current) return;
+    try {
+      await playbackSoundRef.current.unloadAsync();
+    } catch {
+      // ignore
+    }
+    playbackSoundRef.current = null;
+    setPlayingVoiceUrl(null);
+  }, []);
+
+  const playOrPauseVoice = useCallback(
+    async (voiceUrl: string) => {
+      if (playingVoiceUrl === voiceUrl) {
+        await stopPlayback();
+        return;
+      }
+      await stopPlayback();
+      try {
+        await Audio.setAudioModeAsync({
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: false,
+          shouldDuckAndroid: true,
+          interruptionModeAndroid: 1,
+          interruptionModeIOS: 1,
+        });
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: voiceUrl },
+          { shouldPlay: true }
+        );
+        playbackSoundRef.current = sound;
+        setPlayingVoiceUrl(voiceUrl);
+        sound.setOnPlaybackStatusUpdate((status) => {
+          if (status.isLoaded && status.didJustFinish && !status.isLooping) {
+            stopPlayback();
+          }
+        });
+      } catch (err) {
+        if (__DEV__) console.warn('Voice playback failed', err);
+        setPlayingVoiceUrl(null);
+      }
+    },
+    [playingVoiceUrl, stopPlayback]
+  );
+
+  useEffect(() => {
+    return () => {
+      stopPlayback();
+    };
+  }, [stopPlayback]);
+
   const canSendText = Boolean(inputText.trim()) && !sendMutation.isPending;
   const canSend = canSendText || isRecording;
   const displayName = therapistName ?? data?.thread?.therapist?.fullName ?? `Therapist #${therapistId}`;
@@ -218,6 +274,7 @@ export function DirectMessageTherapistScreen({
     const hasVoice = Boolean(item.voiceUrl?.trim());
     const hasAttachments = Array.isArray(item.attachmentUrls) && item.attachmentUrls.length > 0;
     const hasBody = Boolean(item.body?.trim());
+    const isPlayingThis = hasVoice && item.voiceUrl === playingVoiceUrl;
     return (
       <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleTherapist]}>
         {hasBody ? (
@@ -228,12 +285,16 @@ export function DirectMessageTherapistScreen({
         {hasVoice ? (
           <TouchableOpacity
             style={styles.voiceRow}
-            onPress={() => item.voiceUrl && Linking.openURL(item.voiceUrl!)}
+            onPress={() => item.voiceUrl && playOrPauseVoice(item.voiceUrl)}
             activeOpacity={0.8}
           >
-            <Icon name="mic" size={20} color={isUser ? '#ffffff' : '#19b3e6'} />
+            <Icon
+              name={isPlayingThis ? 'pause' : 'play_arrow'}
+              size={20}
+              color={isUser ? '#ffffff' : '#19b3e6'}
+            />
             <Text style={[styles.voiceLabel, isUser ? styles.bubbleTextUser : styles.bubbleTextTherapist]}>
-              Voice message
+              {isPlayingThis ? 'Playing…' : 'Voice message'}
             </Text>
           </TouchableOpacity>
         ) : null}
@@ -265,6 +326,7 @@ export function DirectMessageTherapistScreen({
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ChatHeader
+        avatarUri={DEFAULT_AVATAR}
         variant="therapist"
         name={displayName}
         status="Online"
