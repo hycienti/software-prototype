@@ -24,6 +24,7 @@ interface SideMenuProps {
   onCommunityPress?: () => void;
   onHelpPress?: () => void;
   onAboutPress?: () => void;
+  onLogoutPress?: () => void;
 }
 
 interface MenuItemProps {
@@ -80,6 +81,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({
   onCommunityPress,
   onHelpPress,
   onAboutPress,
+  onLogoutPress,
 }) => {
   const insets = useSafeAreaInsets();
   const translateX = useSharedValue(-MENU_WIDTH);
@@ -228,6 +230,18 @@ export const SideMenu: React.FC<SideMenuProps> = ({
                 onPress={() => {
                   onClose();
                   onAboutPress?.();
+                }}
+              />
+
+              {/* Divider */}
+              <View style={styles.divider} />
+
+              <MenuItem
+                icon="logout"
+                label="Log out"
+                onPress={() => {
+                  onClose();
+                  onLogoutPress?.();
                 }}
               />
             </View>

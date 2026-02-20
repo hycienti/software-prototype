@@ -7,10 +7,12 @@ import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card';
 import { cn } from '@/utils/cn';
 import { useAuthStore } from '@/store';
+import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUser';
 import { getFirstName, getGreeting } from '@/utils/user';
 import { SideMenu } from '@/components/navigation/SideMenu';
 import { useRouter } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import Typography from '@/components/typography/default-typography';
 
 const recommendations = [
@@ -51,6 +53,7 @@ interface HomeScreenProps {
   onWellnessPress?: () => void;
   onProfilePress?: () => void;
   onNotificationsPress?: () => void;
+  onMyTherapistsPress?: () => void;
   onRecommendationPress?: (id: string, type: string) => void;
 }
 
@@ -61,9 +64,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onWellnessPress,
   onProfilePress,
   onNotificationsPress,
+  onMyTherapistsPress,
   onRecommendationPress,
 }) => {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { signOut } = useAuth();
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const { user: authUser, updateUser } = useAuthStore();
   const { data: userProfile } = useUserProfile();
@@ -159,6 +165,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           // TODO: Navigate to about page
           console.log('About Haven pressed');
         }}
+        onLogoutPress={async () => {
+          await signOut();
+          queryClient.clear();
+          router.replace('/(auth)/welcome');
+        }}
       />
 
       <ScrollView className="relative z-10 flex-1" showsVerticalScrollIndicator={false}>
@@ -250,6 +261,22 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <View style={styles.actionTextContainer}>
               <Text style={styles.actionTitle}>Wellness Exercises</Text>
               <Text style={styles.actionSubtitle}>Body and mind activities</Text>
+            </View>
+            <Icon name="chevron_right" size={24} color="#475569" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={onMyTherapistsPress}
+            style={styles.actionButtonDark}
+            activeOpacity={0.98}>
+            <View style={styles.actionIconContainer}>
+              <View style={[styles.actionIcon, { backgroundColor: 'rgba(25, 179, 230, 0.1)' }]}>
+                <Icon name="person" size={24} color="#19b3e6" />
+              </View>
+            </View>
+            <View style={styles.actionTextContainer}>
+              <Text style={styles.actionTitle}>My Therapists</Text>
+              <Text style={styles.actionSubtitle}>Active and past sessions</Text>
             </View>
             <Icon name="chevron_right" size={24} color="#475569" />
           </TouchableOpacity>

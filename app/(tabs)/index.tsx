@@ -22,6 +22,10 @@ export default function HomePage() {
     router.push('/breathing');
   };
 
+  const handleMyTherapistsPress = () => {
+    router.push('/my-therapists');
+  };
+
   const handleProfilePress = () => {
     router.push('/profile');
   };
@@ -47,6 +51,7 @@ export default function HomePage() {
       onVoicePress={handleVoicePress}
       onJournalPress={handleJournalPress}
       onWellnessPress={handleWellnessPress}
+      onMyTherapistsPress={handleMyTherapistsPress}
       onProfilePress={handleProfilePress}
       onNotificationsPress={handleNotificationsPress}
       onRecommendationPress={handleRecommendationPress}

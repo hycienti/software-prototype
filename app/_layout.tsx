@@ -46,7 +46,13 @@ export default function RootLayout() {
             <Stack.Screen name="chat" />
             <Stack.Screen name="voice" />
             <Stack.Screen name="therapists" />
+            <Stack.Screen name="my-therapists" />
             <Stack.Screen name="therapist/[id]" />
+            <Stack.Screen name="session/[id]/summary" />
+            <Stack.Screen name="session/[id]/feedback" />
+            <Stack.Screen name="session/[id]/call" />
+            <Stack.Screen name="feedback-thank-you" />
+            <Stack.Screen name="therapist/[id]/message" />
             <Stack.Screen name="payment" />
             <Stack.Screen name="breathing" />
             <Stack.Screen name="box-breathing-settings" />
