@@ -221,31 +221,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
 
   
   useEffect(() => {
-    if (streamedContent && isStreaming) {
-      setMessages((prev) => {
-        const updated = [...prev];
-        const lastMessage = updated[updated.length - 1];
-        if (lastMessage && !lastMessage.isUser) {
-          updated[updated.length - 1] = {
-            ...lastMessage,
-            text: streamedContent,
-          };
-        } else {
-          
-          updated.push({
-            id: `streaming-${Date.now()}`,
-            text: streamedContent,
-            isUser: false,
-            timestamp: new Date().toISOString(),
-          });
-        }
-        return updated;
-      });
-    }
-  }, [streamedContent, isStreaming]);
-
-  
-  useEffect(() => {
     if (messages.length > 0 && scrollViewRef.current && !userHasScrolled) {
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
@@ -441,21 +416,30 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                   <Text style={styles.dateText}>{group.date}</Text>
                 </View>
               </View>
-              {group.messages.map((message, index) => (
-                <ChatBubble
-                  key={message.id}
-                  message={message.text}
-                  isUser={message.isUser}
-                  timestamp={message.timestamp}
-                  showAvatar={!message.isUser}
-                  pending={message.pending}
-                  error={message.error}
-                  index={index}
-                />
-              ))}
+              {group.messages.map((message, index) => {
+                const isStreamingAssistant =
+                  !message.isUser &&
+                  isStreaming &&
+                  String(message.id).startsWith('streaming-');
+                const displayText = isStreamingAssistant
+                  ? streamedContent || message.text
+                  : message.text;
+                return (
+                  <ChatBubble
+                    key={message.id}
+                    message={displayText}
+                    isUser={message.isUser}
+                    timestamp={message.timestamp}
+                    showAvatar={!message.isUser}
+                    pending={message.pending}
+                    error={message.error}
+                    index={index}
+                  />
+                );
+              })}
             </View>
           ))}
-          {isTyping && (
+          {isTyping && !streamedContent && (
             <View>
               <TypingIndicator />
               <Text style={styles.loadingText}>{getLoadingMessage()}</Text>
