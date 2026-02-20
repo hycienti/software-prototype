@@ -1,7 +1,6 @@
 import { apiClient } from '@/services/api/client'
 import { API_ENDPOINTS } from '@/constants/api'
 import type {
-  AuthResponse,
   SendOtpRequest,
   SendOtpResponse,
   VerifyOtpRequest,
@@ -11,6 +10,14 @@ import type {
   RefreshTokenResponse,
   LogoutResponse,
 } from '@/types/api'
+
+/** Backend returns { success: true, data: T }. Unwrap to T. */
+function unwrap<T>(response: { success?: boolean; data?: T } | T): T {
+  if (response && typeof response === 'object' && 'success' in response && response.data !== undefined) {
+    return response.data as T
+  }
+  return response as T
+}
 
 /**
  * Authentication API Service
@@ -23,7 +30,11 @@ export const authService = {
    * @returns Success message and expiration time
    */
   async sendOtp(data: SendOtpRequest): Promise<SendOtpResponse> {
-    return apiClient.post<SendOtpResponse>(API_ENDPOINTS.AUTH.SEND_OTP, data)
+    const res = await apiClient.post<SendOtpResponse | { success: true; data: SendOtpResponse }>(
+      API_ENDPOINTS.AUTH.SEND_OTP,
+      data
+    )
+    return unwrap(res)
   },
 
   /**
@@ -32,7 +43,11 @@ export const authService = {
    * @returns User data and token if existing user, or signup requirement if new user
    */
   async verifyOtp(data: VerifyOtpRequest): Promise<VerifyOtpResponse> {
-    return apiClient.post<VerifyOtpResponse>(API_ENDPOINTS.AUTH.VERIFY_OTP, data)
+    const res = await apiClient.post<VerifyOtpResponse | { success: true; data: VerifyOtpResponse }>(
+      API_ENDPOINTS.AUTH.VERIFY_OTP,
+      data
+    )
+    return unwrap(res)
   },
 
   /**
@@ -41,7 +56,10 @@ export const authService = {
    * @returns User data and bearer token
    */
   async completeSignup(data: CompleteSignupRequest): Promise<CompleteSignupResponse> {
-    return apiClient.post<CompleteSignupResponse>(API_ENDPOINTS.AUTH.COMPLETE_SIGNUP, data)
+    const res = await apiClient.post<
+      CompleteSignupResponse | { success: true; data: CompleteSignupResponse }
+    >(API_ENDPOINTS.AUTH.COMPLETE_SIGNUP, data)
+    return unwrap(res)
   },
 
   /**
@@ -50,7 +68,10 @@ export const authService = {
    * @returns New bearer token
    */
   async refreshToken(): Promise<RefreshTokenResponse> {
-    return apiClient.post<RefreshTokenResponse>(API_ENDPOINTS.AUTH.REFRESH)
+    const res = await apiClient.post<
+      RefreshTokenResponse | { success: true; data: RefreshTokenResponse }
+    >(API_ENDPOINTS.AUTH.REFRESH)
+    return unwrap(res)
   },
 
   /**
@@ -59,7 +80,10 @@ export const authService = {
    * @returns Success message
    */
   async logout(): Promise<LogoutResponse> {
-    return apiClient.post<LogoutResponse>(API_ENDPOINTS.AUTH.LOGOUT)
+    const res = await apiClient.post<LogoutResponse | { success: true; data: LogoutResponse }>(
+      API_ENDPOINTS.AUTH.LOGOUT
+    )
+    return unwrap(res)
   },
 }
 
