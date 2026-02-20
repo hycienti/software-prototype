@@ -6,9 +6,9 @@ import { cn } from '@/utils/cn';
 interface TherapistCardProps {
   name: string;
   title: string;
-  price: number;
-  rating: number;
-  reviewCount: number;
+  price?: number;
+  rating?: number;
+  reviewCount?: number;
   specialties: string[];
   avatarUri?: string;
   isOnline?: boolean;
@@ -18,20 +18,16 @@ interface TherapistCardProps {
 export const TherapistCard: React.FC<TherapistCardProps> = ({
   name,
   title,
-  price,
-  rating,
-  reviewCount,
+  price = 150,
+  rating = 4.9,
+  reviewCount = 0,
   specialties,
   avatarUri,
   isOnline = false,
   onPress,
 }) => {
-  const handleCardPress = () => {
-    // Card press handler - can be used for card-level actions
-  };
-
   return (
-    <TouchableOpacity onPress={handleCardPress} activeOpacity={0.8} style={styles.card}>
+    <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.card}>
       <View style={styles.cardContent}>
         {/* Avatar */}
         <View style={styles.avatarContainer}>
@@ -77,7 +73,7 @@ export const TherapistCard: React.FC<TherapistCardProps> = ({
             <View style={styles.ratingContainer}>
               <Icon name="star" size={18} color="#fbbf24" />
               <Text style={styles.rating}>{rating}</Text>
-              <Text style={styles.reviewCount}>({reviewCount} reviews)</Text>
+              <Text style={styles.reviewCount}>{reviewCount > 0 ? `(${reviewCount} reviews)` : ''}</Text>
             </View>
             <TouchableOpacity
               style={styles.learnMoreButton}

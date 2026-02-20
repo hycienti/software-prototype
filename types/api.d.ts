@@ -470,6 +470,11 @@ export interface TherapistForUser {
   professionalTitle: string | null;
   specialties: string[];
   acceptingNewClients: boolean;
+  about: string | null;
+  profilePhotoUrl: string | null;
+  rateCents: number | null;
+  education: string | null;
+  yearsOfExperience: number | null;
 }
 
 export interface TherapistListResponse {
@@ -534,4 +539,47 @@ export interface SendTherapistMessageRequest {
 
 export interface SendTherapistMessageResponse {
   message: TherapistThreadMessage;
+}
+
+// ============================================================================
+// User payments (mock payment + book session)
+// ============================================================================
+
+export interface CreatePaymentRequest {
+  therapistId: number;
+  amountCents: number;
+  currency?: string;
+  scheduledAt: string;
+  durationMinutes?: number;
+}
+
+export interface PaymentRecord {
+  id: number;
+  userId: number;
+  amountCents: number;
+  currency: string;
+  status: string;
+  sessionId: number | null;
+  therapistId: number | null;
+  createdAt: string;
+  updatedAt: string | null;
+  therapist?: { id: number; fullName: string | null; professionalTitle: string | null };
+}
+
+export interface CreatePaymentResponse {
+  payment: PaymentRecord;
+  session: {
+    id: number;
+    userId: number;
+    therapistId: number;
+    availabilitySlotId: number | null;
+    scheduledAt: string;
+    durationMinutes: number;
+    status: string;
+  };
+}
+
+export interface PaymentListResponse {
+  payments: PaymentRecord[];
+  meta: { page: number; limit: number; total: number };
 }

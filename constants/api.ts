@@ -128,6 +128,11 @@ export const API_ENDPOINTS = {
     BY_ID: (id: number) => `/therapist-threads/${id}`,
     MESSAGES: (threadId: number) => `/therapist-threads/${threadId}/messages`,
   },
+
+  // User payments (mock payment + book session, list)
+  PAYMENTS: {
+    BASE: '/payments',
+  },
 } as const;
 
 /**

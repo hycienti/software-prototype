@@ -11,15 +11,11 @@ export default function TherapistDetailPage() {
   };
 
   const handleBookConsultation = () => {
-    router.push({
-      pathname: '/payment',
-      params: { therapistId: id },
-    });
+    router.push(`/therapist/${id}/book`);
   };
 
   const handleMessage = () => {
-    // TODO: Navigate to messaging
-    console.log('Message therapist:', id);
+    if (id) router.push({ pathname: '/therapist/[id]/message', params: { id } });
   };
 
   return (

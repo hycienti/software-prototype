@@ -7,11 +7,13 @@ import {
   ScrollView,
   ActivityIndicator,
   RefreshControl,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { Icon } from '@/components/ui/Icon';
 import { sessionsService } from '@/services/sessions';
+import { formatTherapistDisplayName } from '@/utils/user';
 import type { Session } from '@/types/api';
 
 type Tab = 'active' | 'past';
@@ -48,6 +50,11 @@ function groupPastSessionsByTherapist(sessions: Session[]) {
   return Array.from(byTherapist.values());
 }
 
+function matchesSearch(name: string | null, query: string): boolean {
+  if (!query.trim()) return true;
+  return (name ?? '').toLowerCase().includes(query.trim().toLowerCase());
+}
+
 export function MyTherapistsScreen({
   onBack,
   onMessage,
@@ -56,6 +63,7 @@ export function MyTherapistsScreen({
   onViewNotesSummary,
 }: MyTherapistsScreenProps) {
   const [tab, setTab] = useState<Tab>('active');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const {
     data,
@@ -67,14 +75,17 @@ export function MyTherapistsScreen({
     queryFn: () => sessionsService.list({ limit: 100 }),
   });
 
-  const activeSessions = useMemo(
-    () => (data?.sessions ?? []).filter((s) => s.status === 'SCHEDULED'),
-    [data]
-  );
-  const pastGroups = useMemo(
-    () => groupPastSessionsByTherapist(data?.sessions ?? []),
-    [data]
-  );
+  const activeSessions = useMemo(() => {
+    const scheduled = (data?.sessions ?? []).filter((s) => s.status === 'SCHEDULED');
+    if (!searchQuery.trim()) return scheduled;
+    return scheduled.filter((s) => matchesSearch(s.therapist?.fullName ?? null, searchQuery));
+  }, [data, searchQuery]);
+
+  const pastGroups = useMemo(() => {
+    const groups = groupPastSessionsByTherapist(data?.sessions ?? []);
+    if (!searchQuery.trim()) return groups;
+    return groups.filter((g) => matchesSearch(g.therapist?.fullName ?? null, searchQuery));
+  }, [data, searchQuery]);
 
   const formatDate = (iso: string) => {
     const d = new Date(iso);
@@ -94,6 +105,21 @@ export function MyTherapistsScreen({
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Therapists</Text>
         <View style={styles.headerButton} />
+      </View>
+
+      {/* Search */}
+      <View style={styles.searchRow}>
+        <View style={styles.searchInputWrap}>
+          <Icon name="search" size={20} color="#9ca3af" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by therapist name..."
+            placeholderTextColor="#6b7280"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            returnKeyType="search"
+          />
+        </View>
       </View>
 
       {/* Tabs */}
@@ -137,7 +163,7 @@ export function MyTherapistsScreen({
                 activeSessions.map((session) => (
                   <View key={session.id} style={styles.card}>
                     <Text style={styles.cardName}>
-                      {session.therapist?.fullName ?? `Therapist #${session.therapistId}`}
+                      {formatTherapistDisplayName(session.therapist?.fullName) || `Therapist #${session.therapistId}`}
                     </Text>
                     {session.therapist?.professionalTitle ? (
                       <Text style={styles.cardTitle}>{session.therapist.professionalTitle}</Text>
@@ -158,7 +184,7 @@ export function MyTherapistsScreen({
                         activeOpacity={0.8}
                       >
                         <Icon name="videocam" size={18} color="#fff" />
-                        <Text style={styles.cardButtonPrimaryText}>Video Call</Text>
+                        <Text style={styles.cardButtonPrimaryText}>Join session</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -177,7 +203,7 @@ export function MyTherapistsScreen({
               ) : (
                 pastGroups.map(({ therapist, lastSession, total }) => (
                   <View key={therapist.id} style={styles.card}>
-                    <Text style={styles.cardName}>{therapist.fullName ?? `Therapist #${therapist.id}`}</Text>
+                    <Text style={styles.cardName}>{formatTherapistDisplayName(therapist.fullName) || `Therapist #${therapist.id}`}</Text>
                     {therapist.professionalTitle ? (
                       <Text style={styles.cardTitle}>{therapist.professionalTitle}</Text>
                     ) : null}
@@ -233,6 +259,27 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#ffffff',
+  },
+  searchRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  searchInputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: 'rgba(26, 44, 50, 0.8)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(55, 65, 81, 0.5)',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#ffffff',
+    paddingVertical: 0,
   },
   tabRow: {
     flexDirection: 'row',

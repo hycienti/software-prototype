@@ -36,6 +36,10 @@ export default function ProfilePage() {
     console.log('Account privacy');
   };
 
+  const handlePaymentHistory = () => {
+    router.push('/payment-history');
+  };
+
   const handleConnectedApps = () => {
     // TODO: Navigate to connected apps
     console.log('Connected apps');
@@ -56,6 +60,7 @@ export default function ProfilePage() {
         onViewAllAchievements={handleViewAllAchievements}
         onAccountPrivacy={handleAccountPrivacy}
         onConnectedApps={handleConnectedApps}
+        onPaymentHistory={handlePaymentHistory}
         onLogOut={handleLogOut}
       />
     </BottomSheetModal>

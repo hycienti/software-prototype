@@ -7,11 +7,13 @@ import * as Haptics from 'expo-haptics';
 import Animated, {
   useAnimatedStyle,
   withTiming,
+  withRepeat,
   useSharedValue,
   Easing,
   interpolate,
   Extrapolate,
 } from 'react-native-reanimated';
+import Svg, { Path, Defs, LinearGradient as SvgLinearGradient, Stop, Circle } from 'react-native-svg';
 import { Icon } from '@/components/ui/Icon';
 import { useBoxBreathingSettings } from '@/store/BoxBreathingSettingsContext';
 
@@ -19,7 +21,32 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const BOX_SIZE = Math.min(380, SCREEN_WIDTH - 100);
 const BOX_RADIUS = 32;
-const DOT_SIZE = 12;
+
+// Smooth, flowy easing (custom cubic)
+const FLOW_EASING = Easing.bezier(0.33, 0.66, 0.33, 1);
+
+// Orb visible size (for galaxy/wave layout): 90% of box minus padding
+const ORB_SIZE = Math.round(0.9 * (BOX_SIZE - 64));
+
+// Data-stream band path (viewBox 0 0 300 100)
+const WAVE_PATH_D =
+  'M 0,45 Q 37.5,30 75,45 Q 112.5,60 150,45 Q 187.5,30 225,45 Q 262.5,60 300,45 L 300,55 Q 262.5,70 225,55 Q 187.5,40 150,55 Q 112.5,70 75,55 Q 37.5,40 0,55 Z';
+
+// Neural/node positions (percent) for AI-driven feel
+const NODE_POSITIONS = [
+  { cx: 22, cy: 28 },
+  { cx: 72, cy: 18 },
+  { cx: 85, cy: 55 },
+  { cx: 38, cy: 78 },
+  { cx: 58, cy: 42 },
+  { cx: 12, cy: 65 },
+  { cx: 90, cy: 32 },
+  { cx: 45, cy: 15 },
+  { cx: 50, cy: 50 },
+];
+
+// Hexagon path for HUD overlay (viewBox 0 0 100 100, centered)
+const HEX_PATH = 'M 50 5 L 93 27.5 L 93 72.5 L 50 95 L 7 72.5 L 7 27.5 Z';
 
 type BreathingPhase = 'inhale' | 'hold1' | 'exhale' | 'hold2';
 
@@ -43,8 +70,8 @@ export const BoxBreathingScreen: React.FC<{ onBack?: () => void; onSettings?: ()
   const isUnmountingRef = useRef(false);
 
   const orbScale = useSharedValue(1);
-  const dotProgress = useSharedValue(0);
   const pathProgress = useSharedValue(0);
+  const ambientPhase = useSharedValue(0);
 
   // Get phase durations from settings - memoized
   const getPhaseDuration = useCallback(
@@ -64,6 +91,15 @@ export const BoxBreathingScreen: React.FC<{ onBack?: () => void; onSettings?: ()
     },
     [settings.inhaleDuration, settings.holdDuration, settings.exhaleDuration]
   );
+
+  // Ambient pulse for futuristic core/nodes (continuous)
+  useEffect(() => {
+    ambientPhase.value = withRepeat(
+      withTiming(1, { duration: 4000, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true
+    );
+  }, [ambientPhase]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -276,34 +312,17 @@ export const BoxBreathingScreen: React.FC<{ onBack?: () => void; onSettings?: ()
     triggerHaptic();
     speakPhase(currentPhase);
 
-    // Animate orb scale
+    // Animate orb scale with fluid easing
     if (currentPhase === 'inhale') {
-      orbScale.value = withTiming(1.3, { duration, easing: Easing.inOut(Easing.ease) });
+      orbScale.value = withTiming(1.3, { duration, easing: FLOW_EASING });
     } else if (currentPhase === 'exhale') {
-      orbScale.value = withTiming(0.85, { duration, easing: Easing.inOut(Easing.ease) });
+      orbScale.value = withTiming(0.85, { duration, easing: FLOW_EASING });
     } else {
-      orbScale.value = withTiming(orbScale.value, { duration });
+      orbScale.value = withTiming(orbScale.value, { duration, easing: FLOW_EASING });
     }
 
-    // Calculate phase index for dot animation
-    const phaseIndex =
-      currentPhase === 'inhale'
-        ? 0
-        : currentPhase === 'hold1'
-          ? 1
-          : currentPhase === 'exhale'
-            ? 2
-            : 3;
-
-    // Animate dot progress
-    dotProgress.value = withTiming(phaseIndex + 1, {
-      duration,
-      easing: Easing.linear,
-    });
-
-    // Animate path progress
     pathProgress.value = 0;
-    pathProgress.value = withTiming(1, { duration, easing: Easing.linear });
+    pathProgress.value = withTiming(1, { duration, easing: FLOW_EASING });
 
     // Start countdown
     let c = countdown;
@@ -393,7 +412,6 @@ export const BoxBreathingScreen: React.FC<{ onBack?: () => void; onSettings?: ()
 
     // Reset animations immediately
     orbScale.value = 1;
-    dotProgress.value = 0;
     pathProgress.value = 0;
 
     // Trigger haptic feedback
@@ -443,62 +461,24 @@ export const BoxBreathingScreen: React.FC<{ onBack?: () => void; onSettings?: ()
     transform: [{ scale: orbScale.value }],
   }));
 
-  // Active path glow styles - only show the current side
-  const activePathTopStyle = useAnimatedStyle(() => {
-    const side = Math.floor(dotProgress.value);
-    const isActive = side === 0;
+  // Data-stream / scan wave: moves left-to-right in sync with pathProgress
+  const waveStyle = useAnimatedStyle(() => {
+    const tx = interpolate(pathProgress.value, [0, 1], [-ORB_SIZE, ORB_SIZE], Extrapolate.CLAMP);
     return {
-      opacity: isActive ? 1 : 0,
+      transform: [{ translateX: tx }],
     };
   });
 
-  const activePathRightStyle = useAnimatedStyle(() => {
-    const side = Math.floor(dotProgress.value);
-    const isActive = side === 1;
-    return {
-      opacity: isActive ? pathProgress.value : 0,
-    };
+  // Futuristic core pulse (subtle)
+  const corePulseStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(ambientPhase.value, [0, 1], [0.2, 0.4], Extrapolate.CLAMP);
+    return { opacity };
   });
 
-  const activePathBottomStyle = useAnimatedStyle(() => {
-    const side = Math.floor(dotProgress.value);
-    const isActive = side === 2;
-    return {
-      opacity: isActive ? 1 : 0,
-    };
-  });
-
-  const activePathLeftStyle = useAnimatedStyle(() => {
-    const side = Math.floor(dotProgress.value);
-    const isActive = side === 3;
-    return {
-      opacity: isActive ? pathProgress.value : 0,
-    };
-  });
-
-  const dotStyle = useAnimatedStyle(() => {
-    const side = Math.floor(dotProgress.value);
-    const progress = dotProgress.value - side;
-    const half = BOX_SIZE / 2;
-
-    let x = 0;
-    let y = 0;
-
-    if (side === 0) {
-      x = interpolate(progress, [0, 1], [-half, half], Extrapolate.CLAMP);
-      y = -half - DOT_SIZE / 2;
-    } else if (side === 1) {
-      x = half + DOT_SIZE / 2;
-      y = interpolate(progress, [0, 1], [-half, half], Extrapolate.CLAMP);
-    } else if (side === 2) {
-      x = interpolate(progress, [0, 1], [half, -half], Extrapolate.CLAMP);
-      y = half + DOT_SIZE / 2;
-    } else {
-      x = -half - DOT_SIZE / 2;
-      y = interpolate(progress, [0, 1], [half, -half], Extrapolate.CLAMP);
-    }
-
-    return { transform: [{ translateX: x }, { translateY: y }] };
+  // Neural nodes subtle pulse
+  const nodesPulseStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(ambientPhase.value, [0, 1], [0.35, 0.65], Extrapolate.CLAMP);
+    return { opacity };
   });
 
   /* ---------------------- Helpers ---------------------- */
@@ -550,36 +530,62 @@ export const BoxBreathingScreen: React.FC<{ onBack?: () => void; onSettings?: ()
       {/* Main */}
       <View style={styles.main}>
         <View style={[styles.box, { width: BOX_SIZE, height: BOX_SIZE }]}>
-          {/* Box Border with Glow */}
-          <View style={styles.boxBorder} />
-
-          {/* Active Path Indicators - Glowing borders on current side */}
-          <Animated.View style={[styles.activePathContainer, activePathTopStyle]}>
-            <View style={styles.activePathTop} />
-          </Animated.View>
-          <Animated.View style={[styles.activePathContainer, activePathRightStyle]}>
-            <View style={styles.activePathRight} />
-          </Animated.View>
-          <Animated.View style={[styles.activePathContainer, activePathBottomStyle]}>
-            <View style={styles.activePathBottom} />
-          </Animated.View>
-          <Animated.View style={[styles.activePathContainer, activePathLeftStyle]}>
-            <View style={styles.activePathLeft} />
-          </Animated.View>
-
-          {/* Traveler Dot */}
-          <Animated.View style={[styles.travelerDot, dotStyle]}>
-            <View style={styles.dotGlow} />
-          </Animated.View>
-
           {/* Breathing Orb - with overflow hidden to prevent scaling out */}
           <View style={styles.orbWrapper}>
             <Animated.View style={[styles.orb, orbStyle]}>
+              {/* Deep void background - out-of-space */}
               <LinearGradient
-                colors={['rgba(25,179,230,0.2)', 'rgba(25,179,230,0.1)', 'rgba(52,211,153,0.05)']}
+                colors={['#050510', '#0a0a1a', '#0d0d24', '#050510']}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
                 style={StyleSheet.absoluteFill}
               />
-              <View style={styles.innerGlow} />
+              {/* Subtle hex HUD overlay */}
+              <View style={styles.hudOverlay} pointerEvents="none">
+                <Svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" style={StyleSheet.absoluteFill}>
+                  <Path d={HEX_PATH} fill="none" stroke="rgba(6,182,212,0.08)" strokeWidth="0.4" />
+                </Svg>
+              </View>
+              {/* AI core glow - pulsed */}
+              <Animated.View style={[styles.coreGlow, corePulseStyle]} />
+
+              {/* Neural nodes - AI-driven network feel */}
+              <Animated.View style={[styles.nodesContainer, nodesPulseStyle]} pointerEvents="none">
+                <Svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" style={StyleSheet.absoluteFill}>
+                  {NODE_POSITIONS.map((node, i) => (
+                    <Circle
+                      key={i}
+                      cx={node.cx}
+                      cy={node.cy}
+                      r={i === NODE_POSITIONS.length - 1 ? 3 : 1.5}
+                      fill={i === NODE_POSITIONS.length - 1 ? 'rgba(6,182,212,0.6)' : 'rgba(168,85,247,0.5)'}
+                    />
+                  ))}
+                </Svg>
+              </Animated.View>
+
+              {/* Data-stream scan - moves with breath */}
+              <View style={styles.waveContainer} pointerEvents="none">
+                <Animated.View style={[styles.waveStrip, waveStyle]}>
+                  <Svg
+                    width={ORB_SIZE * 3}
+                    height={ORB_SIZE}
+                    viewBox="0 0 300 100"
+                    preserveAspectRatio="none"
+                  >
+                    <Defs>
+                      <SvgLinearGradient id="waveGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <Stop offset="0%" stopColor="rgba(6,182,212,0)" />
+                        <Stop offset="30%" stopColor="rgba(6,182,212,0.25)" />
+                        <Stop offset="50%" stopColor="rgba(255,255,255,0.5)" />
+                        <Stop offset="70%" stopColor="rgba(168,85,247,0.25)" />
+                        <Stop offset="100%" stopColor="rgba(168,85,247,0)" />
+                      </SvgLinearGradient>
+                    </Defs>
+                    <Path d={WAVE_PATH_D} fill="url(#waveGradient)" />
+                  </Svg>
+                </Animated.View>
+              </View>
 
               <View style={styles.orbContent}>
                 <Text style={styles.phaseText}>{phaseText}</Text>
@@ -590,12 +596,6 @@ export const BoxBreathingScreen: React.FC<{ onBack?: () => void; onSettings?: ()
               </View>
             </Animated.View>
           </View>
-
-          {/* Labels */}
-          <Text style={[styles.label, styles.labelTop]}>INHALE</Text>
-          <Text style={[styles.label, styles.labelRight]}>HOLD</Text>
-          <Text style={[styles.label, styles.labelBottom]}>EXHALE</Text>
-          <Text style={[styles.label, styles.labelLeft]}>HOLD</Text>
         </View>
       </View>
 
@@ -680,99 +680,6 @@ const styles = StyleSheet.create({
   main: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
   box: { alignItems: 'center', justifyContent: 'center', position: 'relative' },
-  boxBorder: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: BOX_RADIUS,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.05)',
-    shadowColor: '#19b3e6',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.15,
-    shadowRadius: 30,
-    elevation: 10,
-  },
-  activePathContainer: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: BOX_RADIUS,
-    overflow: 'hidden',
-  },
-  activePathTop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 2,
-    borderTopLeftRadius: BOX_RADIUS,
-    borderTopRightRadius: BOX_RADIUS,
-    backgroundColor: '#19b3e6',
-    shadowColor: '#19b3e6',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.8,
-    shadowRadius: 25,
-    elevation: 15,
-  },
-  activePathRight: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    width: 2,
-    borderTopRightRadius: BOX_RADIUS,
-    borderBottomRightRadius: BOX_RADIUS,
-    backgroundColor: '#19b3e6',
-    shadowColor: '#19b3e6',
-    shadowOffset: { width: -4, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 25,
-    elevation: 15,
-  },
-  activePathBottom: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 2,
-    borderBottomLeftRadius: BOX_RADIUS,
-    borderBottomRightRadius: BOX_RADIUS,
-    backgroundColor: '#19b3e6',
-    shadowColor: '#19b3e6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.8,
-    shadowRadius: 25,
-    elevation: 15,
-  },
-  activePathLeft: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    bottom: 0,
-    width: 2,
-    borderTopLeftRadius: BOX_RADIUS,
-    borderBottomLeftRadius: BOX_RADIUS,
-    backgroundColor: '#19b3e6',
-    shadowColor: '#19b3e6',
-    shadowOffset: { width: 4, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 25,
-    elevation: 15,
-  },
-
-  travelerDot: {
-    position: 'absolute',
-    width: DOT_SIZE,
-    height: DOT_SIZE,
-    borderRadius: DOT_SIZE / 2,
-    backgroundColor: '#fff',
-    zIndex: 10,
-  },
-  dotGlow: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: DOT_SIZE / 2,
-    shadowColor: '#fff',
-    shadowOpacity: 0.8,
-    shadowRadius: 15,
-  },
-
   orbWrapper: {
     width: '100%',
     height: '100%',
@@ -787,55 +694,68 @@ const styles = StyleSheet.create({
     height: '90%',
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
-    shadowColor: '#19b3e6',
-    shadowOpacity: 0.15,
-    shadowRadius: 100,
+    borderColor: 'rgba(6,182,212,0.25)',
+    shadowColor: '#06b6d4',
+    shadowOpacity: 0.25,
+    shadowRadius: 24,
     overflow: 'hidden',
   },
-  innerGlow: {
+  hudOverlay: {
     ...StyleSheet.absoluteFillObject,
-    margin: 16,
-    borderRadius: 999,
-    backgroundColor: 'rgba(25,179,230,0.35)',
   },
-
+  coreGlow: {
+    ...StyleSheet.absoluteFillObject,
+    margin: 20,
+    borderRadius: 999,
+    backgroundColor: 'rgba(6,182,212,0.25)',
+  },
+  nodesContainer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  waveContainer: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  waveStrip: {
+    position: 'absolute',
+    left: -ORB_SIZE,
+    width: ORB_SIZE * 3,
+    height: ORB_SIZE,
+  },
   orbContent: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   phaseText: {
-    fontSize: 20,
-    letterSpacing: 2,
+    fontSize: 18,
+    letterSpacing: 4,
     textTransform: 'uppercase',
-    color: '#19b3e6',
+    color: '#06b6d4',
     marginBottom: 8,
+    textShadowColor: 'rgba(6,182,212,0.5)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 8,
   },
   countRow: { flexDirection: 'row', alignItems: 'flex-start' },
   count: {
-    fontSize: 80,
-    fontWeight: '200',
-    letterSpacing: -1.5,
+    fontSize: 72,
+    fontWeight: '300',
+    letterSpacing: 0,
     color: '#fff',
+    textShadowColor: 'rgba(6,182,212,0.4)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 12,
   },
   unit: {
-    fontSize: 24,
-    color: 'rgba(255,255,255,0.5)',
+    fontSize: 22,
+    color: 'rgba(255,255,255,0.6)',
     marginTop: 18,
     marginLeft: 4,
+    letterSpacing: 2,
   },
-
-  label: {
-    position: 'absolute',
-    fontSize: 12,
-    letterSpacing: 1,
-    color: 'rgba(255,255,255,0.2)',
-  },
-  labelTop: { top: -30, color: 'rgba(25,179,230,0.6)' },
-  labelBottom: { bottom: -30 },
-  labelLeft: { left: -40, transform: [{ rotate: '-90deg' }] },
-  labelRight: { right: -40, transform: [{ rotate: '90deg' }] },
 
   footer: { padding: 32, gap: 32,  width: '100%' },
   progressBlock: { gap: 12 },

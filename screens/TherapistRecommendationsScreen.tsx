@@ -1,44 +1,10 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TherapistCard } from '@/components/therapist/TherapistCard';
-import { cn } from '@/utils/cn';
-
-const therapists = [
-  {
-    id: '1',
-    name: 'Dr. Sarah Johnson',
-    title: 'PhD, LMFT',
-    price: 150,
-    rating: 4.9,
-    reviewCount: 120,
-    specialties: ['Anxiety', 'Trauma'],
-    avatarUri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCn_TvEfSMpB6gjR4ppdBAaCoveY2Y_tRQ1DY-QNy9y2dai0oMg7hjKt-XrGsITz-G098gkPEQgoCoV-ME-vpRT56gdxzh-QIMVDNr91joDsNrrVpOnWIfaqdO1aiQZxhd8ug5Twd4jDwu-Q4CXw3pF1jb8XfX8vTk-kZbbdCTfFlf7uMR_nH5Zq5od942dyfdqmdkIQut83w5ZrYM8rEfp5u2mJmEcr7cwaqiu1ZqSOe4Qxrpa4ToT3ug-F2IwlyFKYR8cdJJh00k',
-    isOnline: true,
-  },
-  {
-    id: '2',
-    name: 'Mark Davis',
-    title: 'PsyD',
-    price: 135,
-    rating: 4.8,
-    reviewCount: 85,
-    specialties: ['Depression', 'CBT'],
-    avatarUri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCdLYzCmay6IPuVoL52_zDRzF55AtULNGfFrLowhGWSqo9qrOagT7fGuW5KgPw2zkCX7vTI4wyUxvwo7WvYfNAOFUs3nQ0Iw0V_RHZsqUJkM5sGjx3GmcA3bm7WjyWuWBnHFfpOpgn7rHerD68N8HqtKAKY1X_1n6CEbRweEMxl4eyMmJb79Ksq-k81_2n4X9bD9b08PHLzxAUFs4Xp8CVwgzOb_PoP5Pt0pkBJYI8JsMBVSXQGkl5hSkGD7-i-ECIlT-bw8HjtiGo',
-    isOnline: false,
-  },
-  {
-    id: '3',
-    name: 'Elena Rodriguez',
-    title: 'LCSW',
-    price: 110,
-    rating: 5.0,
-    reviewCount: 42,
-    specialties: ['Family Therapy', 'Stress'],
-    avatarUri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB6bQadR5HHHd23oYikDpM6gWXaItEod5oPMLWUTqBCtNFTc4z-SB8IDwzM3b933FbvO7A-OxUJzQRqpkirxpdkqZbLtpjN_Ie5kbnYEFpDJTnUfCRfZvZyhgaIAR1OCWEGcDcYYHdqiUy_G3Sm3exnHxpYY3cD6Qt9pEDmheuiPN8lv5T5jwU8DUqNZD0ECSbXYFBVrIa04kZ8o9eJ5HJKMJwvOqHv1RSRUrJzUjY701oY5th1HEfJkEZQKKKgvqPpRQtGIQMHStw',
-    isOnline: false,
-  },
-];
+import { therapistsService } from '@/services/therapists';
+import { formatTherapistDisplayName } from '@/utils/user';
 
 interface TherapistRecommendationsScreenProps {
   onTherapistPress?: (id: string) => void;
@@ -51,6 +17,13 @@ export const TherapistRecommendationsScreen: React.FC<TherapistRecommendationsSc
   visible = true,
   onClose,
 }) => {
+  const { data, isLoading } = useQuery({
+    queryKey: ['therapists', 'recommendations'],
+    queryFn: () => therapistsService.list({ limit: 20 }),
+  });
+
+  const therapists = data?.therapists ?? [];
+
   return (
     <View style={styles.container}>
       {/* Dark Gradient Background */}
@@ -103,13 +76,21 @@ export const TherapistRecommendationsScreen: React.FC<TherapistRecommendationsSc
 
         {/* Cards List */}
         <View style={styles.cardsContainer}>
-          {therapists.map((therapist) => (
-            <TherapistCard
-              key={therapist.id}
-              {...therapist}
-              onPress={() => onTherapistPress?.(therapist.id)}
-            />
-          ))}
+          {isLoading ? (
+            <ActivityIndicator size="large" color="#19b3e6" style={{ paddingVertical: 24 }} />
+          ) : (
+            therapists.map((t) => (
+              <TherapistCard
+                key={t.id}
+                name={formatTherapistDisplayName(t.fullName) || `Therapist #${t.id}`}
+                title={t.professionalTitle ?? ''}
+                specialties={t.specialties ?? []}
+                avatarUri={t.profilePhotoUrl ?? undefined}
+                price={t.rateCents != null ? t.rateCents / 100 : undefined}
+                onPress={() => onTherapistPress?.(String(t.id))}
+              />
+            ))
+          )}
         </View>
         <View style={styles.bottomSpacer} />
       </ScrollView>

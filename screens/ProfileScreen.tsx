@@ -14,6 +14,7 @@ interface ProfileScreenProps {
   onViewAllAchievements?: () => void;
   onAccountPrivacy?: () => void;
   onConnectedApps?: () => void;
+  onPaymentHistory?: () => void;
   onLogOut?: () => void;
 }
 
@@ -25,6 +26,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   onViewAllAchievements,
   onAccountPrivacy,
   onConnectedApps,
+  onPaymentHistory,
   onLogOut,
 }) => {
   const { user: authUser, updateUser } = useAuthStore();
@@ -228,6 +230,20 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                   <Icon name="lock" size={20} color="rgba(255, 255, 255, 0.8)" />
                 </View>
                 <Text style={styles.settingText}>Account Privacy</Text>
+              </View>
+              <Icon name="chevron_right" size={20} color="rgba(255, 255, 255, 0.3)" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={onPaymentHistory}
+              activeOpacity={0.95}
+            >
+              <View style={styles.settingLeft}>
+                <View style={styles.settingIcon}>
+                  <Icon name="receipt_long" size={20} color="rgba(255, 255, 255, 0.8)" />
+                </View>
+                <Text style={styles.settingText}>Payment History</Text>
               </View>
               <Icon name="chevron_right" size={20} color="rgba(255, 255, 255, 0.3)" />
             </TouchableOpacity>

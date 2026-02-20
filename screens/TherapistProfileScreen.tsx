@@ -1,10 +1,21 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, ImageBackground } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  StyleSheet,
+  ImageBackground,
+  ActivityIndicator,
+} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useQuery } from '@tanstack/react-query';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Icon } from '@/components/ui/Icon';
-import { cn } from '@/utils/cn';
+import { therapistsService } from '@/services/therapists';
+import { formatTherapistDisplayName } from '@/utils/user';
 
 interface TherapistProfileScreenProps {
   therapistId?: string;
@@ -20,6 +31,61 @@ export const TherapistProfileScreen: React.FC<TherapistProfileScreenProps> = ({
   onMessage,
 }) => {
   const insets = useSafeAreaInsets();
+  const id = therapistId ? Number(therapistId) : 0;
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['therapist', id],
+    queryFn: () => therapistsService.getById(id),
+    enabled: id > 0,
+  });
+
+  const therapist = data?.therapist;
+
+  if (id > 0 && isLoading) {
+    return (
+      <SafeAreaView style={styles.loadContainer}>
+        <View style={styles.headerContent}>
+          <TouchableOpacity onPress={onBack} style={styles.headerButton} activeOpacity={0.7}>
+            <Icon name="arrow_back" size={24} color="#ffffff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Therapist Profile</Text>
+          <View style={styles.headerButton} />
+        </View>
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color="#19b3e6" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (id > 0 && (isError || !therapist)) {
+    return (
+      <SafeAreaView style={styles.loadContainer}>
+        <View style={styles.headerContent}>
+          <TouchableOpacity onPress={onBack} style={styles.headerButton} activeOpacity={0.7}>
+            <Icon name="arrow_back" size={24} color="#ffffff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Therapist Profile</Text>
+          <View style={styles.headerButton} />
+        </View>
+        <View style={styles.centered}>
+          <Text style={styles.errorText}>Could not load therapist</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const displayName = formatTherapistDisplayName(therapist?.fullName) || (id > 0 ? `Therapist #${id}` : 'Therapist');
+  const displayTitle = therapist?.professionalTitle ?? '';
+  const specialtiesLabel =
+    therapist?.specialties?.length ? therapist.specialties.join(' & ') : 'Specialist';
+  const aboutText = therapist?.about ?? null;
+  const profilePhotoUrl = therapist?.profilePhotoUrl ?? null;
+  const rateDollars = therapist?.rateCents != null ? therapist.rateCents / 100 : null;
+  const yearsExp = therapist?.yearsOfExperience ?? null;
+  const educationText = therapist?.education ?? null;
+  const educationEntries = educationText
+    ? educationText.split('\n').filter((line) => line.trim())
+    : [];
 
   return (
     <SafeAreaView className="flex-1 bg-background-dark">
@@ -72,26 +138,32 @@ export const TherapistProfileScreen: React.FC<TherapistProfileScreenProps> = ({
         {/* Profile Header */}
         <View style={styles.profileHeader}>
           <View style={styles.avatarContainer}>
-            <Image
-              source={{
-                uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCgbDlx1Qj2YWaZo8UJYytHB3bPuqilDGnRNHE-WSSOS4INf-t9zijKiqMz3mccQ5ycKNL62Q7xURiDMs9T2TATepCnHagEcTCyz16Go4EsfqsvPvwLh_ljhC43AkYBARQKgif8HD4y3q667ENOGUAV3uGH_Ddr3U8YoGres65xBuONf9LUjm483CYOa_gO9XgS-mHumdYuzHLohiGhc0ohHxI_JnulBFyq1Ao0g_Zad34GWKm2OB9C9bKC5Z2L_z-mQk68kFoCI3A',
-              }}
-              style={styles.avatar}
-              resizeMode="cover"
-            />
+            {profilePhotoUrl ? (
+              <Image source={{ uri: profilePhotoUrl }} style={styles.avatar} resizeMode="cover" />
+            ) : (
+              <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                <Text style={styles.avatarPlaceholderText}>
+                  {displayName.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            )}
             <View style={styles.verificationBadge}>
               <Icon name="check" size={16} color="#ffffff" />
             </View>
           </View>
           <View style={styles.profileInfo}>
             <View style={styles.nameRow}>
-              <Text style={styles.name}>Dr. Sarah Bennett</Text>
-              <View style={styles.phdBadge}>
-                <Text style={styles.phdText}>PhD</Text>
-              </View>
+              <Text style={styles.name}>{displayName}</Text>
+              {displayTitle ? (
+                <View style={styles.phdBadge}>
+                  <Text style={styles.phdText}>{displayTitle.split(',')[0] ?? displayTitle}</Text>
+                </View>
+              ) : null}
             </View>
-            <Text style={styles.title}>Clinical Psychologist</Text>
-            <Text style={styles.specialization}>Specializing in Anxiety & Trauma</Text>
+            {displayTitle ? <Text style={styles.title}>{displayTitle}</Text> : null}
+            <Text style={styles.specialization}>
+              {specialtiesLabel ? `Specializing in ${specialtiesLabel}` : ''}
+            </Text>
           </View>
         </View>
 
@@ -99,40 +171,36 @@ export const TherapistProfileScreen: React.FC<TherapistProfileScreenProps> = ({
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
             <Icon name="local_police" size={24} color="#19b3e6" />
-            <Text style={styles.statValue}>12 Yrs</Text>
+            <Text style={styles.statValue}>{yearsExp != null ? `${yearsExp} Yrs` : '—'}</Text>
             <Text style={styles.statLabel}>Experience</Text>
           </View>
           <View style={styles.statCard}>
             <Icon name="star" size={24} color="#19b3e6" />
             <Text style={styles.statValue}>4.9</Text>
-            <Text style={styles.statLabel}>120 Reviews</Text>
+            <Text style={styles.statLabel}>Reviews</Text>
           </View>
           <View style={styles.statCard}>
             <Icon name="payments" size={24} color="#19b3e6" />
-            <Text style={styles.statValue}>$150</Text>
+            <Text style={styles.statValue}>
+              {rateDollars != null ? `$${rateDollars}` : '—'}
+            </Text>
             <Text style={styles.statLabel}>Per Session</Text>
           </View>
         </View>
 
         {/* About Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>About Dr. Bennett</Text>
-          <Text style={styles.aboutText}>
-            Dr. Bennett is a compassionate therapist dedicated to helping individuals navigate
-            life's challenges. With over a decade of experience, she specializes in cognitive
-            behavioral therapy and mindfulness-based approaches to treat anxiety disorders and
-            trauma. She believes in creating a safe, non-judgmental space...
-          </Text>
-          <TouchableOpacity>
-            <Text style={styles.readMore}>Read more</Text>
-          </TouchableOpacity>
-        </View>
+        {aboutText ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>About {displayName.split(' ')[0]}</Text>
+            <Text style={styles.aboutText}>{aboutText}</Text>
+          </View>
+        ) : null}
 
         {/* Treatment Approaches */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Treatment Approaches</Text>
           <View style={styles.tagsContainer}>
-            {['CBT', 'DBT', 'Trauma-Informed', 'Mindfulness', 'Anxiety'].map((approach) => (
+            {(therapist?.specialties?.length ? therapist.specialties : ['CBT', 'Mindfulness', 'Anxiety']).map((approach) => (
               <View key={approach} style={styles.tag}>
                 <Text style={styles.tagText}>{approach}</Text>
               </View>
@@ -144,29 +212,31 @@ export const TherapistProfileScreen: React.FC<TherapistProfileScreenProps> = ({
         </View>
 
         {/* Education */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Education</Text>
-          <View style={styles.educationContainer}>
-            <View style={styles.educationItem}>
-              <View style={styles.educationIcon}>
-                <Icon name="school" size={20} color="#9ca3af" />
-              </View>
-              <View style={styles.educationContent}>
-                <Text style={styles.educationTitle}>PhD in Clinical Psychology</Text>
-                <Text style={styles.educationDetails}>Stanford University • 2012</Text>
-              </View>
-            </View>
-            <View style={styles.educationItem}>
-              <View style={styles.educationIcon}>
-                <Icon name="history_edu" size={20} color="#9ca3af" />
-              </View>
-              <View style={styles.educationContent}>
-                <Text style={styles.educationTitle}>MA in Counseling</Text>
-                <Text style={styles.educationDetails}>New York University • 2008</Text>
-              </View>
+        {educationEntries.length > 0 ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Education</Text>
+            <View style={styles.educationContainer}>
+              {educationEntries.map((line, idx) => {
+                const parts = line.split('•').map((s) => s.trim());
+                const title = parts[0] ?? line;
+                const details = parts.length > 1 ? parts.slice(1).join(' • ') : null;
+                return (
+                  <View key={idx} style={styles.educationItem}>
+                    <View style={styles.educationIcon}>
+                      <Icon name="school" size={20} color="#9ca3af" />
+                    </View>
+                    <View style={styles.educationContent}>
+                      <Text style={styles.educationTitle}>{title}</Text>
+                      {details ? (
+                        <Text style={styles.educationDetails}>{details}</Text>
+                      ) : null}
+                    </View>
+                  </View>
+                );
+              })}
             </View>
           </View>
-        </View>
+        ) : null}
 
         {/* Location */}
         <View style={[styles.section, { marginBottom: 96 }]}>
@@ -224,6 +294,19 @@ export const TherapistProfileScreen: React.FC<TherapistProfileScreenProps> = ({
 };
 
 const styles = StyleSheet.create({
+  loadContainer: {
+    flex: 1,
+    backgroundColor: '#111d21',
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#9ca3af',
+  },
   scrollView: {
     flex: 1,
   },
@@ -272,6 +355,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+  },
+  avatarPlaceholder: {
+    backgroundColor: '#374151',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarPlaceholderText: {
+    fontSize: 48,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.6)',
   },
   verificationBadge: {
     position: 'absolute',

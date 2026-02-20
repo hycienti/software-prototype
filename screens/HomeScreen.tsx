@@ -148,7 +148,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           console.log('Crisis Resources pressed');
         }}
         onTherapistPress={() => {
-          router.push('/therapists');
+          router.push('/therapists-directory');
         }}
         onWellnessPress={() => {
           onWellnessPress?.();

@@ -1,27 +1,56 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useQuery } from '@tanstack/react-query';
 import { BlurView } from 'expo-blur';
 import { Icon } from '@/components/ui/Icon';
-import { cn } from '@/utils/cn';
+import { therapistsService } from '@/services/therapists';
+import { formatTherapistDisplayName } from '@/utils/user';
+
+function formatSessionTime(iso?: string | null): string {
+  if (!iso) return 'Date & time TBD';
+  try {
+    const d = new Date(iso);
+    const end = new Date(d.getTime() + 50 * 60 * 1000);
+    return d.toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    }) + ' - ' + end.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  } catch {
+    return iso;
+  }
+}
 
 interface PaymentScreenProps {
   therapistId?: string;
+  scheduledAt?: string | null;
   onBack?: () => void;
   onConfirmPayment?: () => void;
   visible?: boolean;
   onClose?: () => void;
+  isProcessing?: boolean;
 }
 
 export const PaymentScreen: React.FC<PaymentScreenProps> = ({
   therapistId,
+  scheduledAt,
   onBack,
   onConfirmPayment,
   visible = true,
   onClose,
+  isProcessing = false,
 }) => {
   const insets = useSafeAreaInsets();
   const [selectedCrypto, setSelectedCrypto] = useState('USDC');
+
+  const { data: therapistData } = useQuery({
+    queryKey: ['therapist', therapistId],
+    queryFn: () => therapistsService.getById(Number(therapistId!)),
+    enabled: !!therapistId && Number(therapistId) > 0,
+  });
+  const therapistName = formatTherapistDisplayName(therapistData?.therapist?.fullName) || (therapistId ? `Therapist #${therapistId}` : 'Therapist');
 
   const cryptoOptions = [
     { id: 'BTC', name: 'Bitcoin', amount: '≈ 0.0054 BTC', icon: 'currency_bitcoin', color: '#F7931A' },
@@ -73,10 +102,10 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
               <View style={styles.onlineIndicator} />
             </View>
             <View style={styles.therapistInfo}>
-              <Text style={styles.therapistName}>Dr. Sarah Johnson</Text>
+              <Text style={styles.therapistName}>{therapistName}</Text>
               <View style={styles.sessionTime}>
                 <Icon name="calendar_today" size={16} color="#9ca3af" />
-                <Text style={styles.sessionTimeText}>Oct 24, 10:00 - 10:50 AM</Text>
+                <Text style={styles.sessionTimeText}>{formatSessionTime(scheduledAt)}</Text>
               </View>
             </View>
           </View>
@@ -160,12 +189,19 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
         <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} />
         <View style={styles.footerContent}>
           <TouchableOpacity
-            style={styles.confirmButton}
+            style={[styles.confirmButton, isProcessing && styles.confirmButtonDisabled]}
             onPress={onConfirmPayment}
+            disabled={isProcessing}
             activeOpacity={0.8}
           >
-            <Text style={styles.confirmButtonText}>Confirm Payment</Text>
-            <Icon name="arrow_forward" size={20} color="#ffffff" />
+            {isProcessing ? (
+              <ActivityIndicator color="#ffffff" />
+            ) : (
+              <>
+                <Text style={styles.confirmButtonText}>Confirm Payment</Text>
+                <Icon name="arrow_forward" size={20} color="#ffffff" />
+              </>
+            )}
           </TouchableOpacity>
           <View style={styles.securityBadge}>
             <Icon name="verified_user" size={14} color="#9ca3af" />
@@ -518,6 +554,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 8,
+  },
+  confirmButtonDisabled: {
+    opacity: 0.7,
   },
   confirmButtonText: {
     fontSize: 18,

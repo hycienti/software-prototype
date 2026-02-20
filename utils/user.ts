@@ -23,6 +23,14 @@ export function getFirstName(fullName: string | null | undefined): string {
 }
 
 /**
+ * Format therapist (or any) display name so "Dr." has a space after it (e.g. "Dr.Sarah" -> "Dr. Sarah").
+ */
+export function formatTherapistDisplayName(name: string | null | undefined): string {
+  if (!name || !name.trim()) return name ?? '';
+  return name.replace(/^Dr\.(?=[^\s])/, 'Dr. ');
+}
+
+/**
  * Get greeting based on time of day
  * @returns Greeting string
  */
