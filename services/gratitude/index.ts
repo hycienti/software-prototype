@@ -64,7 +64,8 @@ export const gratitudeService = {
     if (params?.endDate) queryParams.append('endDate', params.endDate)
 
     const url = `${API_ENDPOINTS.GRATITUDE.BASE}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
-    return apiClient.get<GratitudeListResponse>(url)
+    const res = await apiClient.get<{ success: boolean; data: GratitudeListResponse }>(url)
+    return (res as { data?: GratitudeListResponse })?.data ?? (res as GratitudeListResponse)
   },
 
   /**
@@ -92,14 +93,20 @@ export const gratitudeService = {
    * Get current gratitude streak
    */
   async getStreak(): Promise<GratitudeStreakResponse> {
-    return apiClient.get<GratitudeStreakResponse>(API_ENDPOINTS.GRATITUDE.STREAK)
+    const res = await apiClient.get<{ success: boolean; data: GratitudeStreakResponse }>(
+      API_ENDPOINTS.GRATITUDE.STREAK
+    )
+    return (res as { data?: GratitudeStreakResponse })?.data ?? (res as GratitudeStreakResponse)
   },
 
   /**
    * Get growth insights
    */
   async getInsights(): Promise<GratitudeInsights> {
-    return apiClient.get<GratitudeInsights>(API_ENDPOINTS.GRATITUDE.INSIGHTS)
+    const res = await apiClient.get<{ success: boolean; data: GratitudeInsights }>(
+      API_ENDPOINTS.GRATITUDE.INSIGHTS
+    )
+    return (res as { data?: GratitudeInsights })?.data ?? (res as GratitudeInsights)
   },
 
   /**

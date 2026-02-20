@@ -53,9 +53,9 @@ export const GratitudeHistoryScreen: React.FC<GratitudeHistoryScreenProps> = ({
   const { data: historyData, isLoading: isLoadingHistory } = useGratitudeHistory({ limit: 50 });
   const { data: insights, isLoading: isLoadingInsights } = useGratitudeInsights();
 
-  const gratitudes: Gratitude[] = (historyData as any)?.data || [];
+  const gratitudes: Gratitude[] = historyData?.data ?? [];
   const isLoading = isLoadingHistory || isLoadingInsights;
-  const insightsData = (insights as unknown) as GratitudeInsights | undefined;
+  const insightsData = insights;
 
   // Prepare chart data from monthly trend
   const chartData = useMemo(() => {
