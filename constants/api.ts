@@ -106,6 +106,27 @@ export const API_ENDPOINTS = {
     TTS: '/voice/tts',
     STT: '/voice/stt',
   },
+
+  // Sessions (user)
+  SESSIONS: {
+    BASE: '/sessions',
+    BY_ID: (id: number) => `/sessions/${id}`,
+    FEEDBACK: (id: number) => `/sessions/${id}/feedback`,
+    JOIN_ROOM: (id: number) => `/sessions/${id}/join-room`,
+  },
+
+  // User-facing therapists (list and detail)
+  THERAPISTS: {
+    BASE: '/therapists',
+    BY_ID: (id: number) => `/therapists/${id}`,
+  },
+
+  // Therapist–user messaging
+  THERAPIST_THREADS: {
+    BASE: '/therapist-threads',
+    BY_ID: (id: number) => `/therapist-threads/${id}`,
+    MESSAGES: (threadId: number) => `/therapist-threads/${threadId}/messages`,
+  },
 } as const;
 
 /**

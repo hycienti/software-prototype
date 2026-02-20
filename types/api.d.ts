@@ -383,3 +383,150 @@ export interface RefreshTokenResponse {
 export interface LogoutResponse {
   message: string;
 }
+
+// ============================================================================
+// Session Types (user-facing)
+// ============================================================================
+
+export type SessionStatus = 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
+
+export interface SessionTherapist {
+  id: number;
+  fullName: string | null;
+  professionalTitle: string | null;
+}
+
+export interface SessionUser {
+  id: number;
+  fullName: string;
+  email: string;
+  avatarUrl: string | null;
+}
+
+export interface UserTakeaways {
+  mainTopics: string[];
+  actionItems: string[];
+  keyReflection: string | null;
+}
+
+export interface Session {
+  id: number;
+  userId: number;
+  therapistId: number;
+  availabilitySlotId: number | null;
+  scheduledAt: string;
+  durationMinutes: number;
+  status: SessionStatus;
+  meetingId: string | null;
+  sentiment: string | null;
+  engagementLevel: number | null;
+  clinicalNotes: string | null;
+  followUpAt: string | null;
+  summaryCompletedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  user?: SessionUser;
+  therapist?: SessionTherapist;
+  userTakeaways?: UserTakeaways;
+}
+
+export interface SessionListResponse {
+  sessions: Session[];
+  meta: { page: number; limit: number; total: number };
+}
+
+export interface SessionResponse {
+  session: Session;
+}
+
+export interface BookSessionRequest {
+  therapistId: number;
+  scheduledAt: string;
+  durationMinutes?: number;
+}
+
+export interface SessionFeedbackRequest {
+  rating: number;
+  sentimentAfter: 'better' | 'same' | 'worse';
+  comment?: string;
+}
+
+export interface SessionFeedbackResponse {
+  feedback: { id: number; sessionId: number; rating: number; sentimentAfter: string; comment: string | null };
+}
+
+// ============================================================================
+// Therapist Types (user-facing, safe fields only)
+// ============================================================================
+
+export interface TherapistForUser {
+  id: number;
+  fullName: string | null;
+  professionalTitle: string | null;
+  specialties: string[];
+  acceptingNewClients: boolean;
+}
+
+export interface TherapistListResponse {
+  therapists: TherapistForUser[];
+  meta: { page: number; limit: number; total: number };
+}
+
+export interface TherapistResponse {
+  therapist: TherapistForUser;
+}
+
+// ============================================================================
+// Therapist thread / messaging (user–therapist)
+// ============================================================================
+
+export interface TherapistThreadTherapist {
+  id: number;
+  fullName: string | null;
+  professionalTitle: string | null;
+}
+
+export interface TherapistThreadMessage {
+  id: number;
+  threadId: number;
+  senderType: 'user' | 'therapist';
+  body: string;
+  createdAt: string;
+}
+
+export interface TherapistThreadSummary {
+  id: number;
+  userId: number;
+  therapistId: number;
+  therapist: TherapistThreadTherapist | null;
+  lastMessage: TherapistThreadMessage | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TherapistThreadWithMessages {
+  id: number;
+  userId: number;
+  therapistId: number;
+  therapist: TherapistThreadTherapist | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TherapistThreadListResponse {
+  threads: TherapistThreadSummary[];
+}
+
+export interface TherapistThreadDetailResponse {
+  thread: TherapistThreadWithMessages;
+  messages: TherapistThreadMessage[];
+  meta: { page: number; limit: number; total: number };
+}
+
+export interface SendTherapistMessageRequest {
+  body: string;
+}
+
+export interface SendTherapistMessageResponse {
+  message: TherapistThreadMessage;
+}
