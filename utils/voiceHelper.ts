@@ -1,9 +1,10 @@
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio'
 import * as FileSystem from 'expo-file-system/legacy'
+import { Audio } from 'expo-av'
 import { useProcessVoiceMessage, useTextToSpeech } from '@/hooks/useVoice'
 
 /**
- * Voice helpers using expo-audio (expo-av is deprecated).
+ * Voice helpers using expo-audio with expo-av fallback for TTS playback.
  * Recording is done in the screen via useAudioRecorder; use getBase64FromRecordingUri(uri) after stop.
  */
 
@@ -24,12 +25,27 @@ export async function getBase64FromRecordingUri(uri: string): Promise<string> {
 }
 
 /**
- * Play audio from base64 data (e.g. TTS response). Uses expo-audio.
+ * Play audio from base64 data (e.g. TTS response). Tries expo-audio first, falls back to expo-av for reliability with dynamic file URIs.
  */
 export async function playAudioFromBase64(
   base64Data: string,
   format: 'mp3' | 'wav' | 'm4a' = 'mp3'
 ): Promise<void> {
+  if (
+    !base64Data ||
+    typeof base64Data !== 'string' ||
+    base64Data.length < 100
+  ) {
+    const msg = 'playAudioFromBase64: invalid or too short base64 data'
+    console.warn(msg, { length: base64Data?.length ?? 0 })
+    throw new Error(msg)
+  }
+
+  const tempUri = `${FileSystem.cacheDirectory}temp_audio_${Date.now()}.${format}`
+  await FileSystem.writeAsStringAsync(tempUri, base64Data, {
+    encoding: 'base64',
+  })
+
   try {
     await setAudioModeAsync({
       allowsRecording: false,
@@ -37,28 +53,59 @@ export async function playAudioFromBase64(
       shouldPlayInBackground: true,
       interruptionMode: 'duckOthers',
     })
+  } catch (modeError) {
+    console.warn('playAudioFromBase64: setAudioModeAsync failed', modeError)
+  }
 
-    const tempUri = `${FileSystem.cacheDirectory}temp_audio_${Date.now()}.${format}`
-    await FileSystem.writeAsStringAsync(tempUri, base64Data, {
-      encoding: 'base64',
-    })
-
+  try {
     const player = createAudioPlayer(tempUri, {})
     player.play()
 
-    return new Promise<void>((resolve) => {
-      const sub = player.addListener('playbackStatusUpdate', (status: { didJustFinish?: boolean }) => {
-        if (status.didJustFinish) {
-          sub.remove()
-          player.remove()
-          FileSystem.deleteAsync(tempUri, { idempotent: true }).catch(() => {})
-          resolve()
+    await new Promise<void>((resolve) => {
+      const sub = player.addListener(
+        'playbackStatusUpdate',
+        (status: { didJustFinish?: boolean }) => {
+          if (status.didJustFinish) {
+            sub.remove()
+            player.remove()
+            FileSystem.deleteAsync(tempUri, { idempotent: true }).catch(() => {})
+            resolve()
+          }
+        }
+      )
+    })
+    return
+  } catch (expoAudioError) {
+    if (__DEV__) {
+      console.warn('playAudioFromBase64: expo-audio failed, using expo-av fallback', expoAudioError)
+    }
+  }
+
+  // Fallback: expo-av (reliable for dynamic file URIs)
+  try {
+    await Audio.setAudioModeAsync({
+      playsInSilentModeIOS: true,
+      staysActiveInBackground: false,
+      shouldDuckAndroid: true,
+    })
+
+    const { sound } = await Audio.Sound.createAsync(
+      { uri: tempUri },
+      { shouldPlay: true }
+    )
+
+    await new Promise<void>((resolve) => {
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish && !status.isLooping) {
+          sound.unloadAsync().then(() => {
+            FileSystem.deleteAsync(tempUri, { idempotent: true }).catch(() => {})
+            resolve()
+          }).catch(() => resolve())
         }
       })
     })
-  } catch (error) {
-    console.error('Error playing audio:', error)
-    throw error
+  } finally {
+    FileSystem.deleteAsync(tempUri, { idempotent: true }).catch(() => {})
   }
 }
 

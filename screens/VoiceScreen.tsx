@@ -414,13 +414,27 @@ export const VoiceScreen: React.FC<VoiceScreenProps> = ({
         });
       }
 
-      // Play AI response audio
+      // Play AI response audio (guard: only if backend sent usable audio)
       setProgressStep(null);
-      setVoiceState('speaking');
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      await playAudioFromBase64(response.audioData, 'mp3');
-      setVoiceState('idle');
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      const hasAudio =
+        typeof response.audioData === 'string' && response.audioData.length > 0;
+      if (!hasAudio) {
+        if (__DEV__) {
+          console.warn('Voice: missing or empty audioData', {
+            audioDataLength: response.audioData?.length ?? 0,
+          });
+        }
+        setVoiceState('idle');
+      } else {
+        if (__DEV__) {
+          console.log('Voice: playing TTS audio', { audioDataLength: response.audioData.length });
+        }
+        setVoiceState('speaking');
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        await playAudioFromBase64(response.audioData, 'mp3');
+        setVoiceState('idle');
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
     } catch (error: any) {
       setProgressStep(null);
       showAlert({

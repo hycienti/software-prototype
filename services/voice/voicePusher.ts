@@ -1,3 +1,10 @@
+/**
+ * Voice results via Pusher: when the app sends a voice message with async: true,
+ * the backend returns 202 + jobId and streams the result (transcript, response text, TTS audio)
+ * over Pusher events (voice:result:start, voice:response:chunk, voice:audio:chunk, voice:result:complete).
+ * This module subscribes to user-{userId} and resolves waitForVoiceResult(jobId) when the result arrives.
+ * Results that arrive before waitForVoiceResult is called are buffered to fix the race and avoid timeouts.
+ */
 import Pusher from 'pusher-js'
 import type { ProcessVoiceMessageResponse } from '@/types/api'
 
@@ -15,6 +22,8 @@ let pusher: Pusher | null = null
 let currentUserChannel: string | null = null
 let progressCallback: ((step: string) => void) | null = null
 const pendingByJobId = new Map<string, Pending>()
+/** Results that arrived before waitForVoiceResult(jobId) was called (fixes race). */
+const completedResultsByJobId = new Map<string, ProcessVoiceMessageResponse>()
 
 type ChunkedVoiceBuffer = {
   jobId: string
@@ -128,9 +137,6 @@ export async function subscribeToVoiceResults(
       const buf = chunkedBufferByJobId.get(jobId)
       chunkedBufferByJobId.delete(jobId)
       if (!buf) return
-      const pending = pendingByJobId.get(jobId)
-      if (!pending) return
-      pendingByJobId.delete(jobId)
       const responseContent = Array.from(buf.responseChunks.keys())
         .sort((a, b) => a - b)
         .map((i) => buf.responseChunks.get(i) ?? '')
@@ -139,7 +145,7 @@ export async function subscribeToVoiceResults(
         .sort((a, b) => a - b)
         .map((i) => buf.chunks.get(i) ?? '')
         .join('')
-      pending.resolve({
+      const response: ProcessVoiceMessageResponse = {
         conversation: {
           id: buf.conversationId,
           title: null,
@@ -151,7 +157,14 @@ export async function subscribeToVoiceResults(
         audioData,
         audioFormat: 'mp3',
         sentiment: buf.sentiment,
-      })
+      }
+      const pending = pendingByJobId.get(jobId)
+      if (pending) {
+        pendingByJobId.delete(jobId)
+        pending.resolve(response)
+      } else {
+        completedResultsByJobId.set(jobId, response)
+      }
     } catch (err) {
       console.error('Voice Pusher voice:result:complete error', err)
     }
@@ -171,22 +184,25 @@ export async function subscribeToVoiceResults(
         sentiment?: ProcessVoiceMessageResponse['sentiment']
       }
       if (payload.audioData !== undefined) {
+        const response: ProcessVoiceMessageResponse = {
+          conversation: {
+            id: payload.conversationId,
+            title: null,
+            mode: 'voice',
+            createdAt: new Date().toISOString(),
+          },
+          transcript: payload.transcript,
+          response: payload.response,
+          audioData: payload.audioData,
+          audioFormat: 'mp3',
+          sentiment: payload.sentiment,
+        }
         const pending = pendingByJobId.get(jobId)
         if (pending) {
           pendingByJobId.delete(jobId)
-          pending.resolve({
-            conversation: {
-              id: payload.conversationId,
-              title: null,
-              mode: 'voice',
-              createdAt: new Date().toISOString(),
-            },
-            transcript: payload.transcript,
-            response: payload.response,
-            audioData: payload.audioData,
-            audioFormat: 'mp3',
-            sentiment: payload.sentiment,
-          })
+          pending.resolve(response)
+        } else {
+          completedResultsByJobId.set(jobId, response)
         }
       }
     } catch (err) {
@@ -197,6 +213,7 @@ export async function subscribeToVoiceResults(
     const jobId = data?.jobId as string | undefined
     if (!jobId) return
     chunkedBufferByJobId.delete(jobId)
+    completedResultsByJobId.delete(jobId)
     const pending = pendingByJobId.get(jobId)
     if (pending) {
       pendingByJobId.delete(jobId)
@@ -227,6 +244,12 @@ export function waitForVoiceResult(
   jobId: string,
   options: WaitForVoiceResultOptions = {}
 ): Promise<ProcessVoiceMessageResponse> {
+  const cached = completedResultsByJobId.get(jobId)
+  if (cached) {
+    completedResultsByJobId.delete(jobId)
+    return Promise.resolve(cached)
+  }
+
   const timeoutMs = options.timeoutMs ?? DEFAULT_WAIT_TIMEOUT_MS
   return new Promise((resolve, reject) => {
     const timeoutId = setTimeout(() => {
