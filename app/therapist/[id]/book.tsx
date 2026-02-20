@@ -67,10 +67,11 @@ export default function BookSlotPage() {
 
   const handleContinueToPayment = () => {
     if (!selectedDate || !selectedTime || !therapistId) return;
-    const [hours, minutes] = selectedTime.split(':').map(Number);
-    const scheduled = new Date(selectedDate);
-    scheduled.setHours(hours, minutes, 0, 0);
-    const scheduledAt = scheduled.toISOString();
+    // Build ISO in UTC so backend slot window (09:00–17:00 UTC) matches. Avoids timezone shift rejecting the slot.
+    const y = selectedDate.getFullYear();
+    const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
+    const d = String(selectedDate.getDate()).padStart(2, '0');
+    const scheduledAt = `${y}-${m}-${d}T${selectedTime}:00.000Z`;
     router.push({
       pathname: '/payment',
       params: {
@@ -273,7 +274,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 50,
     backgroundColor: '#19b3e6',
   },
   continueButtonDisabled: {

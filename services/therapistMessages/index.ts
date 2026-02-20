@@ -56,7 +56,29 @@ export const therapistMessagesService = {
   },
 
   /**
-   * Send a message in a thread.
+   * Upload a file for chat (voice or attachment). Returns the public URL.
+   * Use with sendMessage(threadId, { voiceUrl: url }) or { attachmentUrls: [url] }.
+   */
+  async upload(
+    threadId: number,
+    file: { uri: string; name?: string; type?: string }
+  ): Promise<{ url: string }> {
+    const formData = new FormData()
+    formData.append('threadId', String(threadId))
+    formData.append('file', {
+      uri: file.uri,
+      name: file.name ?? 'file',
+      type: file.type ?? 'application/octet-stream',
+    } as any)
+    const res = await apiClient.post<ApiData<{ url: string }>>(
+      API_ENDPOINTS.THERAPIST_THREADS.UPLOAD,
+      formData
+    )
+    return unwrap(res)
+  },
+
+  /**
+   * Send a message in a thread (text, and/or voiceUrl, and/or attachmentUrls).
    */
   async sendMessage(threadId: number, payload: SendTherapistMessageRequest): Promise<SendTherapistMessageResponse> {
     const res = await apiClient.post<ApiData<SendTherapistMessageResponse>>(

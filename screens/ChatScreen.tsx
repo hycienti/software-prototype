@@ -279,34 +279,35 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             mode: 'text',
           });
 
-          
-          if (!currentConversationId && response.conversation.id) {
+          if (!currentConversationId && response.conversation?.id) {
             updateConversationId(response.conversation.id);
           }
 
-          
-          setMessages((prev) => {
-            const withoutTemp = prev.filter((msg) => !String(msg.id).startsWith('temp-'));
-            return [
-              ...withoutTemp,
-              {
-                id: response.message.id,
-                text: response.message.content,
-                isUser: true,
-                timestamp: response.message.createdAt,
-                pending: false,
-              },
-              {
-                id: response.response.id,
-                text: response.response.content,
-                isUser: false,
-                timestamp: response.response.createdAt,
-                pending: false,
-              },
-            ];
-          });
+          const msg = response.message;
+          const assistant = response.response;
+          if (msg && assistant) {
+            setMessages((prev) => {
+              const withoutTemp = prev.filter((m) => !String(m.id).startsWith('temp-'));
+              return [
+                ...withoutTemp,
+                {
+                  id: msg.id,
+                  text: msg.content,
+                  isUser: true,
+                  timestamp: msg.createdAt,
+                  pending: false,
+                },
+                {
+                  id: assistant.id,
+                  text: assistant.content,
+                  isUser: false,
+                  timestamp: assistant.createdAt,
+                  pending: false,
+                },
+              ];
+            });
+          }
 
-          
           if (response.sentiment?.crisisIndicators && response.sentiment.crisisIndicators.length > 0) {
             showAlert({
               title: 'Support Available',

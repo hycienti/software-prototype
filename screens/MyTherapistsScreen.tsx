@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -10,8 +10,10 @@ import {
   TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Icon } from '@/components/ui/Icon';
+import { MyTherapistSessionCard } from '@/components/MyTherapistSessionCard';
 import { sessionsService } from '@/services/sessions';
 import { formatTherapistDisplayName } from '@/utils/user';
 import type { Session } from '@/types/api';
@@ -29,7 +31,7 @@ interface MyTherapistsScreenProps {
 /** Group completed sessions by therapist; each group has therapist info, last session, total count */
 function groupPastSessionsByTherapist(sessions: Session[]) {
   const completed = sessions
-    .filter((s) => s.status === 'COMPLETED')
+    .filter((s) => s.status === 'completed')
     .sort((a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime());
   const byTherapist = new Map<
     number,
@@ -75,8 +77,14 @@ export function MyTherapistsScreen({
     queryFn: () => sessionsService.list({ limit: 100 }),
   });
 
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
+
   const activeSessions = useMemo(() => {
-    const scheduled = (data?.sessions ?? []).filter((s) => s.status === 'SCHEDULED');
+    const scheduled = (data?.sessions ?? []).filter((s) => s.status === 'scheduled');
     if (!searchQuery.trim()) return scheduled;
     return scheduled.filter((s) => matchesSearch(s.therapist?.fullName ?? null, searchQuery));
   }, [data, searchQuery]);
@@ -87,14 +95,14 @@ export function MyTherapistsScreen({
     return groups.filter((g) => matchesSearch(g.therapist?.fullName ?? null, searchQuery));
   }, [data, searchQuery]);
 
-  const formatDate = (iso: string) => {
+  const formatDate = useCallback((iso: string) => {
     const d = new Date(iso);
     return d.toLocaleDateString(undefined, {
       month: 'short',
       day: 'numeric',
       year: d.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
     });
-  };
+  }, []);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -161,33 +169,13 @@ export function MyTherapistsScreen({
                 </View>
               ) : (
                 activeSessions.map((session) => (
-                  <View key={session.id} style={styles.card}>
-                    <Text style={styles.cardName}>
-                      {formatTherapistDisplayName(session.therapist?.fullName) || `Therapist #${session.therapistId}`}
-                    </Text>
-                    {session.therapist?.professionalTitle ? (
-                      <Text style={styles.cardTitle}>{session.therapist.professionalTitle}</Text>
-                    ) : null}
-                    <Text style={styles.cardDate}>Next session: {formatDate(session.scheduledAt)}</Text>
-                    <View style={styles.cardActions}>
-                      <TouchableOpacity
-                        style={styles.cardButtonSecondary}
-                        onPress={() => onMessage(session.therapistId)}
-                        activeOpacity={0.8}
-                      >
-                        <Icon name="message" size={18} color="#19b3e6" />
-                        <Text style={styles.cardButtonSecondaryText}>Message</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.cardButtonPrimary}
-                        onPress={() => onVideoCall(session.id)}
-                        activeOpacity={0.8}
-                      >
-                        <Icon name="videocam" size={18} color="#fff" />
-                        <Text style={styles.cardButtonPrimaryText}>Join session</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
+                  <MyTherapistSessionCard
+                    key={session.id}
+                    session={session}
+                    formatDate={formatDate}
+                    onMessage={onMessage}
+                    onJoinSession={onVideoCall}
+                  />
                 ))
               )}
             </>
@@ -363,7 +351,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 10,
+    borderRadius: 50,
     backgroundColor: 'rgba(25, 179, 230, 0.15)',
   },
   cardButtonSecondaryText: {
@@ -377,7 +365,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 10,
+    borderRadius: 50,
     backgroundColor: '#19b3e6',
   },
   cardButtonPrimaryText: {

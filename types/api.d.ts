@@ -393,12 +393,13 @@ export interface LogoutResponse {
 // Session Types (user-facing)
 // ============================================================================
 
-export type SessionStatus = 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
+export type SessionStatus = 'scheduled' | 'completed' | 'cancelled';
 
 export interface SessionTherapist {
   id: number;
   fullName: string | null;
   professionalTitle: string | null;
+  profilePhotoUrl?: string | null;
 }
 
 export interface SessionUser {
@@ -501,6 +502,8 @@ export interface TherapistThreadMessage {
   threadId: number;
   senderType: 'user' | 'therapist';
   body: string;
+  voiceUrl?: string | null;
+  attachmentUrls?: string[] | null;
   createdAt: string;
 }
 
@@ -534,7 +537,9 @@ export interface TherapistThreadDetailResponse {
 }
 
 export interface SendTherapistMessageRequest {
-  body: string;
+  body?: string;
+  voiceUrl?: string | null;
+  attachmentUrls?: string[] | null;
 }
 
 export interface SendTherapistMessageResponse {

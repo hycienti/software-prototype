@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
 import {
   View,
   Text,
@@ -9,10 +10,16 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Alert,
+  Image,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import * as ImagePicker from 'expo-image-picker';
+import { Audio } from 'expo-av';
 import { Icon } from '@/components/ui/Icon';
+import { ChatHeader } from '@/components/chat/ChatHeader';
 import { therapistMessagesService } from '@/services/therapistMessages';
 import type { TherapistThreadMessage as ApiMessage } from '@/types/api';
 
@@ -28,6 +35,12 @@ export function DirectMessageTherapistScreen({
   onBack,
 }: DirectMessageTherapistScreenProps) {
   const [inputText, setInputText] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDurationSec, setRecordingDurationSec] = useState(0);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [uploadingVoice, setUploadingVoice] = useState(false);
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const queryClient = useQueryClient();
   const listRef = useRef<FlatList>(null);
 
@@ -37,8 +50,8 @@ export function DirectMessageTherapistScreen({
   });
 
   const sendMutation = useMutation({
-    mutationFn: (body: string) =>
-      therapistMessagesService.sendMessage(data!.thread.id, { body }),
+    mutationFn: (payload: { body?: string; voiceUrl?: string; attachmentUrls?: string[] }) =>
+      therapistMessagesService.sendMessage(data!.thread.id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['therapist-thread', therapistId] });
       setInputText('');
@@ -54,25 +67,209 @@ export function DirectMessageTherapistScreen({
     }
   }, [messages.length]);
 
-  const handleSend = () => {
+  const handleSend = useCallback(() => {
     const body = inputText.trim();
-    if (!body || !threadId || sendMutation.isPending) return;
-    sendMutation.mutate(body);
-  };
+    if (!threadId || sendMutation.isPending) return;
+    if (!body) return;
+    sendMutation.mutate({ body });
+  }, [inputText, threadId, sendMutation]);
 
+  const handlePickAttachment = useCallback(async () => {
+    if (!threadId || uploadingAttachment) return;
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Please allow access to your photos to send an image.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets?.[0]?.uri) return;
+    const asset = result.assets[0];
+    setUploadingAttachment(true);
+    try {
+      const { url } = await therapistMessagesService.upload(threadId, {
+        uri: asset.uri,
+        name: asset.fileName ?? 'image.jpg',
+        type: asset.mimeType ?? 'image/jpeg',
+      });
+      await therapistMessagesService.sendMessage(threadId, {
+        body: inputText.trim() || undefined,
+        attachmentUrls: [url],
+      });
+      queryClient.invalidateQueries({ queryKey: ['therapist-thread', therapistId] });
+      setInputText('');
+    } catch (err) {
+      Alert.alert('Upload failed', err instanceof Error ? err.message : 'Could not send attachment.');
+    } finally {
+      setUploadingAttachment(false);
+    }
+  }, [threadId, inputText, queryClient, therapistId, uploadingAttachment]);
+
+  const startRecording = useCallback(async () => {
+    if (!threadId || uploadingVoice) return;
+    try {
+      const { granted } = await Audio.requestPermissionsAsync();
+      if (!granted) {
+        Alert.alert('Permission needed', 'Microphone access is required to record voice messages.');
+        return;
+      }
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+      });
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      recordingRef.current = recording;
+      setIsRecording(true);
+      setRecordingDurationSec(0);
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingDurationSec((s) => s + 1);
+      }, 1000);
+    } catch (err) {
+      Alert.alert('Recording failed', err instanceof Error ? err.message : 'Could not start recording.');
+    }
+  }, [threadId, uploadingVoice]);
+
+  const clearRecordingTimer = useCallback(() => {
+    if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = null;
+    }
+    setRecordingDurationSec(0);
+  }, []);
+
+  const stopRecordingAndSend = useCallback(async () => {
+    const recording = recordingRef.current;
+    if (!recording || !threadId) return;
+    setIsRecording(false);
+    recordingRef.current = null;
+    clearRecordingTimer();
+    try {
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+      if (!uri) return;
+      setUploadingVoice(true);
+      const { url } = await therapistMessagesService.upload(threadId, {
+        uri,
+        name: 'voice.m4a',
+        type: 'audio/m4a',
+      });
+      await therapistMessagesService.sendMessage(threadId, {
+        body: inputText.trim() || undefined,
+        voiceUrl: url,
+      });
+      queryClient.invalidateQueries({ queryKey: ['therapist-thread', therapistId] });
+      setInputText('');
+    } catch (err) {
+      Alert.alert('Send failed', err instanceof Error ? err.message : 'Could not send voice message.');
+    } finally {
+      setUploadingVoice(false);
+    }
+  }, [threadId, inputText, queryClient, therapistId, clearRecordingTimer]);
+
+  const stopRecordingAndDiscard = useCallback(async () => {
+    const recording = recordingRef.current;
+    if (!recording) return;
+    recordingRef.current = null;
+    setIsRecording(false);
+    clearRecordingTimer();
+    try {
+      await recording.stopAndUnloadAsync();
+    } catch {
+      // ignore on discard
+    }
+  }, [clearRecordingTimer]);
+
+  // Stop recording when leaving the chat page (blur or unmount)
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        stopRecordingAndDiscard();
+      };
+    }, [stopRecordingAndDiscard])
+  );
+
+  useEffect(() => {
+    return () => {
+      stopRecordingAndDiscard();
+    };
+  }, [stopRecordingAndDiscard]);
+
+  const handleVoicePress = useCallback(() => {
+    if (isRecording) {
+      stopRecordingAndSend();
+    } else {
+      startRecording();
+    }
+  }, [isRecording, startRecording, stopRecordingAndSend]);
+
+  const canSendText = Boolean(inputText.trim()) && !sendMutation.isPending;
+  const canSend = canSendText || isRecording;
   const displayName = therapistName ?? data?.thread?.therapist?.fullName ?? `Therapist #${therapistId}`;
+
+  const renderMessageContent = (item: ApiMessage, isUser: boolean) => {
+    const hasVoice = Boolean(item.voiceUrl?.trim());
+    const hasAttachments = Array.isArray(item.attachmentUrls) && item.attachmentUrls.length > 0;
+    const hasBody = Boolean(item.body?.trim());
+    return (
+      <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleTherapist]}>
+        {hasBody ? (
+          <Text style={[styles.bubbleText, isUser ? styles.bubbleTextUser : styles.bubbleTextTherapist]}>
+            {item.body}
+          </Text>
+        ) : null}
+        {hasVoice ? (
+          <TouchableOpacity
+            style={styles.voiceRow}
+            onPress={() => item.voiceUrl && Linking.openURL(item.voiceUrl!)}
+            activeOpacity={0.8}
+          >
+            <Icon name="mic" size={20} color={isUser ? '#ffffff' : '#19b3e6'} />
+            <Text style={[styles.voiceLabel, isUser ? styles.bubbleTextUser : styles.bubbleTextTherapist]}>
+              Voice message
+            </Text>
+          </TouchableOpacity>
+        ) : null}
+        {hasAttachments
+          ? (item.attachmentUrls ?? []).map((url, idx) => {
+              const isImage = /\.(jpg|jpeg|png|gif|webp)/i.test(url) || /image\//i.test(url);
+              return (
+                <View key={idx} style={styles.attachmentWrap}>
+                  {isImage ? (
+                    <Image source={{ uri: url }} style={styles.attachmentImage} resizeMode="cover" />
+                  ) : (
+                    <TouchableOpacity onPress={() => Linking.openURL(url)} activeOpacity={0.8}>
+                      <Text style={[styles.attachmentLink, isUser ? styles.bubbleTextUser : styles.bubbleTextTherapist]}>
+                        Attachment
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              );
+            })
+          : null}
+        <Text style={[styles.bubbleTime, isUser ? styles.bubbleTimeUser : styles.bubbleTimeTherapist]}>
+          {new Date(item.createdAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+        </Text>
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.headerButton} activeOpacity={0.7}>
-          <Icon name="arrow_back" size={24} color="#ffffff" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {displayName}
-        </Text>
-        <View style={styles.headerButton} />
-      </View>
+      <ChatHeader
+        variant="therapist"
+        name={displayName}
+        status="Online"
+        onBack={onBack}
+      />
 
       {isLoading ? (
         <View style={styles.centered}>
@@ -92,43 +289,71 @@ export function DirectMessageTherapistScreen({
             ListEmptyComponent={
               <View style={styles.empty}>
                 <Text style={styles.emptyText}>No messages yet</Text>
-                <Text style={styles.emptySubtext}>Send a message to start the conversation.</Text>
+                <Text style={styles.emptySubtext}>Send a message, voice note, or attachment to start.</Text>
               </View>
             }
             renderItem={({ item }) => {
               const isUser = item.senderType === 'user';
               return (
                 <View style={[styles.bubbleWrap, isUser ? styles.bubbleWrapUser : styles.bubbleWrapTherapist]}>
-                  <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleTherapist]}>
-                    <Text style={[styles.bubbleText, isUser ? styles.bubbleTextUser : styles.bubbleTextTherapist]}>
-                      {item.body}
-                    </Text>
-                    <Text style={[styles.bubbleTime, isUser ? styles.bubbleTimeUser : styles.bubbleTimeTherapist]}>
-                      {new Date(item.createdAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
-                    </Text>
-                  </View>
+                  {renderMessageContent(item, isUser)}
                 </View>
               );
             }}
           />
+          {isRecording && (
+            <View style={styles.recordingBar}>
+              <View style={styles.recordingDot} />
+              <Text style={styles.recordingLabel}>Recording</Text>
+              <Text style={styles.recordingDuration}>
+                {Math.floor(recordingDurationSec / 60)}:{(recordingDurationSec % 60).toString().padStart(2, '0')}
+              </Text>
+            </View>
+          )}
           <View style={styles.inputRow}>
+            <TouchableOpacity
+              style={[styles.attachButton, (uploadingAttachment || !threadId) && styles.buttonDisabled]}
+              onPress={handlePickAttachment}
+              disabled={uploadingAttachment || !threadId}
+              activeOpacity={0.8}
+            >
+              {uploadingAttachment ? (
+                <ActivityIndicator size="small" color="#19b3e6" />
+              ) : (
+                <Icon name="attach_file" size={24} color="#19b3e6" />
+              )}
+            </TouchableOpacity>
             <TextInput
               style={styles.input}
-              placeholder="Type a message..."
+              placeholder={isRecording ? 'Tap Send to finish…' : 'Type a message...'}
               placeholderTextColor="#6b7280"
               value={inputText}
               onChangeText={setInputText}
               multiline
               maxLength={5000}
-              editable={!sendMutation.isPending}
+              editable={!sendMutation.isPending && !isRecording}
             />
             <TouchableOpacity
-              style={[styles.sendButton, (!inputText.trim() || sendMutation.isPending) && styles.sendButtonDisabled]}
-              onPress={handleSend}
-              disabled={!inputText.trim() || sendMutation.isPending}
+              style={[styles.voiceButton, (!threadId || uploadingVoice) && styles.buttonDisabled]}
+              onPress={handleVoicePress}
+              disabled={!threadId || uploadingVoice}
               activeOpacity={0.8}
             >
-              {sendMutation.isPending ? (
+              {uploadingVoice ? (
+                <ActivityIndicator size="small" color="#19b3e6" />
+              ) : isRecording ? (
+                <View style={styles.recordingDot} />
+              ) : (
+                <Icon name="mic" size={24} color="#19b3e6" />
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.sendButton, !canSend && styles.sendButtonDisabled]}
+              onPress={canSend ? (isRecording ? stopRecordingAndSend : handleSend) : undefined}
+              disabled={!canSend}
+              activeOpacity={0.8}
+            >
+              {sendMutation.isPending || uploadingVoice ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
                 <Icon name="send" size={22} color="#ffffff" />
@@ -148,26 +373,6 @@ const styles = StyleSheet.create({
   },
   flex: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(31, 41, 55, 0.5)',
-  },
-  headerButton: {
-    padding: 8,
-    minWidth: 40,
-  },
-  headerTitle: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#ffffff',
-    textAlign: 'center',
   },
   centered: {
     flex: 1,
@@ -224,6 +429,27 @@ const styles = StyleSheet.create({
   bubbleTextTherapist: {
     color: '#e5e7eb',
   },
+  voiceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  voiceLabel: {
+    fontSize: 14,
+  },
+  attachmentWrap: {
+    marginTop: 6,
+  },
+  attachmentImage: {
+    width: 160,
+    height: 120,
+    borderRadius: 8,
+  },
+  attachmentLink: {
+    fontSize: 14,
+    textDecorationLine: 'underline',
+  },
   bubbleTime: {
     fontSize: 11,
     marginTop: 4,
@@ -234,16 +460,60 @@ const styles = StyleSheet.create({
   bubbleTimeTherapist: {
     color: '#9ca3af',
   },
+  recordingBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(239, 68, 68, 0.3)',
+  },
+  recordingLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#fca5a5',
+  },
+  recordingDuration: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#f87171',
+    fontVariant: ['tabular-nums'],
+  },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: 12,
     paddingVertical: 10,
     paddingBottom: 24,
-    gap: 8,
+    gap: 6,
     borderTopWidth: 1,
     borderTopColor: 'rgba(31, 41, 55, 0.5)',
     backgroundColor: '#111d21',
+  },
+  attachButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  voiceButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
+  recordingDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#ef4444',
   },
   input: {
     flex: 1,

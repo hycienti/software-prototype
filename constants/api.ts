@@ -125,6 +125,7 @@ export const API_ENDPOINTS = {
   // Therapist–user messaging
   THERAPIST_THREADS: {
     BASE: '/therapist-threads',
+    UPLOAD: '/therapist-threads/upload',
     BY_ID: (id: number) => `/therapist-threads/${id}`,
     MESSAGES: (threadId: number) => `/therapist-threads/${threadId}/messages`,
   },

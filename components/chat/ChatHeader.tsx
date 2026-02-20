@@ -2,23 +2,67 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Icon } from '@/components/ui/Icon';
-import { cn } from '@/utils/cn';
 
+const DEFAULT_AVATAR =
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuAMwb-cetFJqCtYFVevmjKD1ZHWxaXhuAkk6KOFUzdzYtTjXr3jI3oWgDXCZz-dD6K76ElAi6i1uBOPbnXKaFY0UBILhUKY90lwEMYaTZVf_YJrrBl8a77pYn67_CqF9bvgf48hv4K2mUqkNgPRhc9so4R5umLkwvmvP4I4n7i7YG3I9qR7f-dHF9aU_OrjJrayPeORCW3PkheM5OqRF6TkDhVg5_9L1PTaBHTivzsLNXso-kMjujHRT42AfbMy5A9uoiy8U1gbJpE';
+const PRIMARY_COLOR = '#19b3e6';
+
+/** Shared chat header. Right side: `variant="ai"` → Human button; `variant="therapist"` → videocam + more_vert. */
 interface ChatHeaderProps {
   name: string;
   status?: string;
   avatarUri?: string;
   onBack?: () => void;
+  /** 'ai' (default): show "Human" button. 'therapist': show videocam + more_vert. */
+  variant?: 'ai' | 'therapist';
   onTalkToHuman?: () => void;
+  onVideoPress?: () => void;
+  onMorePress?: () => void;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
   name,
   status = 'Online',
-  avatarUri = 'https://lh3.googleusercontent.com/aida-public/AB6AXuAMwb-cetFJqCtYFVevmjKD1ZHWxaXhuAkk6KOFUzdzYtTjXr3jI3oWgDXCZz-dD6K76ElAi6i1uBOPbnXKaFY0UBILhUKY90lwEMYaTZVf_YJrrBl8a77pYn67_CqF9bvgf48hv4K2mUqkNgPRhc9so4R5umLkwvmvP4I4n7i7YG3I9qR7f-dHF9aU_OrjJrayPeORCW3PkheM5OqRF6TkDhVg5_9L1PTaBHTivzsLNXso-kMjujHRT42AfbMy5A9uoiy8U1gbJpE',
+  avatarUri = DEFAULT_AVATAR,
   onBack,
+  variant = 'ai',
   onTalkToHuman,
+  onVideoPress,
+  onMorePress,
 }) => {
+  const renderRight = () => {
+    if (variant === 'therapist') {
+      return (
+        <View style={styles.rightSection}>
+          <TouchableOpacity
+            onPress={onVideoPress}
+            style={styles.iconButton}
+            activeOpacity={0.8}
+          >
+            <Icon name="videocam" size={22} color={PRIMARY_COLOR} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={onMorePress}
+            style={styles.iconButton}
+            activeOpacity={0.8}
+          >
+            <Icon name="more_vert" size={22} color="#94a3b8" />
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return (
+      <TouchableOpacity
+        onPress={onTalkToHuman}
+        style={styles.humanButton}
+        activeOpacity={0.8}
+      >
+        <Icon name="support_agent" size={18} color="#f43f5e" />
+        <Text style={styles.humanButtonText}>Human</Text>
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <View style={styles.header}>
       <BlurView intensity={60} tint="dark" style={StyleSheet.absoluteFill} />
@@ -44,14 +88,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             <Text style={styles.status}>{status}</Text>
           </View>
         </View>
-        <TouchableOpacity
-          onPress={onTalkToHuman}
-          style={styles.humanButton}
-          activeOpacity={0.8}
-        >
-          <Icon name="support_agent" size={18} color="#f43f5e" />
-          <Text style={styles.humanButtonText}>Human</Text>
-        </TouchableOpacity>
+        {renderRight()}
       </View>
     </View>
   );
@@ -136,5 +173,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#f43f5e',
+  },
+  rightSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  iconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

@@ -72,6 +72,9 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
             <Icon name="lock" size={20} color="#19b3e6" />
             <Text style={styles.secureHeaderText}>Secure Checkout</Text>
           </View>
+          <View style={styles.demoBadge}>
+            <Text style={styles.demoBadgeText}>Demo payment — no real charge</Text>
+          </View>
         </View>
       </View>
 
@@ -252,6 +255,15 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
     color: 'rgba(156, 163, 175, 0.8)',
+  },
+  demoBadge: {
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  demoBadgeText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: 'rgba(156, 163, 175, 0.7)',
   },
   scrollView: {
     flex: 1,
