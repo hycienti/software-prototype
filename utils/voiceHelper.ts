@@ -1,121 +1,61 @@
-import { Audio } from 'expo-av'
-import * as FileSystem from 'expo-file-system'
-import { AppState } from 'react-native'
+import { createAudioPlayer, setAudioModeAsync } from 'expo-audio'
+import * as FileSystem from 'expo-file-system/legacy'
 import { useProcessVoiceMessage, useTextToSpeech } from '@/hooks/useVoice'
 
 /**
- * Helper utilities for voice processing
+ * Voice helpers using expo-audio (expo-av is deprecated).
+ * Recording is done in the screen via useAudioRecorder; use getBase64FromRecordingUri(uri) after stop.
  */
 
 /**
- * Record audio and return recording object
+ * Read a recording file from uri as base64 and delete the file. Call after audioRecorder.stop().
  */
-export async function recordAudio(): Promise<Audio.Recording> {
+export async function getBase64FromRecordingUri(uri: string): Promise<string> {
   try {
-    // Request permissions
-    const { status } = await Audio.requestPermissionsAsync()
-    if (status !== 'granted') {
-      throw new Error('Microphone permission not granted')
-    }
-
-    // Configure audio mode
-    await Audio.setAudioModeAsync({
-      allowsRecordingIOS: true,
-      playsInSilentModeIOS: true,
-    })
-
-    // Create recording
-    const { recording } = await Audio.Recording.createAsync(
-      Audio.RecordingOptionsPresets.HIGH_QUALITY
-    )
-
-    // Return recording object (caller should stop it)
-    return recording
-  } catch (error) {
-    console.error('Error starting recording:', error)
-    throw error
-  }
-}
-
-/**
- * Stop recording and get base64 audio data
- */
-export async function stopRecordingAndGetBase64(
-  recording: Audio.Recording
-): Promise<string> {
-  try {
-    await recording.stopAndUnloadAsync()
-    const uri = recording.getURI()
-
-    if (!uri) {
-      throw new Error('No recording URI available')
-    }
-
-    // Read file as base64
     const base64 = await FileSystem.readAsStringAsync(uri, {
-      encoding: FileSystem.EncodingType.Base64,
+      encoding: 'base64',
     })
-
-    // Clean up
     await FileSystem.deleteAsync(uri, { idempotent: true })
-
     return base64
   } catch (error) {
-    console.error('Error stopping recording:', error)
+    console.error('Error reading recording as base64:', error)
     throw error
   }
 }
 
 /**
- * Play audio from base64 data with background audio support
+ * Play audio from base64 data (e.g. TTS response). Uses expo-audio.
  */
 export async function playAudioFromBase64(
   base64Data: string,
   format: 'mp3' | 'wav' | 'm4a' = 'mp3'
 ): Promise<void> {
   try {
-    // Configure audio mode for background playback
-    await Audio.setAudioModeAsync({
-      allowsRecordingIOS: false,
-      playsInSilentModeIOS: true,
-      staysActiveInBackground: true,
-      shouldDuckAndroid: true,
+    await setAudioModeAsync({
+      allowsRecording: false,
+      playsInSilentMode: true,
+      shouldPlayInBackground: true,
+      interruptionMode: 'duckOthers',
     })
 
-    // Create a temporary file
     const tempUri = `${FileSystem.cacheDirectory}temp_audio_${Date.now()}.${format}`
     await FileSystem.writeAsStringAsync(tempUri, base64Data, {
-      encoding: FileSystem.EncodingType.Base64,
+      encoding: 'base64',
     })
 
-    // Create and play sound
-    const { sound } = await Audio.Sound.createAsync(
-      { uri: tempUri },
-      { shouldPlay: true, isLooping: false }
-    )
+    const player = createAudioPlayer(tempUri, {})
+    player.play()
 
-    // Handle app state changes
-    const subscription = AppState.addEventListener('change', (nextAppState) => {
-      if (nextAppState === 'active') {
-        // Resume playback if app comes to foreground
-        sound.getStatusAsync().then((status) => {
-          if (status.isLoaded && !status.isPlaying && !status.didJustFinish) {
-            sound.playAsync()
-          }
-        })
-      }
+    return new Promise<void>((resolve) => {
+      const sub = player.addListener('playbackStatusUpdate', (status: { didJustFinish?: boolean }) => {
+        if (status.didJustFinish) {
+          sub.remove()
+          player.remove()
+          FileSystem.deleteAsync(tempUri, { idempotent: true }).catch(() => {})
+          resolve()
+        }
+      })
     })
-
-    // Clean up after playback
-    sound.setOnPlaybackStatusUpdate((status) => {
-      if (status.isLoaded && status.didJustFinish) {
-        sound.unloadAsync()
-        FileSystem.deleteAsync(tempUri, { idempotent: true })
-        subscription.remove()
-      }
-    })
-
-    await sound.playAsync()
   } catch (error) {
     console.error('Error playing audio:', error)
     throw error

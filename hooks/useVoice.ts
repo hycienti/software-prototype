@@ -6,10 +6,13 @@ import {
   type TextToSpeechRequest,
   type TextToSpeechResponse,
 } from '@/services/voice'
-import { subscribeToVoiceResults, waitForVoiceResult } from '@/services/voice/voicePusher'
+import { waitForVoiceResult } from '@/services/voice/voicePusher'
 
 /**
  * React Query hooks for voice functionality
+ *
+ * Async path (when userId is set): caller must subscribe via subscribeToVoiceResults
+ * before sending; mutation only posts and waits for result via waitForVoiceResult.
  */
 
 /**
@@ -26,14 +29,14 @@ export function useProcessVoiceMessage() {
 
 /**
  * Hook to process voice message: uses async (Pusher) when userId is set, otherwise sync.
+ * When userId is set, subscription is assumed to be active (e.g. VoiceScreen subscribes on mount).
  */
 export function useProcessVoiceMessageAsync(userId: number | null) {
   return useMutation({
     mutationFn: async (data: ProcessVoiceMessageRequest): Promise<ProcessVoiceMessageResponse> => {
       if (userId != null) {
         const { jobId } = await voiceService.processVoiceMessageAsync(data)
-        await subscribeToVoiceResults(userId)
-        return waitForVoiceResult(jobId)
+        return waitForVoiceResult(jobId, { timeoutMs: 90_000 })
       }
       return voiceService.processVoiceMessage(data)
     },

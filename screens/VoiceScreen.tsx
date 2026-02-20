@@ -3,7 +3,12 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import { Audio } from 'expo-av';
+import {
+  useAudioRecorder,
+  RecordingPresets,
+  setAudioModeAsync,
+  requestRecordingPermissionsAsync,
+} from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import Animated, {
   useAnimatedStyle,
@@ -15,10 +20,11 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/utils/cn';
-import { recordAudio, stopRecordingAndGetBase64, playAudioFromBase64 } from '@/utils/voiceHelper';
+import { getBase64FromRecordingUri, playAudioFromBase64 } from '@/utils/voiceHelper';
 import { useProcessVoiceMessageAsync } from '@/hooks/useVoice';
 import { useConversationContext } from '@/contexts/ConversationContext';
 import { useAuthStore, useUIStore } from '@/store';
+import { subscribeToVoiceResults, unsubscribeFromVoiceResults } from '@/services/voice/voicePusher';
 
 type VoiceState = 'idle' | 'listening' | 'thinking' | 'speaking';
 
@@ -34,16 +40,36 @@ export const VoiceScreen: React.FC<VoiceScreenProps> = ({
   conversationId = null,
 }) => {
   const [voiceState, setVoiceState] = useState<VoiceState>('idle');
+  const [progressStep, setProgressStep] = useState<string | null>(null);
   const [currentConversationId, setCurrentConversationId] = useState<number | null>(conversationId);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [audioLevel, setAudioLevel] = useState(0);
-  const recordingRef = useRef<Audio.Recording | null>(null);
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const durationTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const audioLevelIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const meteringIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const stopRecordingRef = useRef<(() => Promise<void>) | null>(null);
+
+  const audioRecorder = useAudioRecorder({
+    ...RecordingPresets.HIGH_QUALITY,
+    isMeteringEnabled: true,
+  });
+
   const user = useAuthStore((s) => s.user);
+  const { showAlert } = useUIStore();
   const processVoiceMutation = useProcessVoiceMessageAsync(user?.id ?? null);
   const { currentConversation, updateConversationId } = useConversationContext();
+
+  // Subscribe to Pusher voice results on mount; unsubscribe on unmount
+  useEffect(() => {
+    const uid = user?.id
+    if (uid == null) return
+    subscribeToVoiceResults(uid, {
+      onProgress: (step) => setProgressStep(step),
+    })
+    return () => {
+      unsubscribeFromVoiceResults(uid)
+    }
+  }, [user?.id])
 
   // Sync conversation ID from context
   useEffect(() => {
@@ -170,8 +196,8 @@ export const VoiceScreen: React.FC<VoiceScreenProps> = ({
   // Cleanup recording on unmount
   useEffect(() => {
     return () => {
-      if (recordingRef.current) {
-        recordingRef.current.stopAndUnloadAsync().catch(console.error);
+      if (audioRecorder.isRecording) {
+        audioRecorder.stop().catch(() => {});
       }
       if (silenceTimerRef.current) {
         clearTimeout(silenceTimerRef.current);
@@ -179,11 +205,11 @@ export const VoiceScreen: React.FC<VoiceScreenProps> = ({
       if (durationTimerRef.current) {
         clearInterval(durationTimerRef.current);
       }
-      if (audioLevelIntervalRef.current) {
-        clearInterval(audioLevelIntervalRef.current);
+      if (meteringIntervalRef.current) {
+        clearInterval(meteringIntervalRef.current);
       }
     };
-  }, []);
+  }, [audioRecorder]);
 
   // Update visualizer animation based on voice state and audio levels
   useEffect(() => {
@@ -262,60 +288,51 @@ export const VoiceScreen: React.FC<VoiceScreenProps> = ({
   // Voice recording handlers
   const handleStartRecording = useCallback(async () => {
     try {
+      const { granted } = await requestRecordingPermissionsAsync();
+      if (!granted) {
+        throw new Error('Microphone permission not granted');
+      }
+      await setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
+      });
+
       setVoiceState('listening');
       setRecordingDuration(0);
       setAudioLevel(0);
-      const recording = await recordAudio();
-      recordingRef.current = recording;
+      await audioRecorder.prepareToRecordAsync();
+      audioRecorder.record();
 
-      // Start duration timer
+      // Duration timer and 60s cap
       durationTimerRef.current = setInterval(() => {
-        setRecordingDuration((prev) => {
-          const newDuration = prev + 1;
-          // Auto-stop at 60 seconds
-          if (newDuration >= 60) {
-            handleStopRecording();
-            return 60;
-          }
-          return newDuration;
-        });
+        const status = audioRecorder.getStatus();
+        setRecordingDuration(Math.floor(status.durationMillis / 1000));
+        if (status.durationMillis >= 60_000) {
+          stopRecordingRef.current?.();
+        }
       }, 1000);
 
-      // Monitor audio levels for VAD and visualization
-      audioLevelIntervalRef.current = setInterval(async () => {
-        if (recording) {
-          try {
-            const status = await recording.getStatusAsync();
-            if (status.metering !== undefined) {
-              // Normalize metering value (-160 to 0 dB) to 0-1
-              const normalizedLevel = Math.max(0, Math.min(1, (status.metering + 60) / 60));
-              setAudioLevel(normalizedLevel);
-
-              // Voice Activity Detection: Auto-stop after 2.5 seconds of silence
-              if (status.metering < -40) {
-                // Silence detected
-                if (!silenceTimerRef.current) {
-                  silenceTimerRef.current = setTimeout(() => {
-                    if (voiceState === 'listening') {
-                      handleStopRecording();
-                    }
-                  }, 2500);
-                }
-              } else {
-                // Sound detected, clear silence timer
-                if (silenceTimerRef.current) {
-                  clearTimeout(silenceTimerRef.current);
-                  silenceTimerRef.current = null;
-                }
-              }
+      // Metering and VAD (voice activity detection)
+      meteringIntervalRef.current = setInterval(() => {
+        const status = audioRecorder.getStatus();
+        if (status.metering !== undefined) {
+          const normalizedLevel = Math.max(0, Math.min(1, (status.metering + 60) / 60));
+          setAudioLevel(normalizedLevel);
+          if (status.metering < -40) {
+            if (!silenceTimerRef.current) {
+              silenceTimerRef.current = setTimeout(() => {
+                stopRecordingRef.current?.();
+              }, 2500);
             }
-          } catch (error) {
-            console.error('Error getting recording status:', error);
+          } else {
+            if (silenceTimerRef.current) {
+              clearTimeout(silenceTimerRef.current);
+              silenceTimerRef.current = null;
+            }
           }
         }
       }, 100);
 
-      // Haptic feedback
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } catch (error: any) {
       showAlert({
@@ -326,11 +343,11 @@ export const VoiceScreen: React.FC<VoiceScreenProps> = ({
       setVoiceState('idle');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
-  }, [voiceState]);
+  }, [audioRecorder, showAlert]);
 
   const handleStopRecording = useCallback(async () => {
     try {
-      if (!recordingRef.current) return;
+      if (!audioRecorder.isRecording) return;
 
       // Clear timers
       if (silenceTimerRef.current) {
@@ -341,15 +358,20 @@ export const VoiceScreen: React.FC<VoiceScreenProps> = ({
         clearInterval(durationTimerRef.current);
         durationTimerRef.current = null;
       }
-      if (audioLevelIntervalRef.current) {
-        clearInterval(audioLevelIntervalRef.current);
-        audioLevelIntervalRef.current = null;
+      if (meteringIntervalRef.current) {
+        clearInterval(meteringIntervalRef.current);
+        meteringIntervalRef.current = null;
       }
 
       setVoiceState('thinking');
+      setProgressStep(null);
       setAudioLevel(0);
-      const audioBase64 = await stopRecordingAndGetBase64(recordingRef.current);
-      recordingRef.current = null;
+      await audioRecorder.stop();
+      const uri = audioRecorder.uri;
+      if (!uri) {
+        throw new Error('No recording URI available');
+      }
+      const audioBase64 = await getBase64FromRecordingUri(uri);
       setRecordingDuration(0);
 
       // Haptic feedback
@@ -383,12 +405,14 @@ export const VoiceScreen: React.FC<VoiceScreenProps> = ({
       }
 
       // Play AI response audio
+      setProgressStep(null);
       setVoiceState('speaking');
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       await playAudioFromBase64(response.audioData, 'mp3');
       setVoiceState('idle');
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch (error: any) {
+      setProgressStep(null);
       showAlert({
         title: 'Error',
         message: error?.message || 'Failed to process voice message',
@@ -397,7 +421,15 @@ export const VoiceScreen: React.FC<VoiceScreenProps> = ({
       setVoiceState('idle');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
-  }, [currentConversationId, processVoiceMutation, onKeyboardPress, updateConversationId]);
+  }, [currentConversationId, processVoiceMutation, onKeyboardPress, updateConversationId, audioRecorder]);
+
+  // Keep ref updated so statusListener and duration interval can trigger stop
+  useEffect(() => {
+    stopRecordingRef.current = handleStopRecording;
+    return () => {
+      stopRecordingRef.current = null;
+    };
+  }, [handleStopRecording]);
 
   // Handle blob press for recording
   const handleBlobPress = useCallback(() => {
@@ -408,12 +440,21 @@ export const VoiceScreen: React.FC<VoiceScreenProps> = ({
     }
   }, [voiceState, handleStartRecording, handleStopRecording]);
 
-  // Get status text based on state
+  // Get status text based on state (progressStep refines "thinking" when present)
   const getStatusText = () => {
     switch (voiceState) {
       case 'listening':
         return "I'm listening...";
       case 'thinking':
+        if (progressStep) {
+          const stepLabels: Record<string, string> = {
+            processing: "I'm thinking...",
+            transcribing: 'Transcribing...',
+            thinking: 'Thinking...',
+            speaking: 'Preparing response...',
+          }
+          return stepLabels[progressStep] ?? `${progressStep.charAt(0).toUpperCase()}${progressStep.slice(1)}...`;
+        }
         return "I'm thinking...";
       case 'speaking':
         return "I'm speaking...";
