@@ -27,6 +27,7 @@ export const therapistMessagesService = {
 
   /**
    * Get or create thread with a therapist; returns thread + messages (paginated).
+   * Legacy: one thread per therapist when no session is specified.
    */
   async getOrCreateThreadByTherapist(
     therapistId: number,
@@ -34,6 +35,23 @@ export const therapistMessagesService = {
   ): Promise<TherapistThreadDetailResponse> {
     const query = new URLSearchParams()
     query.append('therapistId', String(therapistId))
+    if (params?.page != null) query.append('page', String(params.page))
+    if (params?.limit != null) query.append('limit', String(params.limit))
+    const url = `${API_ENDPOINTS.THERAPIST_THREADS.BASE}?${query.toString()}`
+    const res = await apiClient.get<ApiData<TherapistThreadDetailResponse>>(url)
+    return unwrap(res)
+  },
+
+  /**
+   * Get or create thread for a booked session; returns thread + messages (paginated).
+   * Preferred for session-scoped chat.
+   */
+  async getOrCreateThreadBySession(
+    sessionId: number,
+    params?: { page?: number; limit?: number }
+  ): Promise<TherapistThreadDetailResponse> {
+    const query = new URLSearchParams()
+    query.append('sessionId', String(sessionId))
     if (params?.page != null) query.append('page', String(params.page))
     if (params?.limit != null) query.append('limit', String(params.limit))
     const url = `${API_ENDPOINTS.THERAPIST_THREADS.BASE}?${query.toString()}`

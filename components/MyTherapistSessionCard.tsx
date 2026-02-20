@@ -8,7 +8,7 @@ interface MyTherapistSessionCardProps {
   session: Session;
   formatDate: (iso: string) => string;
   formatTime?: (iso: string) => string;
-  onMessage: (therapistId: number) => void;
+  onMessage: (therapistId: number, sessionId: number) => void;
   onJoinSession: (sessionId: number) => void;
 }
 
@@ -53,7 +53,7 @@ export function MyTherapistSessionCard({
           <View style={styles.actions}>
             <TouchableOpacity
               style={styles.buttonSecondary}
-              onPress={() => onMessage(session.therapistId)}
+              onPress={() => onMessage(session.therapistId, session.id)}
               activeOpacity={0.8}
             >
               <Icon name="message" size={18} color="#19b3e6" />

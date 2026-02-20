@@ -22,7 +22,7 @@ type Tab = 'active' | 'past';
 
 interface MyTherapistsScreenProps {
   onBack: () => void;
-  onMessage: (therapistId: number) => void;
+  onMessage: (therapistId: number, sessionId: number) => void;
   onVideoCall: (sessionId: number) => void;
   onBookAgain: (therapistId: string) => void;
   onViewNotesSummary: (sessionId: number) => void;

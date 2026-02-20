@@ -120,6 +120,7 @@ export const API_ENDPOINTS = {
   THERAPISTS: {
     BASE: '/therapists',
     BY_ID: (id: number) => `/therapists/${id}`,
+    BOOKABLE_SLOTS: (id: number) => `/therapists/${id}/bookable-slots`,
   },
 
   // Therapist–user messaging

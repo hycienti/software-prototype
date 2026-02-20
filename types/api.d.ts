@@ -487,6 +487,15 @@ export interface TherapistResponse {
   therapist: TherapistForUser;
 }
 
+export interface BookableSlotDate {
+  date: string;
+  timeSlots: string[];
+}
+
+export interface BookableSlotsResponse {
+  dates: BookableSlotDate[];
+}
+
 // ============================================================================
 // Therapist thread / messaging (user–therapist)
 // ============================================================================
@@ -511,16 +520,26 @@ export interface TherapistThreadSummary {
   id: number;
   userId: number;
   therapistId: number;
+  sessionId?: number;
+  session?: TherapistThreadSessionInfo;
   therapist: TherapistThreadTherapist | null;
   lastMessage: TherapistThreadMessage | null;
   createdAt: string;
   updatedAt: string;
 }
 
+export interface TherapistThreadSessionInfo {
+  id: number;
+  scheduledAt: string;
+  status: string;
+}
+
 export interface TherapistThreadWithMessages {
   id: number;
   userId: number;
   therapistId: number;
+  sessionId?: number;
+  session?: TherapistThreadSessionInfo;
   therapist: TherapistThreadTherapist | null;
   createdAt: string;
   updatedAt: string;

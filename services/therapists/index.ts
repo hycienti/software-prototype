@@ -4,6 +4,7 @@ import type {
   TherapistForUser,
   TherapistListResponse,
   TherapistResponse,
+  BookableSlotsResponse,
 } from '@/types/api'
 
 type ApiData<T> = { success: true; data: T }
@@ -37,6 +38,24 @@ export const therapistsService = {
     const res = await apiClient.get<ApiData<TherapistResponse>>(API_ENDPOINTS.THERAPISTS.BY_ID(id))
     return unwrap(res)
   },
+
+  /**
+   * Get bookable (date, time) slots for a therapist. Excludes already-booked slots.
+   * from/to in YYYY-MM-DD (default: next 14 days).
+   */
+  async getBookableSlots(
+    therapistId: number,
+    params?: { from?: string; to?: string }
+  ): Promise<BookableSlotsResponse> {
+    const query = new URLSearchParams()
+    if (params?.from) query.append('from', params.from)
+    if (params?.to) query.append('to', params.to)
+    const suffix = query.toString() ? `?${query.toString()}` : ''
+    const res = await apiClient.get<ApiData<BookableSlotsResponse>>(
+      `${API_ENDPOINTS.THERAPISTS.BOOKABLE_SLOTS(therapistId)}${suffix}`
+    )
+    return unwrap(res)
+  },
 }
 
-export type { TherapistForUser, TherapistListResponse, TherapistResponse }
+export type { TherapistForUser, TherapistListResponse, TherapistResponse, BookableSlotsResponse }

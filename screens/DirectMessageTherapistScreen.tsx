@@ -28,12 +28,14 @@ const DEFAULT_AVATAR =
 
 interface DirectMessageTherapistScreenProps {
   therapistId: number;
+  sessionId?: number;
   therapistName?: string | null;
   onBack: () => void;
 }
 
 export function DirectMessageTherapistScreen({
   therapistId,
+  sessionId,
   therapistName,
   onBack,
 }: DirectMessageTherapistScreenProps) {
@@ -49,16 +51,21 @@ export function DirectMessageTherapistScreen({
   const queryClient = useQueryClient();
   const listRef = useRef<FlatList>(null);
 
+  const threadQueryKey = sessionId != null ? ['therapist-thread', 'session', sessionId] : ['therapist-thread', therapistId];
   const { data, isLoading } = useQuery({
-    queryKey: ['therapist-thread', therapistId],
-    queryFn: () => therapistMessagesService.getOrCreateThreadByTherapist(therapistId, { limit: 100 }),
+    queryKey: threadQueryKey,
+    queryFn: () =>
+      sessionId != null
+        ? therapistMessagesService.getOrCreateThreadBySession(sessionId, { limit: 100 })
+        : therapistMessagesService.getOrCreateThreadByTherapist(therapistId, { limit: 100 }),
+    enabled: sessionId != null ? sessionId > 0 : therapistId > 0,
   });
 
   const sendMutation = useMutation({
     mutationFn: (payload: { body?: string; voiceUrl?: string; attachmentUrls?: string[] }) =>
       therapistMessagesService.sendMessage(data!.thread.id, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['therapist-thread', therapistId] });
+      queryClient.invalidateQueries({ queryKey: threadQueryKey });
       setInputText('');
     },
   });

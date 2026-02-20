@@ -6,8 +6,11 @@ export default function MyTherapistsPage() {
   const router = useRouter();
 
   const handleBack = () => router.back();
-  const handleMessage = (therapistId: number) => {
-    router.push({ pathname: '/therapist/[id]/message', params: { id: String(therapistId) } });
+  const handleMessage = (therapistId: number, sessionId: number) => {
+    router.push({
+      pathname: '/therapist/[id]/message',
+      params: { id: String(therapistId), sessionId: String(sessionId) },
+    });
   };
   const handleVideoCall = (sessionId: number) => {
     router.push({ pathname: '/session/[id]/call', params: { id: String(sessionId) } });

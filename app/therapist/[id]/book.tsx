@@ -14,36 +14,22 @@ import { Icon } from '@/components/ui/Icon';
 import { therapistsService } from '@/services/therapists';
 
 const DURATION_MINUTES = 50;
-const TIME_SLOTS = [
-  '09:00',
-  '10:00',
-  '11:00',
-  '12:00',
-  '14:00',
-  '15:00',
-  '16:00',
-  '17:00',
-];
 
-function getNextDays(count: number): Date[] {
-  const days: Date[] = [];
+function getDateRangeFromToday(days: number): { from: string; to: string } {
   const today = new Date();
-  for (let i = 1; i <= count; i++) {
-    const d = new Date(today);
-    d.setDate(d.getDate() + i);
-    d.setHours(0, 0, 0, 0);
-    days.push(d);
-  }
-  return days;
+  const from = new Date(today);
+  from.setHours(0, 0, 0, 0);
+  const to = new Date(today);
+  to.setDate(to.getDate() + days - 1);
+  to.setHours(23, 59, 59, 999);
+  const toISODate = (d: Date) => d.toISOString().slice(0, 10);
+  return { from: toISODate(from), to: toISODate(to) };
 }
 
-function toISODate(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
-
-function formatDateLabel(d: Date): string {
-  const now = new Date();
-  const tomorrow = new Date(now);
+function formatDateLabel(dateStr: string): string {
+  const d = new Date(dateStr + 'T12:00:00.000Z');
+  const today = new Date();
+  const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
   if (d.toDateString() === tomorrow.toDateString()) return 'Tomorrow';
   return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
@@ -54,8 +40,10 @@ export default function BookSlotPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const therapistId = id ? Number(id) : 0;
 
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+
+  const { from, to } = useMemo(() => getDateRangeFromToday(14), []);
 
   const { data: therapistData } = useQuery({
     queryKey: ['therapist', therapistId],
@@ -63,15 +51,21 @@ export default function BookSlotPage() {
     enabled: therapistId > 0,
   });
 
-  const days = useMemo(() => getNextDays(14), []);
+  const { data: bookableData, isLoading: bookableLoading } = useQuery({
+    queryKey: ['therapist-bookable-slots', therapistId, from, to],
+    queryFn: () => therapistsService.getBookableSlots(therapistId, { from, to }),
+    enabled: therapistId > 0,
+  });
+
+  const datesWithSlots = bookableData?.dates ?? [];
+  const selectedDateEntry = selectedDate
+    ? datesWithSlots.find((e) => e.date === selectedDate)
+    : null;
+  const timeSlotsForSelectedDate = selectedDateEntry?.timeSlots ?? [];
 
   const handleContinueToPayment = () => {
     if (!selectedDate || !selectedTime || !therapistId) return;
-    // Build ISO in UTC so backend slot window (09:00–17:00 UTC) matches. Avoids timezone shift rejecting the slot.
-    const y = selectedDate.getFullYear();
-    const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
-    const d = String(selectedDate.getDate()).padStart(2, '0');
-    const scheduledAt = `${y}-${m}-${d}T${selectedTime}:00.000Z`;
+    const scheduledAt = `${selectedDate}T${selectedTime}:00.000Z`;
     router.push({
       pathname: '/payment',
       params: {
@@ -102,46 +96,62 @@ export default function BookSlotPage() {
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         <Text style={styles.therapistName}>{therapistName}</Text>
         <Text style={styles.sectionLabel}>Date</Text>
-        <View style={styles.daysRow}>
-          {days.map((d) => {
-            const key = toISODate(d);
-            const isSelected = selectedDate?.toDateString() === d.toDateString();
-            return (
-              <TouchableOpacity
-                key={key}
-                style={[styles.dayChip, isSelected && styles.dayChipSelected]}
-                onPress={() => setSelectedDate(d)}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.dayChipText, isSelected && styles.dayChipTextSelected]}>
-                  {formatDateLabel(d)}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        {bookableLoading ? (
+          <View style={styles.loadingRow}>
+            <ActivityIndicator size="small" color="#19b3e6" />
+            <Text style={styles.loadingText}>Loading available dates…</Text>
+          </View>
+        ) : (
+          <View style={styles.daysRow}>
+            {datesWithSlots.map((entry) => {
+              const isSelected = selectedDate === entry.date;
+              return (
+                <TouchableOpacity
+                  key={entry.date}
+                  style={[styles.dayChip, isSelected && styles.dayChipSelected]}
+                  onPress={() => {
+                    setSelectedDate(entry.date);
+                    setSelectedTime(null);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.dayChipText, isSelected && styles.dayChipTextSelected]}>
+                    {formatDateLabel(entry.date)}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
+        {datesWithSlots.length === 0 && !bookableLoading && (
+          <Text style={styles.hint}>No available dates in the next 14 days.</Text>
+        )}
 
         <Text style={[styles.sectionLabel, { marginTop: 24 }]}>Time</Text>
-        <View style={styles.timesRow}>
-          {TIME_SLOTS.map((time) => {
-            const isSelected = selectedTime === time;
-            return (
-              <TouchableOpacity
-                key={time}
-                style={[styles.timeChip, isSelected && styles.timeChipSelected]}
-                onPress={() => setSelectedTime(time)}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.timeChipText, isSelected && styles.timeChipTextSelected]}>
-                  {time}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        {selectedDate ? (
+          <View style={styles.timesRow}>
+            {timeSlotsForSelectedDate.map((time) => {
+              const isSelected = selectedTime === time;
+              return (
+                <TouchableOpacity
+                  key={time}
+                  style={[styles.timeChip, isSelected && styles.timeChipSelected]}
+                  onPress={() => setSelectedTime(time)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.timeChipText, isSelected && styles.timeChipTextSelected]}>
+                    {time}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ) : (
+          <Text style={styles.hint}>Select a date to see available times.</Text>
+        )}
 
         <Text style={styles.hint}>
-          Session duration: {DURATION_MINUTES} minutes. Availability is confirmed at checkout.
+          Session duration: {DURATION_MINUTES} minutes. Only available slots are shown.
         </Text>
       </ScrollView>
 
@@ -226,6 +236,16 @@ const styles = StyleSheet.create({
   dayChipTextSelected: {
     color: '#19b3e6',
     fontWeight: '600',
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 12,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#9ca3af',
   },
   timesRow: {
     flexDirection: 'row',
