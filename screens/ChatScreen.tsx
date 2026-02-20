@@ -174,6 +174,21 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             }))
           );
         }
+      } else if (currentConversationId) {
+        // Conversation loaded but API data not yet available (e.g. returning to screen)
+        const cached = await getCachedMessages(currentConversationId);
+        if (cached && cached.length > 0) {
+          setMessages(
+            cached.map((m) => ({
+              id: m.id,
+              text: m.content,
+              isUser: m.role === 'user',
+              timestamp: m.timestamp,
+              pending: m.pending || false,
+              error: !!m.error,
+            }))
+          );
+        }
       } else if (!currentConversationId && messages.length === 0) {
         
         const cached = await getCachedMessages(0);

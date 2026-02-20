@@ -27,7 +27,8 @@ export const chatService = {
   async sendMessage(data: SendMessageRequest): Promise<SendMessageResponse> {
     const res = await apiClient.post<ApiSuccess<SendMessageResponse> | SendMessageResponse>(
       API_ENDPOINTS.CONVERSATIONS.MESSAGE,
-      data
+      data,
+      { timeout: 90000 }
     )
     if (typeof res === 'object' && (res as ApiSuccess<SendMessageResponse>).success && (res as ApiSuccess<SendMessageResponse>).data) {
       return (res as ApiSuccess<SendMessageResponse>).data
@@ -59,7 +60,11 @@ export const chatService = {
     if (params?.limit) queryParams.append('limit', params.limit.toString())
 
     const url = `${API_ENDPOINTS.CONVERSATIONS.HISTORY}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
-    return apiClient.get<ConversationHistoryResponse>(url)
+    const res = await apiClient.get<ApiSuccess<ConversationHistoryResponse> | ConversationHistoryResponse>(url)
+    if (typeof res === 'object' && (res as ApiSuccess<ConversationHistoryResponse>).success && (res as ApiSuccess<ConversationHistoryResponse>).data) {
+      return (res as ApiSuccess<ConversationHistoryResponse>).data
+    }
+    return res as ConversationHistoryResponse
   },
 
   /**
@@ -74,7 +79,11 @@ export const chatService = {
     if (options?.limit) queryParams.append('limit', options.limit.toString())
 
     const url = `${API_ENDPOINTS.CONVERSATIONS.BY_ID(conversationId)}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
-    return apiClient.get<ConversationResponse>(url)
+    const res = await apiClient.get<ApiSuccess<ConversationResponse> | ConversationResponse>(url)
+    if (typeof res === 'object' && (res as ApiSuccess<ConversationResponse>).success && (res as ApiSuccess<ConversationResponse>).data) {
+      return (res as ApiSuccess<ConversationResponse>).data
+    }
+    return res as ConversationResponse
   },
 
   /**

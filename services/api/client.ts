@@ -92,7 +92,13 @@ class ApiClient {
           }
         } else if (error.request) {
           // Request made but no response
-          console.error('Network error: No response received')
+          const url = error.config?.baseURL && error.config?.url
+            ? `${error.config.baseURL}${error.config.url}`
+            : error.config?.url ?? error.config?.baseURL ?? 'unknown'
+          console.error('Network error: No response received', {
+            url,
+            method: error.config?.method?.toUpperCase(),
+          })
         } else {
           // Error setting up request
           console.error('Request error:', error.message)
