@@ -36,14 +36,14 @@ export const gratitudeService = {
       uri: file.uri,
       name: file.name ?? 'photo.jpg',
       type: file.type ?? 'image/jpeg',
-    } as unknown as Blob)
-    const res = await apiClient.post<{ success: boolean; data: { url: string } }>(
+    } as any)
+    const res = await apiClient.post<{ success?: boolean; data?: { url?: string }; url?: string }>(
       API_ENDPOINTS.GRATITUDE.UPLOAD_PHOTO,
       formData
     )
-    const url = (res as { data?: { url?: string } })?.data?.url
+    const url = (res as { data?: { url?: string }; url?: string })?.data?.url ?? (res as { url?: string })?.url
     if (!url) {
-      throw new Error('Upload did not return URL')
+      throw new Error(`Upload did not return URL. Response: ${JSON.stringify(res)}`)
     }
     return { url }
   },

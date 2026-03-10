@@ -3,6 +3,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { API_CONFIG, getApiUrl } from '@/constants/api'
 import type { ApiError } from '@/types/api'
 
+/** Timeout for upload requests (FormData); default is often too short for large files or slow networks. */
+const UPLOAD_TIMEOUT_MS = 120000
+
 // Lazy import to avoid circular dependency
 let authStore: { clearAuth: () => Promise<void> } | null = null
 
@@ -42,7 +45,8 @@ class ApiClient {
             config.headers.Authorization = `Bearer ${token}`
           }
           if (config.data instanceof FormData && config.headers) {
-            delete config.headers['Content-Type']
+            ;(config.headers as Record<string, unknown>)['Content-Type'] = false
+            config.timeout ??= UPLOAD_TIMEOUT_MS
           }
         } catch (error) {
           console.error('Error getting auth token:', error)
@@ -59,6 +63,13 @@ class ApiClient {
       (response) => response,
       async (error: AxiosError) => {
         if (error.response) {
+          if (__DEV__ && error.config?.data instanceof FormData) {
+            console.error('Upload error', {
+              status: error.response.status,
+              url: error.config?.url,
+              data: error.response.data,
+            })
+          }
           // Handle specific error status codes
           switch (error.response.status) {
             case 401:
@@ -124,8 +135,15 @@ class ApiClient {
     }
 
     if (error.request) {
+      const isUpload = error.config?.data instanceof FormData
+      const isTimeout = error.code === 'ECONNABORTED'
+      const message = isUpload && isTimeout
+        ? 'Upload timed out. Try a smaller file or check your connection.'
+        : isUpload
+          ? 'Upload failed: no response. Check your connection and try again.'
+          : 'Network error: Please check your internet connection'
       return {
-        message: 'Network error: Please check your internet connection',
+        message,
         status: 0,
         data: null,
       }

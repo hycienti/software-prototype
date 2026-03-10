@@ -16,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Icon } from '@/components/ui/Icon';
 import { useGratitudeStreak, useGratitudeQuote, useCreateGratitude } from '@/hooks/useGratitude';
 import { gratitudeService } from '@/services/gratitude';
+import type { ApiError } from '@/types/api';
 
 interface GratitudeScreenProps {
   onBack?: () => void;
@@ -78,10 +79,10 @@ export const GratitudeScreen: React.FC<GratitudeScreenProps> = ({
         setPhotoUrl(url);
       } catch (err) {
         setPhotoUri(null);
-        Alert.alert(
-          'Upload failed',
-          err instanceof Error ? err.message : 'Could not upload photo. Try again.'
-        );
+        const apiErr = err as ApiError | undefined;
+        const base = err instanceof Error ? err.message : 'Could not upload photo. Try again.';
+        const hint = apiErr?.status === 400 ? ' Invalid file or format.' : apiErr?.status && apiErr.status >= 500 ? ' Server error. Try again.' : '';
+        Alert.alert('Upload failed', base + hint);
       } finally {
         setUploadPhotoLoading(false);
       }

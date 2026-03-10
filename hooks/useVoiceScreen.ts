@@ -50,6 +50,7 @@ export function useVoiceScreen({
   const stopRecordingRef = useRef<(() => Promise<void>) | null>(null);
   const isRecordingRef = useRef(false);
   const playbackRef = useRef<AudioPlayback | null>(null);
+  const recordingStartTimeRef = useRef<number>(0);
 
   const audioRecorder = useAudioRecorder({
     ...RecordingPresets.HIGH_QUALITY,
@@ -137,6 +138,7 @@ export function useVoiceScreen({
       await audioRecorder.prepareToRecordAsync();
       audioRecorder.record();
       isRecordingRef.current = true;
+      recordingStartTimeRef.current = Date.now();
 
       durationTimerRef.current = setInterval(() => {
         const status = audioRecorder.getStatus();
@@ -151,11 +153,13 @@ export function useVoiceScreen({
         if (status.metering !== undefined) {
           const normalizedLevel = Math.max(0, Math.min(1, (status.metering + 60) / 60));
           setAudioLevel(normalizedLevel);
-          if (status.metering < -40) {
+          const elapsed = Date.now() - recordingStartTimeRef.current;
+          const minRecordingMs = 4000;
+          if (status.metering < -45 && elapsed >= minRecordingMs) {
             if (!silenceTimerRef.current) {
               silenceTimerRef.current = setTimeout(() => {
                 stopRecordingRef.current?.();
-              }, 2500);
+              }, 4000);
             }
           } else {
             if (silenceTimerRef.current) {
@@ -197,6 +201,7 @@ export function useVoiceScreen({
         clearInterval(meteringIntervalRef.current);
         meteringIntervalRef.current = null;
       }
+      recordingStartTimeRef.current = 0;
 
       setVoiceState('thinking');
       setProgressStep(null);

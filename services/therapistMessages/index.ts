@@ -88,11 +88,16 @@ export const therapistMessagesService = {
       name: file.name ?? 'file',
       type: file.type ?? 'application/octet-stream',
     } as any)
-    const res = await apiClient.post<ApiData<{ url: string }>>(
+    const res = await apiClient.post<ApiData<{ url: string }> & { url?: string }>(
       API_ENDPOINTS.THERAPIST_THREADS.UPLOAD,
       formData
     )
-    return unwrap(res)
+    const data = unwrap(res)
+    const url = data?.url ?? (res as { url?: string })?.url
+    if (!url) {
+      throw new Error('Upload did not return URL')
+    }
+    return { url }
   },
 
   /**
