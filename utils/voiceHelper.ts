@@ -24,13 +24,20 @@ export async function getBase64FromRecordingUri(uri: string): Promise<string> {
   }
 }
 
+export interface AudioPlayback {
+  done: Promise<void>;
+  stop: () => void;
+}
+
 /**
- * Play audio from base64 data (e.g. TTS response). Tries expo-audio first, falls back to expo-av for reliability with dynamic file URIs.
+ * Play audio from base64 data (e.g. TTS response). Tries expo-audio first,
+ * falls back to expo-av. Returns a handle with `done` (resolves on finish)
+ * and `stop()` to interrupt playback externally.
  */
 export async function playAudioFromBase64(
   base64Data: string,
   format: 'mp3' | 'wav' | 'm4a' = 'mp3'
-): Promise<void> {
+): Promise<AudioPlayback> {
   if (
     !base64Data ||
     typeof base64Data !== 'string' ||
@@ -57,56 +64,86 @@ export async function playAudioFromBase64(
     console.warn('playAudioFromBase64: setAudioModeAsync failed', modeError)
   }
 
+  const cleanupFile = () =>
+    FileSystem.deleteAsync(tempUri, { idempotent: true }).catch(() => {})
+
+  // Try expo-audio first
   try {
     const player = createAudioPlayer(tempUri, {})
-    player.play()
+    let stopped = false
 
-    await new Promise<void>((resolve) => {
+    const done = new Promise<void>((resolve) => {
       const sub = player.addListener(
         'playbackStatusUpdate',
         (status: { didJustFinish?: boolean }) => {
-          if (status.didJustFinish) {
+          if (status.didJustFinish && !stopped) {
+            stopped = true
             sub.remove()
             player.remove()
-            FileSystem.deleteAsync(tempUri, { idempotent: true }).catch(() => {})
+            cleanupFile()
             resolve()
           }
         }
       )
     })
-    return
+
+    player.play()
+
+    const stop = () => {
+      if (stopped) return
+      stopped = true
+      try {
+        player.remove()
+      } catch (_) { /* already disposed */ }
+      cleanupFile()
+    }
+
+    return { done, stop }
   } catch (expoAudioError) {
     if (__DEV__) {
       console.warn('playAudioFromBase64: expo-audio failed, using expo-av fallback', expoAudioError)
     }
   }
 
-  // Fallback: expo-av (reliable for dynamic file URIs)
-  try {
-    await Audio.setAudioModeAsync({
-      playsInSilentModeIOS: true,
-      staysActiveInBackground: false,
-      shouldDuckAndroid: true,
-    })
+  // Fallback: expo-av
+  await Audio.setAudioModeAsync({
+    playsInSilentModeIOS: true,
+    staysActiveInBackground: false,
+    shouldDuckAndroid: true,
+  })
 
-    const { sound } = await Audio.Sound.createAsync(
-      { uri: tempUri },
-      { shouldPlay: true }
-    )
+  const { sound } = await Audio.Sound.createAsync(
+    { uri: tempUri },
+    { shouldPlay: true }
+  )
 
-    await new Promise<void>((resolve) => {
-      sound.setOnPlaybackStatusUpdate((status) => {
-        if (status.isLoaded && status.didJustFinish && !status.isLooping) {
-          sound.unloadAsync().then(() => {
-            FileSystem.deleteAsync(tempUri, { idempotent: true }).catch(() => {})
-            resolve()
-          }).catch(() => resolve())
-        }
-      })
+  let stopped = false
+
+  const done = new Promise<void>((resolve) => {
+    sound.setOnPlaybackStatusUpdate((status) => {
+      if (status.isLoaded && status.didJustFinish && !status.isLooping && !stopped) {
+        stopped = true
+        sound.unloadAsync().then(() => {
+          cleanupFile()
+          resolve()
+        }).catch(() => {
+          cleanupFile()
+          resolve()
+        })
+      }
     })
-  } finally {
-    FileSystem.deleteAsync(tempUri, { idempotent: true }).catch(() => {})
+  })
+
+  const stop = () => {
+    if (stopped) return
+    stopped = true
+    sound.stopAsync()
+      .then(() => sound.unloadAsync())
+      .catch(() => {})
+      .finally(() => cleanupFile())
   }
+
+  return { done, stop }
 }
 
 /**

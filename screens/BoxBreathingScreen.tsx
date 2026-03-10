@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Audio } from 'expo-av';
 import * as Haptics from 'expo-haptics';
 import Animated, {
   useAnimatedStyle,
@@ -16,6 +15,7 @@ import Animated, {
 import Svg, { Path, Defs, LinearGradient as SvgLinearGradient, Stop, Circle } from 'react-native-svg';
 import { Icon } from '@/components/ui/Icon';
 import { useBoxBreathingSettings } from '@/store/BoxBreathingSettingsContext';
+import { useBreathingAudio } from '@/hooks/useBreathingAudio';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -59,15 +59,19 @@ export const BoxBreathingScreen: React.FC<{ onBack?: () => void; onSettings?: ()
   const [currentPhase, setCurrentPhase] = useState<BreathingPhase>('inhale');
   const [count, setCount] = useState(settings.inhaleDuration);
   const [cycle, setCycle] = useState(1);
-  const [isMuted, setIsMuted] = useState(!settings.enableMusic);
   const totalCycles = 5;
   const [remainingTime, setRemainingTime] = useState(270);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const soundRef = useRef<Audio.Sound | null>(null);
   const phaseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const countdownTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isUnmountingRef = useRef(false);
+
+  const { isMuted, toggleMute } = useBreathingAudio({
+    musicKey: settings.selectedMusic,
+    enableMusic: settings.enableMusic,
+    isPaused,
+  });
 
   const orbScale = useSharedValue(1);
   const pathProgress = useSharedValue(0);
@@ -101,17 +105,7 @@ export const BoxBreathingScreen: React.FC<{ onBack?: () => void; onSettings?: ()
     );
   }, [ambientPhase]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      isUnmountingRef.current = true;
-      cleanup();
-    };
-  }, []);
-
-  // Cleanup function
-  const cleanup = useCallback(async () => {
-    // Clear all timers
+  const clearTimers = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
@@ -124,101 +118,14 @@ export const BoxBreathingScreen: React.FC<{ onBack?: () => void; onSettings?: ()
       clearInterval(countdownTimerRef.current);
       countdownTimerRef.current = null;
     }
-
-    // Stop and unload audio safely
-    await stopBackgroundMusic();
-    
-    // Stop any ongoing speech
-    if (Platform.OS === 'web' && typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    } else {
-      // Try to stop expo-speech if available
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const Speech = require('expo-speech');
-        if (Speech && typeof Speech.stop === 'function') {
-          Speech.stop();
-        }
-      } catch (error) {
-        // Ignore if expo-speech is not available
-      }
-    }
   }, []);
 
-  // Load and play background music
   useEffect(() => {
-    if (settings.enableMusic && !isMuted) {
-      loadBackgroundMusic();
-    } else {
-      stopBackgroundMusic();
-    }
     return () => {
-      stopBackgroundMusic();
+      isUnmountingRef.current = true;
+      clearTimers();
     };
-  }, [settings.enableMusic, settings.selectedMusic, isMuted]);
-
-  const loadBackgroundMusic = useCallback(async () => {
-    // Stop existing sound first
-    await stopBackgroundMusic();
-
-    try {
-      // Set audio mode for better playback
-      await Audio.setAudioModeAsync({
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: false,
-        shouldDuckAndroid: true,
-      });
-
-      // In production, use actual audio files based on selectedMusic
-      // For now, using a placeholder
-      const musicUrls: Record<string, string> = {
-        rain: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-        forest: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-        zen: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
-      };
-
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: musicUrls[settings.selectedMusic] || musicUrls.rain },
-        {
-          shouldPlay: true,
-          isLooping: true,
-          volume: 0.3,
-        }
-      );
-
-      soundRef.current = sound;
-    } catch (error) {
-      // Silently fail - don't interrupt user experience
-      if (__DEV__) {
-        console.warn('Error loading background music:', error);
-      }
-    }
-  }, [settings.selectedMusic]);
-
-  const stopBackgroundMusic = useCallback(async () => {
-    if (!soundRef.current) return;
-
-    try {
-      const status = await soundRef.current.getStatusAsync();
-      
-      // Only stop if actually playing
-      if (status.isLoaded) {
-        if (status.isPlaying) {
-          await soundRef.current.stopAsync();
-        }
-        // Wait a bit before unloading to avoid "Seeking interrupted" error
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        await soundRef.current.unloadAsync();
-      }
-    } catch (error) {
-      // Ignore errors during cleanup - they're usually harmless
-      if (__DEV__ && !isUnmountingRef.current) {
-        console.warn('Error stopping background music:', error);
-      }
-    } finally {
-      soundRef.current = null;
-    }
-  }, []);
+  }, [clearTimers]);
 
   // Haptic feedback - memoized
   const triggerHaptic = useCallback(() => {
@@ -497,17 +404,6 @@ export const BoxBreathingScreen: React.FC<{ onBack?: () => void; onSettings?: ()
         : 'Hold';
   }, [currentPhase]);
 
-  // Handle mute toggle
-  const handleMuteToggle = useCallback(() => {
-    const newMutedState = !isMuted;
-    setIsMuted(newMutedState);
-    if (newMutedState) {
-      stopBackgroundMusic();
-    } else if (settings.enableMusic) {
-      loadBackgroundMusic();
-    }
-  }, [isMuted, settings.enableMusic, stopBackgroundMusic, loadBackgroundMusic]);
-
   /* ---------------------- Render ---------------------- */
 
   return (
@@ -629,7 +525,7 @@ export const BoxBreathingScreen: React.FC<{ onBack?: () => void; onSettings?: ()
 
           <TouchableOpacity
             style={styles.iconBtn}
-            onPress={handleMuteToggle}
+            onPress={toggleMute}
             activeOpacity={0.7}
           >
             <Icon

@@ -94,6 +94,7 @@ class ApiClient {
               console.error('API error:', error.response.data)
           }
         } else if (error.request) {
+          console.log('error.request', error.request)
           // Request made but no response
           const url = error.config?.baseURL && error.config?.url
             ? `${error.config.baseURL}${error.config.url}`
@@ -149,6 +150,7 @@ class ApiClient {
 
   async post<T>(url: string, data?: any, config?: any): Promise<T> {
     const response = await this.client.post<T>(url, data, config)
+    console.log('response', response.data)
     return response.data
   }
 
