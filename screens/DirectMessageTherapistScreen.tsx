@@ -31,6 +31,8 @@ interface DirectMessageTherapistScreenProps {
   sessionId?: number;
   therapistName?: string | null;
   onBack: () => void;
+  /** When provided, the header video button navigates to the session video call (same as My Therapists "Join session"). */
+  onVideoPress?: () => void;
 }
 
 export function DirectMessageTherapistScreen({
@@ -38,6 +40,7 @@ export function DirectMessageTherapistScreen({
   sessionId,
   therapistName,
   onBack,
+  onVideoPress,
 }: DirectMessageTherapistScreenProps) {
   const [inputText, setInputText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -338,6 +341,8 @@ export function DirectMessageTherapistScreen({
         name={displayName}
         status="Online"
         onBack={onBack}
+        onVideoPress={onVideoPress}
+        onMorePress={() => {}}
       />
 
       {isLoading ? (

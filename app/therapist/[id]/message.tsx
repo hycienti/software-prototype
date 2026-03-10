@@ -10,15 +10,24 @@ export default function TherapistMessagePage() {
 
   const handleBack = () => router.back();
 
+  const handleVideoPress = () => {
+    if (sessionId != null && !Number.isNaN(sessionId)) {
+      router.push({ pathname: '/session/[id]/call', params: { id: String(sessionId) } });
+    }
+  };
+
   if (!id || Number.isNaN(therapistId)) {
     return null;
   }
 
+  const resolvedSessionId = sessionId != null && !Number.isNaN(sessionId) ? sessionId : undefined;
+
   return (
     <DirectMessageTherapistScreen
       therapistId={therapistId}
-      sessionId={Number.isNaN(sessionId ?? NaN) ? undefined : sessionId}
+      sessionId={resolvedSessionId}
       onBack={handleBack}
+      onVideoPress={resolvedSessionId != null ? handleVideoPress : undefined}
     />
   );
 }
