@@ -4,8 +4,6 @@ import type {
   ProcessVoiceMessageRequest,
   ProcessVoiceMessageResponse,
   VoiceAsyncAcceptedResponse,
-  TextToSpeechRequest,
-  TextToSpeechResponse,
 } from '@/types/api'
 
 type ApiSuccess<T> = { success: true; data: T }
@@ -21,7 +19,7 @@ function unwrap<T>(res: ApiSuccess<T> | T): T {
  */
 export const voiceService = {
   /**
-   * Process voice message: STT -> AI -> TTS (sync)
+   * Process voice message: STT -> AI (sync). TTS is done client-side with expo-speech.
    */
   async processVoiceMessage(
     data: ProcessVoiceMessageRequest
@@ -43,16 +41,6 @@ export const voiceService = {
     >(API_ENDPOINTS.VOICE.PROCESS, { ...data, async: true })
     return unwrap(res)
   },
-
-  /**
-   * Convert text to speech
-   */
-  async textToSpeech(data: TextToSpeechRequest): Promise<TextToSpeechResponse> {
-    const res = await apiClient.post<
-      ApiSuccess<TextToSpeechResponse> | TextToSpeechResponse
-    >(API_ENDPOINTS.VOICE.TTS, data)
-    return unwrap(res)
-  },
 }
 
 // Re-export types for convenience
@@ -60,6 +48,4 @@ export type {
   ProcessVoiceMessageRequest,
   ProcessVoiceMessageResponse,
   VoiceAsyncAcceptedResponse,
-  TextToSpeechRequest,
-  TextToSpeechResponse,
 }

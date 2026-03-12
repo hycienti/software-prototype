@@ -7,8 +7,8 @@ import {
   requestRecordingPermissionsAsync,
 } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
-import { getBase64FromRecordingUri, playAudioFromBase64 } from '@/utils/voiceHelper';
-import type { AudioPlayback } from '@/utils/voiceHelper';
+import * as Speech from 'expo-speech';
+import { getBase64FromRecordingUri } from '@/utils/voiceHelper';
 import { useProcessVoiceMessageAsync } from '@/hooks/useVoice';
 import { useConversationContext } from '@/contexts/ConversationContext';
 import { useAuthStore, useUIStore } from '@/store';
@@ -49,7 +49,7 @@ export function useVoiceScreen({
   const meteringIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const stopRecordingRef = useRef<(() => Promise<void>) | null>(null);
   const isRecordingRef = useRef(false);
-  const playbackRef = useRef<AudioPlayback | null>(null);
+  const speechResolveRef = useRef<(() => void) | null>(null);
   const recordingStartTimeRef = useRef<number>(0);
 
   const audioRecorder = useAudioRecorder({
@@ -80,9 +80,10 @@ export function useVoiceScreen({
   }, [currentConversation, currentConversationId]);
 
   const stopTTSPlayback = useCallback(() => {
-    if (playbackRef.current) {
-      playbackRef.current.stop();
-      playbackRef.current = null;
+    Speech.stop();
+    if (speechResolveRef.current) {
+      speechResolveRef.current();
+      speechResolveRef.current = null;
     }
   }, []);
 
@@ -242,25 +243,30 @@ export function useVoiceScreen({
       }
 
       setProgressStep(null);
-      const hasAudio =
-        typeof response.audioData === 'string' && response.audioData.length > 0;
-      if (!hasAudio) {
-        if (__DEV__) {
-          console.warn('Voice: missing or empty audioData', {
-            audioDataLength: response.audioData?.length ?? 0,
-          });
-        }
+      const content = response.response?.content?.trim() ?? '';
+      if (!content) {
+        if (__DEV__) console.warn('Voice: missing or empty response content');
         setVoiceState('idle');
       } else {
-        if (__DEV__) {
-          console.log('Voice: playing TTS audio', { audioDataLength: response.audioData.length });
-        }
+        if (__DEV__) console.log('Voice: speaking with expo-speech', { contentLength: content.length });
         setVoiceState('speaking');
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        const playback = await playAudioFromBase64(response.audioData, 'mp3');
-        playbackRef.current = playback;
-        await playback.done;
-        playbackRef.current = null;
+        await new Promise<void>((resolve, reject) => {
+          speechResolveRef.current = resolve;
+          Speech.speak(content, {
+            onDone: () => {
+              if (speechResolveRef.current) {
+                speechResolveRef.current();
+                speechResolveRef.current = null;
+              }
+              resolve();
+            },
+            onError: (err) => {
+              speechResolveRef.current = null;
+              reject(err);
+            },
+          });
+        });
         setVoiceState('idle');
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }

@@ -132,8 +132,6 @@ export interface ProcessVoiceMessageResponse {
     content: string;
     metadata?: Record<string, any>;
   };
-  audioData: string; // Base64 encoded audio
-  audioFormat: 'mp3';
   sentiment?: SentimentAnalysis;
 }
 

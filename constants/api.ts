@@ -104,7 +104,6 @@ export const API_ENDPOINTS = {
   VOICE: {
     BASE: '/voice',
     PROCESS: '/voice/process',
-    TTS: '/voice/tts',
     STT: '/voice/stt',
   },
 

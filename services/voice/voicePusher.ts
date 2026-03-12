@@ -141,10 +141,6 @@ export async function subscribeToVoiceResults(
         .sort((a, b) => a - b)
         .map((i) => buf.responseChunks.get(i) ?? '')
         .join('')
-      const audioData = Array.from(buf.chunks.keys())
-        .sort((a, b) => a - b)
-        .map((i) => buf.chunks.get(i) ?? '')
-        .join('')
       const response: ProcessVoiceMessageResponse = {
         conversation: {
           id: buf.conversationId,
@@ -154,8 +150,6 @@ export async function subscribeToVoiceResults(
         },
         transcript: buf.transcript,
         response: { ...buf.response, content: responseContent },
-        audioData,
-        audioFormat: 'mp3',
         sentiment: buf.sentiment,
       }
       const pending = pendingByJobId.get(jobId)
@@ -179,31 +173,26 @@ export async function subscribeToVoiceResults(
         conversationId: number
         transcript: string
         response: ProcessVoiceMessageResponse['response']
-        audioData?: string
-        audioFormat: string
+        audioFormat?: string
         sentiment?: ProcessVoiceMessageResponse['sentiment']
       }
-      if (payload.audioData !== undefined) {
-        const response: ProcessVoiceMessageResponse = {
-          conversation: {
-            id: payload.conversationId,
-            title: null,
-            mode: 'voice',
-            createdAt: new Date().toISOString(),
-          },
-          transcript: payload.transcript,
-          response: payload.response,
-          audioData: payload.audioData,
-          audioFormat: 'mp3',
-          sentiment: payload.sentiment,
-        }
-        const pending = pendingByJobId.get(jobId)
-        if (pending) {
-          pendingByJobId.delete(jobId)
-          pending.resolve(response)
-        } else {
-          completedResultsByJobId.set(jobId, response)
-        }
+      const response: ProcessVoiceMessageResponse = {
+        conversation: {
+          id: payload.conversationId,
+          title: null,
+          mode: 'voice',
+          createdAt: new Date().toISOString(),
+        },
+        transcript: payload.transcript,
+        response: payload.response,
+        sentiment: payload.sentiment,
+      }
+      const pending = pendingByJobId.get(jobId)
+      if (pending) {
+        pendingByJobId.delete(jobId)
+        pending.resolve(response)
+      } else {
+        completedResultsByJobId.set(jobId, response)
       }
     } catch (err) {
       console.error('Voice Pusher event error', err)

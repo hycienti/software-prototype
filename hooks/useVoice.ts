@@ -3,8 +3,6 @@ import {
   voiceService,
   type ProcessVoiceMessageRequest,
   type ProcessVoiceMessageResponse,
-  type TextToSpeechRequest,
-  type TextToSpeechResponse,
 } from '@/services/voice'
 import { waitForVoiceResult } from '@/services/voice/voicePusher'
 
@@ -48,14 +46,3 @@ export function useProcessVoiceMessageAsync(userId: number | null) {
   })
 }
 
-/**
- * Hook to convert text to speech
- */
-export function useTextToSpeech() {
-  return useMutation({
-    mutationFn: (data: TextToSpeechRequest) => voiceService.textToSpeech(data),
-    onError: (error) => {
-      console.error('Error converting text to speech:', error)
-    },
-  })
-}
