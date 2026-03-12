@@ -43,6 +43,14 @@ export const voiceService = {
   },
 }
 
+// STT port (clean architecture): use whisper.rn adapter for realtime transcription
+export type { RealtimeSttPort } from './sttPort'
+export {
+  createWhisperRealtimeSttAdapter,
+  releaseWhisperSttResources,
+} from './whisperRealtimeSttAdapter'
+export { getDocumentDirWhisperModelPaths } from './whisperModelPaths'
+
 // Re-export types for convenience
 export type {
   ProcessVoiceMessageRequest,

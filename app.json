@@ -15,7 +15,8 @@
         "expo-build-properties",
         {
           "android": {
-            "usesCleartextTraffic": true
+            "usesCleartextTraffic": true,
+            "extraProguardRules": "# whisper.rn\n-keep class com.rnwhisper.** { *; }\n"
           }
         }
       ],
@@ -44,11 +45,13 @@
       "infoPlist": {
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
-        }
+        },
+        "NSMicrophoneUsageDescription": "This app uses the microphone for voice conversation and speech-to-text."
       }
     },
     "android": {
       "package": "com.pronesos.haven",
+      "permissions": ["android.permission.RECORD_AUDIO"],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"

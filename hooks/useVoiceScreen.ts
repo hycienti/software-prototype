@@ -1,18 +1,17 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
-import {
-  useAudioRecorder,
-  RecordingPresets,
-  setAudioModeAsync,
-  requestRecordingPermissionsAsync,
-} from 'expo-audio';
+import { setAudioModeAsync, requestRecordingPermissionsAsync } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';
-import { getBase64FromRecordingUri } from '@/utils/voiceHelper';
 import { useProcessVoiceMessageAsync } from '@/hooks/useVoice';
 import { useConversationContext } from '@/contexts/ConversationContext';
 import { useAuthStore, useUIStore } from '@/store';
-import { subscribeToVoiceResults, unsubscribeFromVoiceResults } from '@/services/voice/voicePusher';
+import {
+  subscribeToVoiceResults,
+  unsubscribeFromVoiceResults,
+  createWhisperRealtimeSttAdapter,
+  getDocumentDirWhisperModelPaths,
+} from '@/services/voice';
 import { getStatusText as getStatusTextFn, type VoiceState } from '@/screens/voice/voiceScreenTypes';
 
 export interface UseVoiceScreenOptions {
@@ -44,18 +43,20 @@ export function useVoiceScreen({
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [audioLevel, setAudioLevel] = useState(0);
 
-  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const durationTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const meteringIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const stopRecordingRef = useRef<(() => Promise<void>) | null>(null);
-  const isRecordingRef = useRef(false);
+  const isTranscribingRef = useRef(false);
   const speechResolveRef = useRef<(() => void) | null>(null);
-  const recordingStartTimeRef = useRef<number>(0);
+  const sttPortRef = useRef<ReturnType<typeof createWhisperRealtimeSttAdapter> | null>(null);
 
-  const audioRecorder = useAudioRecorder({
-    ...RecordingPresets.HIGH_QUALITY,
-    isMeteringEnabled: true,
-  });
+  function getSttPort() {
+    if (!sttPortRef.current) {
+      sttPortRef.current = createWhisperRealtimeSttAdapter({
+        getModelPaths: () => Promise.resolve(getDocumentDirWhisperModelPaths()),
+      });
+    }
+    return sttPortRef.current;
+  }
 
   const user = useAuthStore((s) => s.user);
   const { showAlert } = useUIStore();
@@ -91,36 +92,27 @@ export function useVoiceScreen({
     useCallback(() => {
       return () => {
         stopTTSPlayback();
-        if (isRecordingRef.current) {
-          isRecordingRef.current = false;
-          try {
-            audioRecorder.stop().catch(() => {});
-          } catch (_) {}
+        if (isTranscribingRef.current) {
+          isTranscribingRef.current = false;
+          getSttPort().stopRealtimeTranscription().catch(() => {});
         }
       };
-    }, [audioRecorder, stopTTSPlayback])
+    }, [stopTTSPlayback])
   );
 
   useEffect(() => {
     return () => {
       stopTTSPlayback();
-      if (isRecordingRef.current) {
-        isRecordingRef.current = false;
-        try {
-          audioRecorder.stop().catch(() => {});
-        } catch (_) {}
-      }
-      if (silenceTimerRef.current) {
-        clearTimeout(silenceTimerRef.current);
+      if (isTranscribingRef.current) {
+        isTranscribingRef.current = false;
+        getSttPort().stopRealtimeTranscription().catch(() => {});
       }
       if (durationTimerRef.current) {
         clearInterval(durationTimerRef.current);
-      }
-      if (meteringIntervalRef.current) {
-        clearInterval(meteringIntervalRef.current);
+        durationTimerRef.current = null;
       }
     };
-  }, [audioRecorder, stopTTSPlayback]);
+  }, [stopTTSPlayback]);
 
   const handleStartRecording = useCallback(async () => {
     try {
@@ -136,91 +128,64 @@ export function useVoiceScreen({
       setVoiceState('listening');
       setRecordingDuration(0);
       setAudioLevel(0);
-      await audioRecorder.prepareToRecordAsync();
-      audioRecorder.record();
-      isRecordingRef.current = true;
-      recordingStartTimeRef.current = Date.now();
+      isTranscribingRef.current = true;
+      const startTime = Date.now();
+
+      await getSttPort().startRealtimeTranscription({ language: 'en' });
 
       durationTimerRef.current = setInterval(() => {
-        const status = audioRecorder.getStatus();
-        setRecordingDuration(Math.floor(status.durationMillis / 1000));
-        if (status.durationMillis >= 60_000) {
+        setRecordingDuration(Math.floor((Date.now() - startTime) / 1000));
+        if (Date.now() - startTime >= 60_000) {
           stopRecordingRef.current?.();
         }
       }, 1000);
 
-      meteringIntervalRef.current = setInterval(() => {
-        const status = audioRecorder.getStatus();
-        if (status.metering !== undefined) {
-          const normalizedLevel = Math.max(0, Math.min(1, (status.metering + 60) / 60));
-          setAudioLevel(normalizedLevel);
-          const elapsed = Date.now() - recordingStartTimeRef.current;
-          const minRecordingMs = 4000;
-          if (status.metering < -45 && elapsed >= minRecordingMs) {
-            if (!silenceTimerRef.current) {
-              silenceTimerRef.current = setTimeout(() => {
-                stopRecordingRef.current?.();
-              }, 4000);
-            }
-          } else {
-            if (silenceTimerRef.current) {
-              clearTimeout(silenceTimerRef.current);
-              silenceTimerRef.current = null;
-            }
-          }
-        }
-      }, 100);
-
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } catch (error: unknown) {
-      isRecordingRef.current = false;
+      isTranscribingRef.current = false;
       showAlert({
         title: 'Error',
-        message: error instanceof Error ? error.message : 'Failed to start recording',
+        message:
+          error instanceof Error ? error.message : 'Failed to start speech recognition. Ensure Whisper models are available.',
         type: 'error',
       });
       setVoiceState('idle');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
-  }, [audioRecorder, showAlert]);
+  }, [showAlert]);
 
   const handleStopRecording = useCallback(async () => {
     try {
-      if (!isRecordingRef.current) return;
-      isRecordingRef.current = false;
-      if (!audioRecorder.isRecording) return;
+      if (!isTranscribingRef.current) return;
+      isTranscribingRef.current = false;
 
-      if (silenceTimerRef.current) {
-        clearTimeout(silenceTimerRef.current);
-        silenceTimerRef.current = null;
-      }
       if (durationTimerRef.current) {
         clearInterval(durationTimerRef.current);
         durationTimerRef.current = null;
       }
-      if (meteringIntervalRef.current) {
-        clearInterval(meteringIntervalRef.current);
-        meteringIntervalRef.current = null;
-      }
-      recordingStartTimeRef.current = 0;
 
       setVoiceState('thinking');
       setProgressStep(null);
       setAudioLevel(0);
-      await audioRecorder.stop();
-      const uri = audioRecorder.uri;
-      if (!uri) {
-        throw new Error('No recording URI available');
-      }
-      const audioBase64 = await getBase64FromRecordingUri(uri);
+      const transcript = await getSttPort().stopRealtimeTranscription();
       setRecordingDuration(0);
 
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
+      const trimmed = transcript.trim();
+      if (trimmed.length < 2) {
+        showAlert({
+          title: 'No speech detected',
+          message: 'Please try again and speak clearly.',
+          type: 'warning',
+        });
+        setVoiceState('idle');
+        return;
+      }
+
       const response = await processVoiceMutation.mutateAsync({
         conversationId: currentConversationId || undefined,
-        audioData: audioBase64,
-        audioFormat: 'm4a',
+        transcript: trimmed,
         language: 'en',
       });
 
@@ -285,7 +250,6 @@ export function useVoiceScreen({
     processVoiceMutation,
     onKeyboardPress,
     updateConversationId,
-    audioRecorder,
     showAlert,
   ]);
 

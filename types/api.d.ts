@@ -108,8 +108,11 @@ export interface SentimentAnalysis {
 
 export interface ProcessVoiceMessageRequest {
   conversationId?: number;
-  audioData: string; // Base64 encoded audio
+  /** Base64 audio (legacy); omit when sending transcript from client STT (e.g. whisper.rn). */
+  audioData?: string;
   audioFormat?: 'mp3' | 'wav' | 'm4a' | 'ogg';
+  /** Client-side transcript (e.g. from whisper.rn Realtime Transcription). */
+  transcript?: string;
   language?: string;
   async?: boolean;
 }
