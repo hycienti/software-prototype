@@ -4,8 +4,9 @@
  */
 import { initWhisper } from 'whisper.rn'
 import { initWhisperVad } from 'whisper.rn'
-import { RealtimeTranscriber } from 'whisper.rn/realtime-transcription'
-import { AudioPcmStreamAdapter } from 'whisper.rn/realtime-transcription/adapters'
+// Use src path when Metro does not resolve package exports (see whisper.rn README)
+import { RealtimeTranscriber } from 'whisper.rn/src/realtime-transcription'
+import { AudioPcmStreamAdapter } from 'whisper.rn/src/realtime-transcription/adapters/AudioPcmStreamAdapter'
 import RNFS from 'react-native-fs'
 import type { RealtimeSttPort } from './sttPort'
 

@@ -11,6 +11,7 @@ import {
   unsubscribeFromVoiceResults,
   createWhisperRealtimeSttAdapter,
   getDocumentDirWhisperModelPaths,
+  ensureWhisperModelsReady,
 } from '@/services/voice';
 import { getStatusText as getStatusTextFn, type VoiceState } from '@/screens/voice/voiceScreenTypes';
 
@@ -48,6 +49,7 @@ export function useVoiceScreen({
   const isTranscribingRef = useRef(false);
   const speechResolveRef = useRef<(() => void) | null>(null);
   const sttPortRef = useRef<ReturnType<typeof createWhisperRealtimeSttAdapter> | null>(null);
+  const recordingStartTimeRef = useRef<number>(0);
 
   function getSttPort() {
     if (!sttPortRef.current) {
@@ -128,8 +130,13 @@ export function useVoiceScreen({
       setVoiceState('listening');
       setRecordingDuration(0);
       setAudioLevel(0);
+      setProgressStep('Preparing speech recognition...');
       isTranscribingRef.current = true;
       const startTime = Date.now();
+      recordingStartTimeRef.current = startTime;
+
+      await ensureWhisperModelsReady();
+      setProgressStep(null);
 
       await getSttPort().startRealtimeTranscription({ language: 'en' });
 
@@ -143,6 +150,7 @@ export function useVoiceScreen({
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } catch (error: unknown) {
       isTranscribingRef.current = false;
+      setProgressStep(null);
       showAlert({
         title: 'Error',
         message:
@@ -154,6 +162,8 @@ export function useVoiceScreen({
     }
   }, [showAlert]);
 
+  const MIN_RECORDING_SEC = 2;
+
   const handleStopRecording = useCallback(async () => {
     try {
       if (!isTranscribingRef.current) return;
@@ -162,6 +172,20 @@ export function useVoiceScreen({
       if (durationTimerRef.current) {
         clearInterval(durationTimerRef.current);
         durationTimerRef.current = null;
+      }
+
+      const elapsedSec = (Date.now() - recordingStartTimeRef.current) / 1000;
+      if (elapsedSec < MIN_RECORDING_SEC) {
+        await getSttPort().stopRealtimeTranscription().catch(() => {});
+        showAlert({
+          title: 'Too short',
+          message: `Please speak for at least ${MIN_RECORDING_SEC} seconds before stopping.`,
+          type: 'warning',
+        });
+        setVoiceState('idle');
+        setRecordingDuration(0);
+        setAudioLevel(0);
+        return;
       }
 
       setVoiceState('thinking');
@@ -174,9 +198,11 @@ export function useVoiceScreen({
 
       const trimmed = transcript.trim();
       if (trimmed.length < 2) {
+        if (__DEV__) console.warn('[Voice] Empty or near-empty transcript', { length: trimmed.length, raw: transcript.slice(0, 100) });
         showAlert({
           title: 'No speech detected',
-          message: 'Please try again and speak clearly.',
+          message:
+            "We didn't catch any words. Speak clearly for 2–3 seconds after tapping the mic. On the Android emulator: Extended Controls (⋯) → Microphone → enable 'Virtual microphone attached' under Virtual Headset.",
           type: 'warning',
         });
         setVoiceState('idle');

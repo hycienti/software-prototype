@@ -49,7 +49,12 @@ export {
   createWhisperRealtimeSttAdapter,
   releaseWhisperSttResources,
 } from './whisperRealtimeSttAdapter'
-export { getDocumentDirWhisperModelPaths } from './whisperModelPaths'
+export { getDocumentDirWhisperModelPaths, ensureWhisperModelsReady } from './whisperModelPaths'
+export {
+  subscribeToVoiceResults,
+  unsubscribeFromVoiceResults,
+} from './voicePusher'
+export type { SubscribeToVoiceResultsOptions } from './voicePusher'
 
 // Re-export types for convenience
 export type {

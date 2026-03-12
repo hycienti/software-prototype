@@ -10,6 +10,13 @@
       ],
       "tailwind.config": [
         "./tailwind.config.js"
+      ],
+      "whisper.rn": ["node_modules/whisper.rn"],
+      "whisper.rn/src/realtime-transcription": [
+        "node_modules/whisper.rn/lib/typescript/realtime-transcription"
+      ],
+      "whisper.rn/src/realtime-transcription/adapters/AudioPcmStreamAdapter": [
+        "node_modules/whisper.rn/lib/typescript/realtime-transcription/adapters/AudioPcmStreamAdapter.d.ts"
       ]
     }
   }
