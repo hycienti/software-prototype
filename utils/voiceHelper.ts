@@ -1,10 +1,10 @@
-import { createAudioPlayer, setAudioModeAsync } from 'expo-audio'
+import * as Speech from 'expo-speech'
 import * as FileSystem from 'expo-file-system/legacy'
-import { Audio } from 'expo-av'
-import { useProcessVoiceMessage, useTextToSpeech } from '@/hooks/useVoice'
+import { useProcessVoiceMessage } from '@/hooks/useVoice'
+import { playFromUri, setAudioModeAsync } from '@/services/audio'
 
 /**
- * Voice helpers using expo-audio with expo-av fallback for TTS playback.
+ * Voice helpers using expo-audio for TTS playback.
  * Recording is done in the screen via useAudioRecorder; use getBase64FromRecordingUri(uri) after stop.
  */
 
@@ -67,91 +67,22 @@ export async function playAudioFromBase64(
   const cleanupFile = () =>
     FileSystem.deleteAsync(tempUri, { idempotent: true }).catch(() => {})
 
-  // Try expo-audio first
-  try {
-    const player = createAudioPlayer(tempUri, {})
-    let stopped = false
-
-    const done = new Promise<void>((resolve) => {
-      const sub = player.addListener(
-        'playbackStatusUpdate',
-        (status: { didJustFinish?: boolean }) => {
-          if (status.didJustFinish && !stopped) {
-            stopped = true
-            sub.remove()
-            player.remove()
-            cleanupFile()
-            resolve()
-          }
-        }
-      )
-    })
-
-    player.play()
-
-    const stop = () => {
-      if (stopped) return
-      stopped = true
-      try {
-        player.remove()
-      } catch (_) { /* already disposed */ }
+  const playback = await playFromUri(tempUri)
+  return {
+    done: playback.done.then(cleanupFile),
+    stop: () => {
+      playback.stop()
       cleanupFile()
-    }
-
-    return { done, stop }
-  } catch (expoAudioError) {
-    if (__DEV__) {
-      console.warn('playAudioFromBase64: expo-audio failed, using expo-av fallback', expoAudioError)
-    }
+    },
   }
-
-  // Fallback: expo-av
-  await Audio.setAudioModeAsync({
-    playsInSilentModeIOS: true,
-    staysActiveInBackground: false,
-    shouldDuckAndroid: true,
-  })
-
-  const { sound } = await Audio.Sound.createAsync(
-    { uri: tempUri },
-    { shouldPlay: true }
-  )
-
-  let stopped = false
-
-  const done = new Promise<void>((resolve) => {
-    sound.setOnPlaybackStatusUpdate((status) => {
-      if (status.isLoaded && status.didJustFinish && !status.isLooping && !stopped) {
-        stopped = true
-        sound.unloadAsync().then(() => {
-          cleanupFile()
-          resolve()
-        }).catch(() => {
-          cleanupFile()
-          resolve()
-        })
-      }
-    })
-  })
-
-  const stop = () => {
-    if (stopped) return
-    stopped = true
-    sound.stopAsync()
-      .then(() => sound.unloadAsync())
-      .catch(() => {})
-      .finally(() => cleanupFile())
-  }
-
-  return { done, stop }
 }
 
 /**
- * Hook wrapper for voice message processing
+ * Hook wrapper for voice message processing.
+ * TTS is done client-side with expo-speech.
  */
 export function useVoiceProcessing() {
   const processVoiceMutation = useProcessVoiceMessage()
-  const ttsMutation = useTextToSpeech()
 
   const processVoiceMessage = async (
     audioBase64: string,
@@ -166,18 +97,15 @@ export function useVoiceProcessing() {
     })
   }
 
-  const speakText = async (text: string, conversationId?: number) => {
-    const response = await ttsMutation.mutateAsync({
-      text,
-      conversationId,
-    })
-    return response.audioData
+  const speakText = (text: string) => {
+    if (!text?.trim()) return
+    Speech.speak(text.trim(), {})
   }
 
   return {
     processVoiceMessage,
     speakText,
-    isLoading: processVoiceMutation.isPending || ttsMutation.isPending,
-    error: processVoiceMutation.error || ttsMutation.error,
+    isLoading: processVoiceMutation.isPending,
+    error: processVoiceMutation.error,
   }
 }

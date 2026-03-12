@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Platform } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { Audio } from 'expo-av';
+import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 
 const PLAYBACK_VOLUME = 0.3;
 
@@ -28,34 +28,27 @@ export function useBreathingAudio({
   isPaused,
 }: UseBreathingAudioOptions): UseBreathingAudioReturn {
   const [isMuted, setIsMuted] = useState(!enableMusic);
-  const soundRef = useRef<Audio.Sound | null>(null);
+  const playerRef = useRef<ReturnType<typeof createAudioPlayer> | null>(null);
   const isDisposingRef = useRef(false);
-
-  // -- Core helpers (ref-based, no stale closures) --
 
   const dispose = useCallback(async () => {
     isDisposingRef.current = true;
-    const sound = soundRef.current;
-    if (!sound) return;
-
+    const player = playerRef.current;
+    if (!player) {
+      isDisposingRef.current = false;
+      return;
+    }
     try {
-      const status = await sound.getStatusAsync();
-      if (status.isLoaded) {
-        if (status.isPlaying) await sound.stopAsync();
-        await new Promise((r) => setTimeout(r, 50));
-        await sound.unloadAsync();
-      }
-    } catch (_) {
-      /* already unloaded */
+      player.pause();
+      player.remove();
+    } catch {
+      /* already disposed */
     } finally {
-      soundRef.current = null;
+      playerRef.current = null;
       isDisposingRef.current = false;
     }
-
     stopSpeech();
   }, []);
-
-  // -- Load / unload based on musicKey + enableMusic --
 
   useEffect(() => {
     if (!enableMusic) {
@@ -70,27 +63,27 @@ export function useBreathingAudio({
       if (cancelled) return;
 
       try {
-        await Audio.setAudioModeAsync({
-          playsInSilentModeIOS: true,
-          staysActiveInBackground: false,
-          shouldDuckAndroid: true,
+        await setAudioModeAsync({
+          playsInSilentMode: true,
+          shouldPlayInBackground: false,
+          interruptionMode: 'duckOthers',
         });
 
-        const { sound } = await Audio.Sound.createAsync(
-          { uri: MUSIC_URLS[musicKey] || MUSIC_URLS.rain },
-          {
-            shouldPlay: !isPaused,
-            isLooping: true,
-            volume: isMuted ? 0 : PLAYBACK_VOLUME,
-          },
-        );
+        const uri = MUSIC_URLS[musicKey] || MUSIC_URLS.rain;
+        const player = createAudioPlayer(uri, {});
 
         if (cancelled) {
-          await sound.unloadAsync().catch(() => {});
+          player.remove();
           return;
         }
 
-        soundRef.current = sound;
+        player.loop = true;
+        player.volume = isMuted ? 0 : PLAYBACK_VOLUME;
+        playerRef.current = player;
+
+        if (!isPaused) {
+          player.play();
+        }
       } catch (error) {
         if (__DEV__) console.warn('useBreathingAudio: load failed', error);
       }
@@ -100,55 +93,42 @@ export function useBreathingAudio({
       cancelled = true;
       dispose();
     };
-  }, [musicKey, enableMusic]);
+  }, [musicKey, enableMusic, dispose]);
 
-  // -- Volume-based mute (no destroy/reload) --
-
-  const toggleMute = useCallback(async () => {
+  const toggleMute = useCallback(() => {
     setIsMuted((prev) => {
       const next = !prev;
-      const sound = soundRef.current;
-      if (sound) {
-        sound.setVolumeAsync(next ? 0 : PLAYBACK_VOLUME).catch(() => {});
+      const player = playerRef.current;
+      if (player) {
+        player.volume = next ? 0 : PLAYBACK_VOLUME;
       }
       return next;
     });
   }, []);
 
-  // -- Pause / resume reactivity --
-
   useEffect(() => {
-    const sound = soundRef.current;
-    if (!sound || !enableMusic) return;
+    const player = playerRef.current;
+    if (!player || !enableMusic) return;
 
-    (async () => {
-      try {
-        const status = await sound.getStatusAsync();
-        if (!status.isLoaded) return;
-
-        if (isPaused && status.isPlaying) {
-          await sound.pauseAsync();
-        } else if (!isPaused && !status.isPlaying) {
-          await sound.playAsync();
-        }
-      } catch (_) {
-        /* sound may have been disposed between check and action */
-      }
-    })();
+    if (isPaused) {
+      player.pause();
+    } else {
+      player.play();
+    }
   }, [isPaused, enableMusic]);
-
-  // -- Cleanup on screen blur --
 
   useFocusEffect(
     useCallback(() => {
-      return () => { dispose(); };
-    }, [dispose]),
+      return () => {
+        dispose();
+      };
+    }, [dispose])
   );
 
-  // -- Cleanup on unmount --
-
   useEffect(() => {
-    return () => { dispose(); };
+    return () => {
+      dispose();
+    };
   }, [dispose]);
 
   return { isMuted, toggleMute };
@@ -163,7 +143,7 @@ function stopSpeech() {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const Speech = require('expo-speech');
     if (Speech?.stop) Speech.stop();
-  } catch (_) {
+  } catch {
     /* expo-speech not available */
   }
 }

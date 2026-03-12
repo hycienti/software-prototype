@@ -3,7 +3,13 @@ import { useFocusEffect } from 'expo-router';
 import { Alert } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
-import { Audio } from 'expo-av';
+import {
+  useAudioRecorder,
+  RecordingPresets,
+  setAudioModeAsync,
+  requestRecordingPermissionsAsync,
+  createAudioPlayer,
+} from 'expo-audio';
 import { therapistMessagesService } from '@/services/therapistMessages';
 import type { ApiError, TherapistThreadMessage as ApiMessage } from '@/types/api';
 
@@ -47,9 +53,12 @@ export function useTherapistThreadChat({
   const [uploadingVoice, setUploadingVoice] = useState(false);
   const [playingVoiceUrl, setPlayingVoiceUrl] = useState<string | null>(null);
 
-  const recordingRef = useRef<Audio.Recording | null>(null);
   const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const playbackSoundRef = useRef<Audio.Sound | null>(null);
+  const playbackPlayerRef = useRef<ReturnType<typeof createAudioPlayer> | null>(null);
+
+  const audioRecorder = useAudioRecorder({
+    ...RecordingPresets.HIGH_QUALITY,
+  });
 
   const queryClient = useQueryClient();
 
@@ -139,26 +148,22 @@ export function useTherapistThreadChat({
   const startRecording = useCallback(async () => {
     if (!threadId || uploadingVoice) return;
     try {
-      const { granted } = await Audio.requestPermissionsAsync();
+      const { granted } = await requestRecordingPermissionsAsync();
       if (!granted) {
         Alert.alert('Permission needed', 'Microphone access is required to record voice messages.');
         return;
       }
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: false,
-        shouldDuckAndroid: true,
-        playThroughEarpieceAndroid: false,
+      await setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
       });
-      const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
-      recordingRef.current = recording;
+      await audioRecorder.prepareToRecordAsync();
+      audioRecorder.record();
       setIsRecording(true);
       setRecordingDurationSec(0);
       recordingIntervalRef.current = setInterval(() => {
-        setRecordingDurationSec((s) => s + 1);
+        const status = audioRecorder.getStatus();
+        setRecordingDurationSec(Math.floor(status.durationMillis / 1000));
       }, 1000);
     } catch (err) {
       Alert.alert(
@@ -166,17 +171,15 @@ export function useTherapistThreadChat({
         err instanceof Error ? err.message : 'Could not start recording.'
       );
     }
-  }, [threadId, uploadingVoice]);
+  }, [threadId, uploadingVoice, audioRecorder]);
 
   const stopRecordingAndSend = useCallback(async () => {
-    const recording = recordingRef.current;
-    if (!recording || !threadId) return;
+    if (!audioRecorder.isRecording || !threadId) return;
     setIsRecording(false);
-    recordingRef.current = null;
     clearRecordingTimer();
     try {
-      await recording.stopAndUnloadAsync();
-      const uri = recording.getURI();
+      await audioRecorder.stop();
+      const uri = audioRecorder.uri;
       if (!uri) return;
       setUploadingVoice(true);
       const { url } = await therapistMessagesService.upload(threadId, {
@@ -203,20 +206,18 @@ export function useTherapistThreadChat({
     } finally {
       setUploadingVoice(false);
     }
-  }, [threadId, inputText, queryClient, threadQueryKey, clearRecordingTimer]);
+  }, [threadId, inputText, queryClient, threadQueryKey, clearRecordingTimer, audioRecorder]);
 
   const stopRecordingAndDiscard = useCallback(async () => {
-    const recording = recordingRef.current;
-    if (!recording) return;
-    recordingRef.current = null;
+    if (!audioRecorder.isRecording) return;
     setIsRecording(false);
     clearRecordingTimer();
     try {
-      await recording.stopAndUnloadAsync();
+      await audioRecorder.stop();
     } catch {
       // ignore on discard
     }
-  }, [clearRecordingTimer]);
+  }, [clearRecordingTimer, audioRecorder]);
 
   useFocusEffect(
     useCallback(() => {
@@ -240,14 +241,16 @@ export function useTherapistThreadChat({
     }
   }, [isRecording, startRecording, stopRecordingAndSend]);
 
-  const stopPlayback = useCallback(async () => {
-    if (!playbackSoundRef.current) return;
+  const stopPlayback = useCallback(() => {
+    const player = playbackPlayerRef.current;
+    if (!player) return;
     try {
-      await playbackSoundRef.current.unloadAsync();
+      player.pause();
+      player.remove();
     } catch {
       // ignore
     }
-    playbackSoundRef.current = null;
+    playbackPlayerRef.current = null;
     setPlayingVoiceUrl(null);
   }, []);
 
@@ -259,24 +262,20 @@ export function useTherapistThreadChat({
       }
       await stopPlayback();
       try {
-        await Audio.setAudioModeAsync({
-          playsInSilentModeIOS: true,
-          staysActiveInBackground: false,
-          shouldDuckAndroid: true,
-          interruptionModeAndroid: 1,
-          interruptionModeIOS: 1,
+        await setAudioModeAsync({
+          playsInSilentMode: true,
+          shouldPlayInBackground: false,
+          interruptionMode: 'duckOthers',
         });
-        const { sound } = await Audio.Sound.createAsync(
-          { uri: voiceUrl },
-          { shouldPlay: true }
-        );
-        playbackSoundRef.current = sound;
+        const player = createAudioPlayer(voiceUrl, {});
+        playbackPlayerRef.current = player;
         setPlayingVoiceUrl(voiceUrl);
-        sound.setOnPlaybackStatusUpdate((status) => {
-          if (status.isLoaded && status.didJustFinish && !status.isLooping) {
+        player.addListener('playbackStatusUpdate', (status) => {
+          if (status.didJustFinish) {
             stopPlayback();
           }
         });
+        player.play();
       } catch (err) {
         if (__DEV__) console.warn('Voice playback failed', err);
         setPlayingVoiceUrl(null);
