@@ -606,10 +606,6 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 20, // space-y-5 = 1.25rem = 20px
   },
-  glassCardContent: {
-    position: 'relative',
-    zIndex: 1,
-  },
   musicButton: {
     flex: 1,
     flexDirection: 'column',

@@ -45,14 +45,6 @@ export function useMoodHistory(params?: {
     queryFn: () => moodService.getHistory(params),
     retry: 1,
     staleTime: 2 * 60 * 1000, // 2 minutes
-    onError: (error: any) => {
-      console.error('Failed to fetch mood history:', error)
-      showAlert({
-        type: 'error',
-        title: 'Error',
-        message: error?.message || 'Failed to load mood history. Please try again.',
-      })
-    },
   })
 }
 
@@ -93,10 +85,6 @@ export function useMoodInsights() {
     queryFn: () => moodService.getInsights(),
     retry: 1,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    onError: (error: any) => {
-      console.error('Failed to fetch mood insights:', error)
-      // Don't show alert - insights are not critical
-    },
   })
 }
 

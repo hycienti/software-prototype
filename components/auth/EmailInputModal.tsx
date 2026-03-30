@@ -4,13 +4,18 @@ import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { Button } from '@/components/ui/Button';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 interface EmailInputModalProps {
   visible: boolean;
   onClose: () => void;
   onSubmit: (email: string) => Promise<void>;
   isLoading?: boolean;
+  /** Override default "Get Started" / client copy (e.g. therapist sign-in) */
+  title?: string;
+  subtitle?: string;
+  submitLabel?: string;
+  loadingLabel?: string;
 }
 
 export const EmailInputModal: React.FC<EmailInputModalProps> = ({
@@ -18,6 +23,10 @@ export const EmailInputModal: React.FC<EmailInputModalProps> = ({
   onClose,
   onSubmit,
   isLoading = false,
+  title = 'Get Started',
+  subtitle = 'Enter your email address to receive a verification code',
+  submitLabel = 'Continue',
+  loadingLabel = 'Sending...',
 }) => {
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -87,14 +96,12 @@ export const EmailInputModal: React.FC<EmailInputModalProps> = ({
 
           <View style={styles.dragHandle} />
 
-          <Animated.View entering={FadeInDown.duration(400)} style={styles.header}>
-            <Text style={styles.title}>Get Started</Text>
-            <Text style={styles.subtitle}>
-              Enter your email address to receive a verification code
-            </Text>
+          <Animated.View entering={FadeIn.duration(200)} style={styles.header}>
+            <Text style={styles.title}>{title}</Text>
+            <Text style={styles.subtitle}>{subtitle}</Text>
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.duration(500).delay(100)} style={styles.inputContainer}>
+          <Animated.View entering={FadeIn.duration(200).delay(40)} style={styles.inputContainer}>
             <Text style={styles.label}>Email Address</Text>
             <View style={[styles.inputWrapper, error && styles.inputWrapperError]}>
               <TextInput
@@ -118,7 +125,7 @@ export const EmailInputModal: React.FC<EmailInputModalProps> = ({
             )}
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.duration(500).delay(200)} style={styles.buttonContainer}>
+          <Animated.View entering={FadeIn.duration(200).delay(80)} style={styles.buttonContainer}>
             <View style={styles.buttonWrapper}>
               <Button
                 onPress={handleSubmit}
@@ -128,7 +135,7 @@ export const EmailInputModal: React.FC<EmailInputModalProps> = ({
                 loading={isLoading}
                 className="w-full rounded-[50px]"
               >
-                {isLoading ? 'Sending...' : 'Continue'}
+                {isLoading ? loadingLabel : submitLabel}
               </Button>
             </View>
           </Animated.View>

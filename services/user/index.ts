@@ -22,7 +22,7 @@ export const userService = {
     if (typeof res === 'object' && (res as ApiSuccess<{ user: User }>).success && (res as ApiSuccess<{ user: User }>).data) {
       return (res as ApiSuccess<{ user: User }>).data
     }
-    return res as { user: User }
+    return res as unknown as { user: User }
   },
 
   /**
@@ -35,7 +35,7 @@ export const userService = {
     if (typeof res === 'object' && (res as ApiSuccess<{ user: User }>).success && (res as ApiSuccess<{ user: User }>).data) {
       return (res as ApiSuccess<{ user: User }>).data
     }
-    return res as { user: User }
+    return res as unknown as { user: User }
   },
 
   /**

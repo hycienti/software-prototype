@@ -42,14 +42,6 @@ export function useGratitudeHistory(params?: {
     queryFn: () => gratitudeService.getHistory(params),
     retry: 1,
     staleTime: 2 * 60 * 1000, // 2 minutes
-    onError: (error: any) => {
-      console.error('Failed to fetch gratitude history:', error)
-      showAlert({
-        type: 'error',
-        title: 'Error',
-        message: error?.message || 'Failed to load gratitude history. Please try again.',
-      })
-    },
   })
 }
 
@@ -90,10 +82,6 @@ export function useGratitudeInsights() {
     queryFn: () => gratitudeService.getInsights(),
     retry: 1,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    onError: (error: any) => {
-      console.error('Failed to fetch gratitude insights:', error)
-      // Don't show alert - insights are not critical
-    },
   })
 }
 

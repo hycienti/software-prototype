@@ -166,7 +166,7 @@ export const MoodJournalScreen: React.FC<MoodJournalScreenProps> = ({
               return (
                 <TouchableOpacity
                   key={mood.id}
-                  onPress={() => setSelectedMood(mood.id)}
+                  onPress={() => setSelectedMood(mood.id as MoodType)}
                   style={[
                     styles.moodChip,
                     isSelected ? styles.moodChipActive : styles.moodChipInactive,

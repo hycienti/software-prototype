@@ -4,7 +4,7 @@ import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { Button } from '@/components/ui/Button';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 interface OtpVerificationModalProps {
   visible: boolean;
@@ -155,7 +155,7 @@ export const OtpVerificationModal: React.FC<OtpVerificationModalProps> = ({
 
           <View style={styles.dragHandle} />
 
-          <Animated.View entering={FadeInDown.duration(400)} style={styles.header}>
+          <Animated.View entering={FadeIn.duration(200)} style={styles.header}>
             <Text style={styles.title}>Verify Your Email</Text>
             <Text style={styles.subtitle}>
               We've sent a 6-digit code to{'\n'}
@@ -163,16 +163,16 @@ export const OtpVerificationModal: React.FC<OtpVerificationModalProps> = ({
             </Text>
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.duration(500).delay(100)} style={styles.codeContainer}>
+          <Animated.View entering={FadeIn.duration(200).delay(40)} style={styles.codeContainer}>
             <View style={styles.codeInputs}>
               {code.map((digit, index) => (
                 <Animated.View
                   key={index}
-                  entering={FadeInDown.duration(300).delay(150 + index * 50)}
+                  entering={FadeIn.duration(160).delay(50 + index * 22)}
                   style={index < 5 && { marginRight: 12 }}
                 >
                   <TextInput
-                    ref={(ref) => (inputRefs.current[index] = ref)}
+                    ref={(ref: TextInput | null) => { inputRefs.current[index] = ref; }}
                     style={[styles.codeInput, error && styles.codeInputError]}
                     value={digit}
                     onChangeText={(value) => handleCodeChange(value, index)}
@@ -186,13 +186,13 @@ export const OtpVerificationModal: React.FC<OtpVerificationModalProps> = ({
               ))}
             </View>
             {error && (
-              <Animated.View entering={FadeInDown.duration(300)}>
+              <Animated.View entering={FadeIn.duration(180)}>
                 <Text style={styles.errorText}>{error}</Text>
               </Animated.View>
             )}
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.duration(500).delay(200)} style={styles.footer}>
+          <Animated.View entering={FadeIn.duration(200).delay(80)} style={styles.footer}>
             {timeLeft > 0 && (
               <Text style={styles.timerText}>
                 Code expires in {formatTime(timeLeft)}

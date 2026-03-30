@@ -42,12 +42,21 @@ export default function RootLayout() {
               >
             <Stack.Screen name="index" />
             <Stack.Screen name="(auth)/welcome" />
+            <Stack.Screen name="(auth)/therapist-welcome" />
+            <Stack.Screen name="therapist-auth-modal" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="therapist-verification-pending" />
+            <Stack.Screen name="(therapist-onboarding)" />
+            <Stack.Screen name="(therapist-tabs)" />
+            <Stack.Screen name="(therapist-financial)" />
+            <Stack.Screen name="(therapist-sessions)" />
+            <Stack.Screen name="(therapist-settings)" />
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="chat" />
             <Stack.Screen name="voice" />
             <Stack.Screen name="therapists" />
             <Stack.Screen name="my-therapists" />
             <Stack.Screen name="therapist/[id]" />
+            <Stack.Screen name="session/video-call" />
             <Stack.Screen name="session/[id]/summary" />
             <Stack.Screen name="session/[id]/feedback" />
             <Stack.Screen name="session/[id]/call" />

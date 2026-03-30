@@ -3,11 +3,14 @@ import { View, Text, TouchableOpacity, Image, Linking } from 'react-native';
 import { Icon } from '@/components/ui/Icon';
 import { therapistChatStyles } from '@/screens/therapist-chat/therapistChatStyles';
 import type { TherapistThreadMessage } from '@/types/api';
+import type { ThreadMessage } from '@/types/therapist';
 
 const styles = therapistChatStyles;
 
+export type TherapistChatBubbleMessage = TherapistThreadMessage | ThreadMessage;
+
 export interface TherapistMessageBubbleProps {
-  item: TherapistThreadMessage;
+  item: TherapistChatBubbleMessage;
   isUser: boolean;
   playingVoiceUrl: string | null;
   onPlayVoice: (url: string) => void;

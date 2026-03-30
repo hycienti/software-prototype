@@ -34,37 +34,39 @@ export function useSendMessage() {
     },
     onSuccess: async (data) => {
       // Cache messages locally
-      if (data.conversation.id) {
-        try {
-          const messages = [
-            {
-              id: data.message.id,
-              role: data.message.role,
-              content: data.message.content,
-              timestamp: data.message.createdAt,
-              pending: false,
-            },
-            {
-              id: data.response.id,
-              role: data.response.role,
-              content: data.response.content,
-              timestamp: data.response.createdAt,
-              pending: false,
-            },
-          ]
-          await cacheMessages(data.conversation.id, messages)
-        } catch (error) {
-          console.error('Error caching messages:', error)
+      if (data.conversation && data.message && data.response) {
+        if (data.conversation.id) {
+          try {
+            const messages = [
+              {
+                id: data.message.id,
+                role: data.message.role,
+                content: data.message.content,
+                timestamp: data.message.createdAt,
+                pending: false,
+              },
+              {
+                id: data.response.id,
+                role: data.response.role,
+                content: data.response.content,
+                timestamp: data.response.createdAt,
+                pending: false,
+              },
+            ]
+            await cacheMessages(data.conversation.id, messages)
+          } catch (error) {
+            console.error('Error caching messages:', error)
+          }
         }
-      }
 
-      // Invalidate and refetch conversation history
-      queryClient.invalidateQueries({ queryKey: ['conversations', 'history'] })
-      // Update specific conversation cache if conversationId exists
-      if (data.conversation.id) {
-        queryClient.invalidateQueries({
-          queryKey: ['conversations', data.conversation.id],
-        })
+        // Invalidate and refetch conversation history
+        queryClient.invalidateQueries({ queryKey: ['conversations', 'history'] })
+        // Update specific conversation cache if conversationId exists
+        if (data.conversation.id) {
+          queryClient.invalidateQueries({
+            queryKey: ['conversations', data.conversation.id],
+          })
+        }
       }
     },
     onError: async (error: any, variables) => {

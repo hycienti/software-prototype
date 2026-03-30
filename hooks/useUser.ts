@@ -17,7 +17,7 @@ export const userKeys = {
 export function useUserProfile() {
   const { showAlert } = useUIStore()
 
-  return useQuery({
+  return useQuery<User>({
     queryKey: userKeys.profile(),
     queryFn: async () => {
       const response = await userService.getProfile()
@@ -28,10 +28,6 @@ export function useUserProfile() {
     },
     retry: 1,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    onError: (error: any) => {
-      console.error('Failed to fetch user profile:', error)
-      // Don't show alert for profile fetch errors - use cached data
-    },
   })
 }
 
