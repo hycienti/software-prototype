@@ -7,6 +7,8 @@ export default function TherapistSettingsLayout() {
       <Stack.Screen name="professional-profile" />
       <Stack.Screen name="availability" />
       <Stack.Screen name="notifications" />
+      <Stack.Screen name="security" />
+      <Stack.Screen name="help-support" />
     </Stack>
   );
 }

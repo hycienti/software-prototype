@@ -51,7 +51,6 @@ Users can authenticate using OAuth providers for seamless, secure access.
 
 **Requirements:**
 - Support Google OAuth 2.0
-- Support Apple Sign-In
 - No traditional email/password registration required
 - Session management with secure token handling
 - Auto-login for returning users
