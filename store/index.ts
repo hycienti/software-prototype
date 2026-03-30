@@ -7,6 +7,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { User, AuthToken } from '@/types/api';
+import type { TherapistProfile } from '@/types/therapist';
 
 // ============================================================================
 // UI Store (for modals, alerts, etc.)
@@ -89,14 +90,20 @@ export const useConversationStore = create<ConversationStore>()(
 // Auth Store (for auth state management)
 // ============================================================================
 
+export type UserRole = 'client' | 'therapist' | null;
+
 interface AuthStore {
   isAuthenticated: boolean;
   user: User | null;
   token: AuthToken | null;
+  role: UserRole;
+  therapistProfile: TherapistProfile | null;
   isLoading: boolean;
   setAuth: (user: User, token: AuthToken) => Promise<void>;
+  setTherapistAuth: (therapist: TherapistProfile, token: AuthToken) => Promise<void>;
   updateToken: (token: AuthToken) => Promise<void>;
   updateUser: (user: Partial<User>) => void;
+  updateTherapistProfile: (data: Partial<TherapistProfile>) => void;
   clearAuth: () => Promise<void>;
   setLoading: (loading: boolean) => void;
 }
@@ -110,21 +117,43 @@ export const useAuthStore = create<AuthStore>()(
       isAuthenticated: false,
       user: null,
       token: null,
+      role: null as UserRole,
+      therapistProfile: null,
       isLoading: false,
 
       setAuth: async (user: User, token: AuthToken) => {
         try {
           // Store token in AsyncStorage for API client interceptor
           await AsyncStorage.setItem(AUTH_TOKEN_KEY, token.value);
-          
+
           set({
             isAuthenticated: true,
             user,
             token,
+            role: 'client',
             isLoading: false,
           });
         } catch (error) {
           console.error('Error setting auth:', error);
+          set({ isLoading: false });
+          throw error;
+        }
+      },
+
+      setTherapistAuth: async (therapist: TherapistProfile, token: AuthToken) => {
+        try {
+          await AsyncStorage.setItem(AUTH_TOKEN_KEY, token.value);
+
+          set({
+            isAuthenticated: true,
+            user: null,
+            therapistProfile: therapist,
+            token,
+            role: 'therapist',
+            isLoading: false,
+          });
+        } catch (error) {
+          console.error('Error setting therapist auth:', error);
           set({ isLoading: false });
           throw error;
         }
@@ -149,6 +178,13 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
+      updateTherapistProfile: (data: Partial<TherapistProfile>) => {
+        const current = get().therapistProfile;
+        if (current) {
+          set({ therapistProfile: { ...current, ...data } });
+        }
+      },
+
       clearAuth: async () => {
         try {
           await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
@@ -157,6 +193,8 @@ export const useAuthStore = create<AuthStore>()(
             isAuthenticated: false,
             user: null,
             token: null,
+            role: null,
+            therapistProfile: null,
             isLoading: false,
           });
         } catch (error) {
@@ -171,11 +209,13 @@ export const useAuthStore = create<AuthStore>()(
     {
       name: 'auth-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      // Only persist user and token, not loading state
+      // Only persist essential auth state, not loading
       partialize: (state) => ({
         isAuthenticated: state.isAuthenticated,
         user: state.user,
         token: state.token,
+        role: state.role,
+        therapistProfile: state.therapistProfile,
       }),
     }
   )

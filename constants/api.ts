@@ -107,12 +107,15 @@ export const API_ENDPOINTS = {
     STT: '/voice/stt',
   },
 
-  // Sessions (user)
+  // Sessions (user + therapist)
   SESSIONS: {
     BASE: '/sessions',
-    BY_ID: (id: number) => `/sessions/${id}`,
+    BY_ID: (id: number | string) => `/sessions/${id}`,
     FEEDBACK: (id: number) => `/sessions/${id}/feedback`,
     JOIN_ROOM: (id: number) => `/sessions/${id}/join-room`,
+    CREATE_ROOM: (id: number | string) => `/sessions/${id}/create-room`,
+    SUMMARY: (id: number | string) => `/sessions/${id}/summary`,
+    TEST_ROOM: '/sessions/test-room',
   },
 
   // User-facing therapists (list and detail)
@@ -133,6 +136,39 @@ export const API_ENDPOINTS = {
   // User payments (mock payment + book session, list)
   PAYMENTS: {
     BASE: '/payments',
+  },
+
+  // ============================================================================
+  // Therapist Portal Endpoints
+  // ============================================================================
+
+  THERAPIST: {
+    AUTH: {
+      SEND_OTP: '/therapist/auth/send-otp',
+      VERIFY_OTP: '/therapist/auth/verify-otp',
+      ONBOARD: '/therapist/auth/onboard',
+      SPECIALTIES: '/therapist/auth/specialties',
+      ME: '/therapist/auth/me',
+      DOCUMENTS_UPLOAD: '/therapist/auth/documents/upload',
+    },
+    DASHBOARD: '/therapist/dashboard',
+    CLIENTS: '/therapist/clients',
+    AVAILABILITY: '/therapist/availability',
+    WALLET: {
+      BASE: '/therapist/wallet',
+      WITHDRAW: '/therapist/wallet/withdraw',
+    },
+    NOTIFICATIONS: {
+      LIST: '/therapist/notifications',
+      MARK_ALL_READ: '/therapist/notifications/mark-all-read',
+      BY_ID: (id: number) => `/therapist/notifications/${id}`,
+    },
+    THREADS: {
+      LIST: '/therapist/threads',
+      DETAIL: (id: number | string) => `/therapist/threads/${id}`,
+      MESSAGES: (id: number | string) => `/therapist/threads/${id}/messages`,
+      UPLOAD: '/therapist/threads/upload',
+    },
   },
 } as const;
 

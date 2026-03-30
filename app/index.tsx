@@ -9,7 +9,7 @@ import { useAuthStore } from '@/store';
  */
 export default function Index() {
   const [isChecking, setIsChecking] = useState(true);
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, role } = useAuthStore();
 
   useEffect(() => {
     // Small delay to ensure store is hydrated from AsyncStorage
@@ -29,8 +29,11 @@ export default function Index() {
     );
   }
 
-  // Redirect based on authentication state
+  // Redirect based on authentication state and role
   if (isAuthenticated) {
+    if (role === 'therapist') {
+      return <Redirect href="/(therapist-tabs)/dashboard" />;
+    }
     return <Redirect href="/(tabs)" />;
   }
 

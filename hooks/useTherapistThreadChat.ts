@@ -54,6 +54,8 @@ export function useTherapistThreadChat({
   const [playingVoiceUrl, setPlayingVoiceUrl] = useState<string | null>(null);
 
   const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  /** Tracks our recording session; native AudioRecorder can be released before React reruns — never gate cleanup on `audioRecorder.isRecording`. */
+  const recordingNativeActiveRef = useRef(false);
   const playbackPlayerRef = useRef<ReturnType<typeof createAudioPlayer> | null>(null);
 
   const audioRecorder = useAudioRecorder({
@@ -159,13 +161,19 @@ export function useTherapistThreadChat({
       });
       await audioRecorder.prepareToRecordAsync();
       audioRecorder.record();
+      recordingNativeActiveRef.current = true;
       setIsRecording(true);
       setRecordingDurationSec(0);
       recordingIntervalRef.current = setInterval(() => {
-        const status = audioRecorder.getStatus();
-        setRecordingDurationSec(Math.floor(status.durationMillis / 1000));
+        try {
+          const status = audioRecorder.getStatus();
+          setRecordingDurationSec(Math.floor(status.durationMillis / 1000));
+        } catch {
+          // Recorder may already be released (e.g. blur cleanup)
+        }
       }, 1000);
     } catch (err) {
+      recordingNativeActiveRef.current = false;
       Alert.alert(
         'Recording failed',
         err instanceof Error ? err.message : 'Could not start recording.'
@@ -174,7 +182,8 @@ export function useTherapistThreadChat({
   }, [threadId, uploadingVoice, audioRecorder]);
 
   const stopRecordingAndSend = useCallback(async () => {
-    if (!audioRecorder.isRecording || !threadId) return;
+    if (!recordingNativeActiveRef.current || !threadId) return;
+    recordingNativeActiveRef.current = false;
     setIsRecording(false);
     clearRecordingTimer();
     try {
@@ -209,27 +218,28 @@ export function useTherapistThreadChat({
   }, [threadId, inputText, queryClient, threadQueryKey, clearRecordingTimer, audioRecorder]);
 
   const stopRecordingAndDiscard = useCallback(async () => {
-    if (!audioRecorder.isRecording) return;
+    if (!recordingNativeActiveRef.current) return;
+    recordingNativeActiveRef.current = false;
     setIsRecording(false);
     clearRecordingTimer();
     try {
       await audioRecorder.stop();
     } catch {
-      // ignore on discard
+      // ignore on discard / already released
     }
   }, [clearRecordingTimer, audioRecorder]);
 
   useFocusEffect(
     useCallback(() => {
       return () => {
-        stopRecordingAndDiscard();
+        void stopRecordingAndDiscard();
       };
     }, [stopRecordingAndDiscard])
   );
 
   useEffect(() => {
     return () => {
-      stopRecordingAndDiscard();
+      void stopRecordingAndDiscard();
     };
   }, [stopRecordingAndDiscard]);
 

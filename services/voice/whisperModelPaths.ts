@@ -36,7 +36,7 @@ const NETWORK_ERROR_MESSAGE =
 export async function ensureWhisperModelsReady(): Promise<WhisperModelPaths> {
   const paths = getDocumentDirWhisperModelPaths()
 
-  const whisperInfo = await FileSystem.getInfoAsync(paths.whisper, { size: true })
+  const whisperInfo = await FileSystem.getInfoAsync(paths.whisper)
   if (!whisperInfo.exists || (whisperInfo.size ?? 0) < 1_000_000) {
     try {
       await FileSystem.downloadAsync(WHISPER_MODEL_URL, paths.whisper)
@@ -51,7 +51,7 @@ export async function ensureWhisperModelsReady(): Promise<WhisperModelPaths> {
 
   if (paths.vad) {
     try {
-      const vadInfo = await FileSystem.getInfoAsync(paths.vad, { size: true })
+      const vadInfo = await FileSystem.getInfoAsync(paths.vad)
       if (!vadInfo.exists || (vadInfo.size ?? 0) < 10_000) {
         await FileSystem.downloadAsync(VAD_MODEL_URL, paths.vad)
       }

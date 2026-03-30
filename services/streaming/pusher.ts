@@ -60,18 +60,18 @@ export class PusherStreamingService {
 
         yield {
           type: 'start',
-          conversationId: response.conversation.id,
-          messageId: response.message.id,
+          conversationId: response.conversation!.id,
+          messageId: response.message!.id,
         };
 
         yield {
           type: 'chunk',
-          content: response.response.content,
+          content: response.response!.content,
         };
 
         yield {
           type: 'complete',
-          messageId: response.response.id,
+          messageId: response.response!.id,
           sentiment: response.sentiment,
         };
 
@@ -98,9 +98,9 @@ export class PusherStreamingService {
           mode: 'text',
           stream: false,
         });
-        yield { type: 'start', conversationId, messageId: response.message.id };
-        yield { type: 'chunk', content: response.response.content };
-        yield { type: 'complete', messageId: response.response.id, sentiment: response.sentiment };
+        yield { type: 'start', conversationId, messageId: response.message!.id };
+        yield { type: 'chunk', content: response.response!.content };
+        yield { type: 'complete', messageId: response.response!.id, sentiment: response.sentiment };
       } catch (err: unknown) {
         const e = new Error(err instanceof Error ? err.message : 'Failed to send message');
         onError?.(e);
@@ -151,7 +151,7 @@ export class PusherStreamingService {
         }
         pushEvent({
           type: 'complete',
-          messageId: response.response.id,
+          messageId: response.response!.id,
           sentiment: response.sentiment,
         });
         isComplete = true;
@@ -167,7 +167,7 @@ export class PusherStreamingService {
       });
 
     let streamStartReceived = false;
-    let userMessageIdForPolling: number | null = null;
+    let userMessageIdForPolling: number | undefined | null = null;
     const startTimeout = setTimeout(() => {
       if (!streamStartReceived && userMessageIdForPolling === null) {
         streamStartReceived = true;
@@ -187,7 +187,7 @@ export class PusherStreamingService {
         if (event.type === 'complete') break;
       } else {
         if (hasError) break;
-        const event = await (userMessageIdForPolling !== null
+        const event: StreamingMessageEvent | null = await (userMessageIdForPolling !== null
           ? Promise.race([
               new Promise<StreamingMessageEvent>((resolve) => {
                 resolveNext = resolve;
@@ -213,8 +213,8 @@ export class PusherStreamingService {
 
     clearTimeout(startTimeout);
 
-    if (userMessageIdForPolling !== null && !isComplete && !hasError) {
-      const pollResult = await this.pollStreamStatus(conversationId, userMessageIdForPolling);
+    if (userMessageIdForPolling != null && !isComplete && !hasError) {
+      const pollResult = await this.pollStreamStatus(conversationId, userMessageIdForPolling as number);
       if (pollResult) for (const e of pollResult) yield e;
     }
   }

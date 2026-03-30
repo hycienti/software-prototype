@@ -172,7 +172,7 @@ export const OtpVerificationModal: React.FC<OtpVerificationModalProps> = ({
                   style={index < 5 && { marginRight: 12 }}
                 >
                   <TextInput
-                    ref={(ref) => (inputRefs.current[index] = ref)}
+                    ref={(ref: TextInput | null) => { inputRefs.current[index] = ref; }}
                     style={[styles.codeInput, error && styles.codeInputError]}
                     value={digit}
                     onChangeText={(value) => handleCodeChange(value, index)}

@@ -1,86 +1,129 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { MaterialIcons } from '@expo/vector-icons';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  Platform,
+  StyleSheet,
+  AppState,
+  InteractionManager,
+  type AppStateStatus,
+} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import { Asset } from 'expo-asset';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useAuth } from '@/hooks/useAuth';
 import { EmailInputModal } from '@/components/auth/EmailInputModal';
 import { OtpVerificationModal } from '@/components/auth/OtpVerificationModal';
 import { FullnameInputModal } from '@/components/auth/FullnameInputModal';
 
+/** Bundled asset only — avoids useVideoPlayer source changes that recreate native VideoPlayer. */
+const THERAPY_BACKGROUND_VIDEO = require('../../assets/onboarding/vidoes/therapy.mp4');
+
+/**
+ * Separate component so `useVideoPlayer` only runs while this tree is mounted.
+ * Native player must not be constructed while the Activity is unavailable (blur, background, etc.).
+ */
+function BackgroundVideo() {
+  const player = useVideoPlayer(THERAPY_BACKGROUND_VIDEO, (p) => {
+    p.loop = true;
+    p.muted = true;
+    p.play();
+  });
+
+  return (
+    <VideoView
+      player={player}
+      style={StyleSheet.absoluteFill}
+      contentFit="cover"
+      nativeControls={false}
+      allowsPictureInPicture={false}
+    />
+  );
+}
+
 export default function WelcomePage() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [videoUri, setVideoUri] = useState<string | null>(null);
-  
+  const [screenFocused, setScreenFocused] = useState(false);
+  const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
+  const [deferMountPlayer, setDeferMountPlayer] = useState(false);
+
+  const showBackgroundVideo =
+    screenFocused && appState === 'active' && deferMountPlayer;
+
+  useFocusEffect(
+    useCallback(() => {
+      setScreenFocused(true);
+      return () => setScreenFocused(false);
+    }, [])
+  );
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      setAppState(next);
+    });
+    return () => sub.remove();
+  }, []);
+
+  useEffect(() => {
+    if (!screenFocused || appState !== 'active') {
+      setDeferMountPlayer(false);
+      return;
+    }
+
+    let cancelled = false;
+    let rafId: number | null = null;
+    let delayTimeoutId: ReturnType<typeof setTimeout> | null = null;
+    const delayMs = Platform.OS === 'android' ? 320 : 0;
+
+    const task = InteractionManager.runAfterInteractions(() => {
+      if (cancelled) return;
+
+      const runFrame = () => {
+        if (cancelled) return;
+        rafId = requestAnimationFrame(() => {
+          if (!cancelled) setDeferMountPlayer(true);
+        });
+      };
+
+      if (delayMs > 0) {
+        delayTimeoutId = setTimeout(runFrame, delayMs);
+      } else {
+        runFrame();
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      task.cancel();
+      if (delayTimeoutId != null) clearTimeout(delayTimeoutId);
+      if (rafId != null) cancelAnimationFrame(rafId);
+      setDeferMountPlayer(false);
+    };
+  }, [screenFocused, appState]);
+
   // Auth flow state
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [showFullnameModal, setShowFullnameModal] = useState(false);
   const [email, setEmail] = useState('');
   const [otpExpiresIn, setOtpExpiresIn] = useState(600);
-  
+
   // Auth hook with navigation on success
   const { isLoading, sendOtp, verifyOtp, completeSignup } = useAuth({
     onSuccess: () => {
-      // Navigate to main app on successful authentication
       router.replace('/(tabs)');
     },
     onError: (error) => {
-      // Error handling is done in the hook via UI store alerts
       console.error('Authentication error:', error);
     },
   });
-  
-  // Load video asset
-  useEffect(() => {
-    const loadVideo = async () => {
-      try {
-        const asset = Asset.fromModule(require('../../assets/onboarding/vidoes/therapy.mp4'));
-        await asset.downloadAsync();
-        if (asset.localUri) {
-          setVideoUri(asset.localUri);
-        }
-      } catch (error) {
-        console.error('Error loading video:', error);
-        // Fallback to require if Asset fails
-        setVideoUri(require('../../assets/onboarding/vidoes/therapy.mp4') as any);
-      }
-    };
-    loadVideo();
-  }, []);
-
-  // Create video player only when URI is available
-  const player = useVideoPlayer(
-    videoUri || 'https://assets.mixkit.co/videos/preview/mixkit-sun-shining-through-the-trees-1240-large.mp4',
-    (player) => {
-      if (player) {
-        player.loop = true;
-        player.muted = true;
-        if (videoUri) {
-          player.play();
-        }
-      }
-    }
-  );
-
-  useEffect(() => {
-    // Ensure video plays when player and URI are ready
-    if (player && videoUri) {
-      const timer = setTimeout(() => {
-        try {
-          player.play();
-        } catch (error) {
-          console.error('Error playing video:', error);
-        }
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [player, videoUri]);
 
   const handleGetStarted = () => {
     setShowEmailModal(true);
@@ -94,7 +137,6 @@ export default function WelcomePage() {
       setShowEmailModal(false);
       setShowOtpModal(true);
     } catch (error) {
-      // Error is handled in the hook
       throw error;
     }
   };
@@ -103,14 +145,11 @@ export default function WelcomePage() {
     try {
       const result = await verifyOtp(email, code);
       setShowOtpModal(false);
-      
+
       if (result.requiresSignup) {
-        // New user - show fullname input
         setShowFullnameModal(true);
       }
-      // Existing user - auth hook will handle navigation
     } catch (error) {
-      // Error is handled in the hook
       throw error;
     }
   };
@@ -120,7 +159,6 @@ export default function WelcomePage() {
       const response = await sendOtp(email);
       setOtpExpiresIn(response.expiresIn);
     } catch (error) {
-      // Error is handled in the hook
       throw error;
     }
   };
@@ -129,9 +167,7 @@ export default function WelcomePage() {
     try {
       await completeSignup(email, fullName);
       setShowFullnameModal(false);
-      // Auth hook will handle navigation
     } catch (error) {
-      // Error is handled in the hook
       throw error;
     }
   };
@@ -141,24 +177,13 @@ export default function WelcomePage() {
       <View style={styles.wrapper}>
         {/* Video Background Layer */}
         <View style={styles.videoContainer}>
-          <VideoView
-            player={player}
-            style={StyleSheet.absoluteFill}
-            contentFit="cover"
-            nativeControls={false}
-            fullscreenOptions={
-              {
-                enable: true,
-              }
-            }
-            allowsPictureInPicture={false}
-          />
+          {showBackgroundVideo ? <BackgroundVideo /> : null}
           {/* Gradient Overlay */}
           <LinearGradient
             colors={[
-              'rgba(79, 209, 197, 0.3)', // mint/30
-              'rgba(25, 179, 230, 0.2)', // primary/20
-              'rgba(15, 23, 42, 0.5)', // slate-900/50
+              'rgba(79, 209, 197, 0.3)',
+              'rgba(25, 179, 230, 0.2)',
+              'rgba(15, 23, 42, 0.5)',
             ]}
             locations={[0, 0.5, 1]}
             style={StyleSheet.absoluteFill}
@@ -199,7 +224,6 @@ export default function WelcomePage() {
             locations={[0, 0.3, 0.7, 1]}
             style={StyleSheet.absoluteFill}
           />
-          {/* Accent gradient overlay */}
           <LinearGradient
             colors={[
               'rgba(25, 179, 230, 0.08)',
@@ -219,6 +243,15 @@ export default function WelcomePage() {
                 activeOpacity={0.98}
                 disabled={isLoading}>
                 <Text style={styles.primaryButtonText}>Get Started</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => router.push('/(auth)/therapist-welcome')}
+                activeOpacity={0.92}
+                style={styles.therapistButton}
+                accessibilityRole="button"
+                accessibilityLabel="I'm a therapist — open therapist sign-in">
+                <MaterialIcons name="spa" size={20} color="#19b3e6" style={styles.therapistButtonIcon} />
+                <Text style={styles.therapistButtonText}>I'm a therapist</Text>
               </TouchableOpacity>
             </View>
 
@@ -284,15 +317,6 @@ const styles = StyleSheet.create({
     height: '70%',
     overflow: 'hidden',
     zIndex: 0,
-  },
-  video: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: '100%',
-    height: '100%',
   },
   darkOverlay: {
     position: 'absolute',
@@ -402,6 +426,7 @@ const styles = StyleSheet.create({
   buttonContainer: {
     width: '100%',
     marginBottom: 'auto',
+    gap: 12,
   },
   primaryButton: {
     height: 56,
@@ -444,5 +469,25 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.6,
+  },
+  therapistButton: {
+    height: 52,
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(25, 179, 230, 0.08)',
+    borderRadius: 50,
+    borderWidth: 1.5,
+    borderColor: 'rgba(25, 179, 230, 0.45)',
+  },
+  therapistButtonIcon: {
+    marginRight: 8,
+  },
+  therapistButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#19b3e6',
+    letterSpacing: -0.2,
   },
 });
