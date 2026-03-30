@@ -208,7 +208,7 @@ If something fails silently, check Metro logs, device logs, and that **`EXPO_PUB
 ---
 
 ## License / legal
-
+**This product is not to be reproduced, either for personal or commercial purposes.**
 Refer to your organization’s license for this repository. **Do not commit `.env`** or production secrets.
 
 ---
