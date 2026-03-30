@@ -33,7 +33,7 @@ Optional but useful:
 ## Clone and install
 
 ```bash
-git clone <your-remote-url> Haven
+git clone https://github.com/hycienti/software-prototype Haven
 cd Haven
 ```
 
@@ -197,4 +197,4 @@ Refer to your organization’s license for this repository. **Do not commit `.en
 
 ## Related repository
 
-- **API & database:** `havens-backend` — see **`havens-backend/README.md`** for PostgreSQL, migrations, Docker, and all server-side environment variables.
+- **API & database:** https://github.com/hycienti/software-prototype-backend — see **`havens-backend/README.md`** for PostgreSQL, migrations, Docker, and all server-side environment variables.
