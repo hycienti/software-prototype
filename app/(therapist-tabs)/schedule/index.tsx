@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { therapistTabBarClearance } from '@/constants/therapistTabBar';
 import { useTherapistAvailability } from '@/hooks/useTherapistApi';
 
 const WEEK_DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -170,7 +171,7 @@ export default function ScheduleScreen() {
           paddingHorizontal: 24,
           paddingTop: 24,
           gap: 24,
-          paddingBottom: 120,
+          paddingBottom: therapistTabBarClearance(insets.bottom, 8),
         }}
         showsVerticalScrollIndicator={false}
       >

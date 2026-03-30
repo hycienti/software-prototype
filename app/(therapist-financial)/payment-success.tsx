@@ -28,7 +28,7 @@ export default function PaymentSuccessScreen() {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace("/(tabs)" as any);
+      router.replace("/(therapist-tabs)/wallet" as any);
     }
   };
 

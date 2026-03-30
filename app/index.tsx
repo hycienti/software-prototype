@@ -5,23 +5,24 @@ import { useAuthStore } from '@/store';
 
 /**
  * Root index page - handles initial routing based on authentication state
- * Checks if user is authenticated and redirects accordingly
+ * Waits for persisted auth to rehydrate so therapists are not sent to welcome briefly.
  */
 export default function Index() {
-  const [isChecking, setIsChecking] = useState(true);
+  const [authHydrated, setAuthHydrated] = useState(() => useAuthStore.persist.hasHydrated());
   const { isAuthenticated, role } = useAuthStore();
 
   useEffect(() => {
-    // Small delay to ensure store is hydrated from AsyncStorage
-    const timer = setTimeout(() => {
-      setIsChecking(false);
-    }, 100);
-
-    return () => clearTimeout(timer);
+    if (useAuthStore.persist.hasHydrated()) {
+      setAuthHydrated(true);
+      return;
+    }
+    const unsub = useAuthStore.persist.onFinishHydration(() => {
+      setAuthHydrated(true);
+    });
+    return unsub;
   }, []);
 
-  // Show loading indicator while checking auth state
-  if (isChecking) {
+  if (!authHydrated) {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color="#19b3e6" />

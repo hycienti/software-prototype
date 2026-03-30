@@ -275,6 +275,8 @@ export type ThreadSummary = {
   id: number
   userId: number
   therapistId: number
+  sessionId?: number
+  session?: { id: number; scheduledAt: string; status: string }
   user: ThreadUser | null
   lastMessage: ThreadMessage | null
   createdAt: string
@@ -285,6 +287,8 @@ export type ThreadWithMessages = {
   id: number
   userId: number
   therapistId: number
+  sessionId?: number
+  session?: { id: number; scheduledAt: string; status: string }
   user: ThreadUser | null
   createdAt: string
   updatedAt: string

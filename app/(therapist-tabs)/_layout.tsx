@@ -1,8 +1,20 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  THERAPIST_TAB_BAR_FLOAT_GAP,
+  THERAPIST_TAB_BAR_HEIGHT,
+  THERAPIST_TAB_BAR_LEFT_PCT,
+  THERAPIST_TAB_BAR_WIDTH_PCT,
+} from '@/constants/therapistTabBar';
 
 export default function TherapistTabLayout() {
+  const insets = useSafeAreaInsets();
+  const bottomOffset =
+    Math.max(insets.bottom, THERAPIST_TAB_BAR_FLOAT_GAP) + THERAPIST_TAB_BAR_FLOAT_GAP;
+
   return (
     <Tabs
       screenOptions={{
@@ -10,23 +22,36 @@ export default function TherapistTabLayout() {
         tabBarInactiveTintColor: '#7a8a8e',
         headerShown: false,
         tabBarLabelStyle: {
-          fontSize: 10,
+          fontSize: 9,
           fontWeight: '700',
-          letterSpacing: 0.5,
+          letterSpacing: 0.4,
+          marginBottom: Platform.OS === 'ios' ? 2 : 0,
         },
         tabBarIconStyle: {
-          marginTop: 0,
+          marginTop: 4,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 4,
         },
         tabBarStyle: {
-          backgroundColor: '#0a1a1f',
-          borderTopWidth: 1,
-          borderTopColor: 'rgba(255,255,255,0.08)',
-          paddingBottom: 32,
-          paddingTop: 12,
-          height: 80,
-          borderTopLeftRadius: 40,
-          borderTopRightRadius: 40,
           position: 'absolute',
+          marginLeft: THERAPIST_TAB_BAR_LEFT_PCT,
+          marginRight: THERAPIST_TAB_BAR_LEFT_PCT,
+          width: THERAPIST_TAB_BAR_WIDTH_PCT,
+          bottom: bottomOffset,
+          height: THERAPIST_TAB_BAR_HEIGHT,
+          paddingTop: 6,
+          paddingBottom: 6,
+          backgroundColor: 'rgba(10, 26, 31, 0.94)',
+          borderRadius: 40,
+          borderTopWidth: 0,
+          borderWidth: 1,
+          borderColor: 'rgba(255, 255, 255, 0.12)',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.4,
+          shadowRadius: 24,
+          elevation: 20,
         },
       }}>
       <Tabs.Screen

@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { therapistTabBarClearance } from '@/constants/therapistTabBar';
 import { useAuthStore } from '@/store';
 import {
   useTherapistDashboard,
@@ -100,7 +101,7 @@ export default function DashboardScreen() {
       const result = await createTestRoom();
       if (result?.meetingId) {
         router.push({
-          pathname: '/session/video-call' as any,
+          pathname: '/(therapist-sessions)/video-session' as any,
           params: { meetingId: result.meetingId, token: result.token },
         });
       }
@@ -144,7 +145,10 @@ export default function DashboardScreen() {
 
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 96 }}
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingBottom: therapistTabBarClearance(insets.bottom),
+        }}
         showsVerticalScrollIndicator={false}
       >
         {/* Greeting */}
@@ -250,7 +254,7 @@ export default function DashboardScreen() {
               <Pressable
                 onPress={() =>
                   router.push({
-                    pathname: '/session/video-call' as any,
+                    pathname: '/(therapist-sessions)/video-session' as any,
                     params: { sessionId: String(nextSession.id) },
                   })
                 }

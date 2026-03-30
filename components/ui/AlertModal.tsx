@@ -2,9 +2,9 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, TextStyle } from 'react-native';
 import { BlurView } from 'expo-blur';
 import Animated, {
+  Easing,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import { useUIStore } from '@/store';
@@ -33,16 +33,18 @@ export const AlertModal: React.FC<AlertModalProps> = ({
   buttons = [{ text: 'OK' }],
   onClose,
 }) => {
-  const scale = useSharedValue(0.8);
+  const scale = useSharedValue(0.94);
   const opacity = useSharedValue(0);
 
   React.useEffect(() => {
     if (visible) {
-      scale.value = withSpring(1, { damping: 15, stiffness: 300 });
-      opacity.value = withTiming(1, { duration: 200 });
+      const ease = Easing.out(Easing.cubic);
+      scale.value = withTiming(1, { duration: 200, easing: ease });
+      opacity.value = withTiming(1, { duration: 200, easing: ease });
     } else {
-      scale.value = withTiming(0.8, { duration: 150 });
-      opacity.value = withTiming(0, { duration: 150 });
+      const ease = Easing.in(Easing.cubic);
+      scale.value = withTiming(0.94, { duration: 140, easing: ease });
+      opacity.value = withTiming(0, { duration: 140, easing: ease });
     }
   }, [visible]);
 

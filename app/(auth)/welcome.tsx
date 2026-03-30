@@ -16,7 +16,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { useAuth } from '@/hooks/useAuth';
 import { EmailInputModal } from '@/components/auth/EmailInputModal';
 import { OtpVerificationModal } from '@/components/auth/OtpVerificationModal';
@@ -194,7 +194,7 @@ export default function WelcomePage() {
 
         {/* Top Content - Logo and Title */}
         <View style={styles.topContent}>
-          <Animated.View entering={FadeInDown.duration(600)} style={styles.logoContainer}>
+          <Animated.View entering={FadeIn.duration(320)} style={styles.logoContainer}>
             <Image
               source={{
                 uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA6znBoTu6R2NCalZovWSQI64K1JDtNpGuYSk8r83lcgK2TMKlDHz87juYiBsm-Ne5oovTkBqHYPYvVFKk_RxjEVR7B5W6hO5tJd0pLrxNIWfOIA_-f8XUz7NmQaU6MATSU2bxSw3-7rFp6I4h-WlBA4naNlHeFTkjj3_PLiARf7BCZjUT93ps0yjlO3PoLGtsaYo5ymsp7zupCpx6rMaypiQfBe68AC7L6eyBKwoggTpQMTNIUGPWce283UpQ3xas-5bU3lLtemsY',

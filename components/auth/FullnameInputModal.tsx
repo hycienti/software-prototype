@@ -4,7 +4,7 @@ import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { Button } from '@/components/ui/Button';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 interface FullnameInputModalProps {
   visible: boolean;
@@ -89,14 +89,14 @@ export const FullnameInputModal: React.FC<FullnameInputModalProps> = ({
 
           <View style={styles.dragHandle} />
 
-          <Animated.View entering={FadeInDown.duration(400)} style={styles.header}>
+          <Animated.View entering={FadeIn.duration(200)} style={styles.header}>
             <Text style={styles.title}>Complete Your Profile</Text>
             <Text style={styles.subtitle}>
               We need your name to personalize your Haven experience
             </Text>
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.duration(500).delay(100)} style={styles.inputContainer}>
+          <Animated.View entering={FadeIn.duration(200).delay(40)} style={styles.inputContainer}>
             <Text style={styles.label}>Full Name</Text>
             <View style={[styles.inputWrapper, error && styles.inputWrapperError]}>
               <TextInput
@@ -117,7 +117,7 @@ export const FullnameInputModal: React.FC<FullnameInputModalProps> = ({
             {error && <Text style={styles.errorText}>{error}</Text>}
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.duration(500).delay(200)} style={styles.buttonContainer}>
+          <Animated.View entering={FadeIn.duration(200).delay(80)} style={styles.buttonContainer}>
             <View style={styles.buttonWrapper}>
               <Button
                 onPress={handleSubmit}

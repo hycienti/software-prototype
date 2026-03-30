@@ -15,6 +15,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { therapistTabBarClearance } from '@/constants/therapistTabBar';
 import { useTherapistClients } from '@/hooks/useTherapistApi';
 import type { ClientItem } from '@/types/therapist';
 
@@ -222,7 +223,7 @@ export default function ClientsScreen() {
       ? filteredBySearch.filter((c) => c.sessionCount > 0)
       : filteredBySearch;
 
-  const listPaddingBottom = Math.max(insets.bottom, 24) + 88;
+  const listPaddingBottom = therapistTabBarClearance(insets.bottom, 12);
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>

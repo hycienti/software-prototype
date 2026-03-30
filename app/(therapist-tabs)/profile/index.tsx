@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { View, ScrollView, Image, Pressable, ActivityIndicator, Text } from 'react-native';
 import { router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import { therapistTabBarClearance } from '@/constants/therapistTabBar';
 import { useTherapistMe } from '@/hooks/useTherapistApi';
 import { useAuthStore } from '@/store';
 
@@ -43,6 +44,7 @@ const hubCards = [
 ];
 
 export default function ProfileScreen() {
+  const insets = useSafeAreaInsets();
   const { clearAuth } = useAuthStore();
   const { therapist, loading } = useTherapistMe();
   const [pressing, setPressing] = useState<string | null>(null);
@@ -67,7 +69,7 @@ export default function ProfileScreen() {
           contentContainerStyle={{
             paddingHorizontal: 24,
             paddingTop: 20,
-            paddingBottom: 48,
+            paddingBottom: therapistTabBarClearance(insets.bottom, 12),
             maxWidth: 480,
             alignSelf: 'center',
             width: '100%',

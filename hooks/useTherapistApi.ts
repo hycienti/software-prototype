@@ -124,6 +124,7 @@ export function useTherapistCreateRoom(sessionId: string | number | null) {
   })
   return {
     createRoom: mutation.mutate,
+    createRoomAsync: mutation.mutateAsync,
     meetingId: mutation.data?.meetingId ?? null,
     videoToken: mutation.data?.token ?? null,
     loading: mutation.isPending,

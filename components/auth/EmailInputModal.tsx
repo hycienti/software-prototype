@@ -4,7 +4,7 @@ import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { Button } from '@/components/ui/Button';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 interface EmailInputModalProps {
   visible: boolean;
@@ -96,12 +96,12 @@ export const EmailInputModal: React.FC<EmailInputModalProps> = ({
 
           <View style={styles.dragHandle} />
 
-          <Animated.View entering={FadeInDown.duration(400)} style={styles.header}>
+          <Animated.View entering={FadeIn.duration(200)} style={styles.header}>
             <Text style={styles.title}>{title}</Text>
             <Text style={styles.subtitle}>{subtitle}</Text>
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.duration(500).delay(100)} style={styles.inputContainer}>
+          <Animated.View entering={FadeIn.duration(200).delay(40)} style={styles.inputContainer}>
             <Text style={styles.label}>Email Address</Text>
             <View style={[styles.inputWrapper, error && styles.inputWrapperError]}>
               <TextInput
@@ -125,7 +125,7 @@ export const EmailInputModal: React.FC<EmailInputModalProps> = ({
             )}
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.duration(500).delay(200)} style={styles.buttonContainer}>
+          <Animated.View entering={FadeIn.duration(200).delay(80)} style={styles.buttonContainer}>
             <View style={styles.buttonWrapper}>
               <Button
                 onPress={handleSubmit}

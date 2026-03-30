@@ -71,7 +71,7 @@ export default function SessionSummaryScreen() {
 
   const handleSave = useCallback(async () => {
     if (!sessionId) {
-      router.replace("/(tabs)" as any);
+      router.replace("/(therapist-tabs)/dashboard" as any);
       return;
     }
     const notes = clinicalNotes.trim();
@@ -86,7 +86,7 @@ export default function SessionSummaryScreen() {
         clinicalNotes: notes,
         followUpAt: followUpAt.trim() || undefined,
       });
-      router.replace("/(tabs)" as any);
+      router.replace("/(therapist-tabs)/dashboard" as any);
     } catch (e) {
       Alert.alert(
         "Error",
@@ -100,7 +100,7 @@ export default function SessionSummaryScreen() {
       <View className="flex-1 justify-center items-center px-6" style={{ backgroundColor: BG }}>
         <Text className="text-sm text-center" style={{ color: TEXT_SECONDARY }}>No session selected. Returning to dashboard.</Text>
         <Pressable
-          onPress={() => router.replace("/(tabs)" as any)}
+          onPress={() => router.replace("/(therapist-tabs)/dashboard" as any)}
           className="mt-4 h-12 px-6 rounded-full items-center justify-center"
           style={{ backgroundColor: PRIMARY }}
         >

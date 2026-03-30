@@ -354,9 +354,7 @@ export default function VideoSessionScreen() {
   const sessionId = params.sessionId ?? null;
   const { session } = useTherapistSession(sessionId);
   const {
-    createRoom: createRoomMutation,
-    meetingId: roomMeetingId,
-    videoToken: roomToken,
+    createRoomAsync,
     loading: roomLoading,
     error: roomError,
   } = useTherapistCreateRoom(sessionId);
@@ -382,21 +380,32 @@ export default function VideoSessionScreen() {
     }
   }, [session]);
 
+  const createRoomOnceRef = useRef(false);
   useEffect(() => {
+    createRoomOnceRef.current = false;
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (meetingIdParam || !sessionId || !authToken || createRoomOnceRef.current) return;
+    createRoomOnceRef.current = true;
     let cancelled = false;
-    if (sessionId && authToken && !roomMeetingId && !roomLoading) {
-      createRoomMutation();
-    }
-    if (roomMeetingId && roomToken) {
-      if (!cancelled) {
-        setMeetingId(roomMeetingId);
-        setVideoToken(roomToken);
+    (async () => {
+      try {
+        const data = await createRoomAsync();
+        if (!cancelled && data?.meetingId && data?.token) {
+          setMeetingId(data.meetingId);
+          setVideoToken(data.token);
+        }
+      } catch {
+        if (!cancelled) {
+          setError("Could not create the video room. Try again or check the session is still scheduled.");
+        }
       }
-    }
+    })();
     return () => {
       cancelled = true;
     };
-  }, [sessionId, authToken, roomMeetingId, roomToken, roomLoading, createRoomMutation]);
+  }, [sessionId, authToken, meetingIdParam, createRoomAsync]);
 
   useEffect(() => {
     if (roomError) setError(roomError);
@@ -422,11 +431,11 @@ export default function VideoSessionScreen() {
     };
   }, [sessionId, authToken, roomLoading]);
   useEffect(() => {
-    if (roomMeetingId && createRoomTimeoutRef.current) {
+    if (meetingId && createRoomTimeoutRef.current) {
       clearTimeout(createRoomTimeoutRef.current);
       createRoomTimeoutRef.current = null;
     }
-  }, [roomMeetingId]);
+  }, [meetingId]);
 
   useEffect(() => {
     if (sessionId || authToken) return;

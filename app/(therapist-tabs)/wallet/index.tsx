@@ -11,6 +11,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { therapistTabBarClearance } from '@/constants/therapistTabBar';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTherapistWallet } from '@/hooks/useTherapistApi';
 
@@ -122,7 +123,7 @@ export default function WalletScreen() {
           contentContainerStyle={{
             paddingTop: 24,
             paddingHorizontal: 24,
-            paddingBottom: 128 + insets.bottom,
+            paddingBottom: therapistTabBarClearance(insets.bottom, 28),
           }}
           showsVerticalScrollIndicator={false}
         >

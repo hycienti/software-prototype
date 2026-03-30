@@ -56,6 +56,7 @@ export default function RootLayout() {
             <Stack.Screen name="therapists" />
             <Stack.Screen name="my-therapists" />
             <Stack.Screen name="therapist/[id]" />
+            <Stack.Screen name="session/video-call" />
             <Stack.Screen name="session/[id]/summary" />
             <Stack.Screen name="session/[id]/feedback" />
             <Stack.Screen name="session/[id]/call" />

@@ -2,16 +2,20 @@ import React, { useEffect } from 'react';
 import { View, Modal, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { BlurView } from 'expo-blur';
 import Animated, {
+  Easing,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
   withTiming,
-  runOnJS,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MODAL_HEIGHT = SCREEN_HEIGHT * 0.85;
+
+const SHEET_OUT = Easing.out(Easing.cubic);
+const SHEET_IN = Easing.in(Easing.cubic);
+const OPEN_MS = 280;
+const CLOSE_MS = 240;
 
 interface BottomSheetModalProps {
   visible: boolean;
@@ -32,17 +36,11 @@ export const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
 
   useEffect(() => {
     if (visible) {
-      translateY.value = withSpring(0, {
-        damping: 20,
-        stiffness: 300,
-      });
-      opacity.value = withTiming(1, { duration: 300 });
+      translateY.value = withTiming(0, { duration: OPEN_MS, easing: SHEET_OUT });
+      opacity.value = withTiming(1, { duration: 220, easing: SHEET_OUT });
     } else {
-      translateY.value = withSpring(MODAL_HEIGHT, {
-        damping: 20,
-        stiffness: 300,
-      });
-      opacity.value = withTiming(0, { duration: 300 });
+      translateY.value = withTiming(MODAL_HEIGHT, { duration: CLOSE_MS, easing: SHEET_IN });
+      opacity.value = withTiming(0, { duration: 180, easing: SHEET_IN });
     }
   }, [visible]);
 

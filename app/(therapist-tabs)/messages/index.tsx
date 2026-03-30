@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { therapistTabBarClearance } from '@/constants/therapistTabBar';
 import { useTherapistThreads } from '@/hooks/useTherapistApi';
 import type { ThreadSummary } from '@/types/therapist';
 
@@ -105,7 +106,10 @@ export default function MessagesListScreen() {
         <FlatList
           data={threads}
           keyExtractor={(t) => String(t.id)}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[
+            styles.list,
+            { paddingBottom: therapistTabBarClearance(insets.bottom, 8) },
+          ]}
           renderItem={({ item }) => (
             <ThreadRow item={item} onPress={() => handleThreadPress(item.id)} />
           )}

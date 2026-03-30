@@ -1,20 +1,20 @@
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios'
-import AsyncStorage from '@react-native-async-storage/async-storage'
 import { API_CONFIG, getApiUrl } from '@/constants/api'
 import type { ApiError } from '@/types/api'
+import {
+  getBearerTokenForApiRequest,
+  clearSessionForUnauthorizedRequest,
+} from '@/store'
 
 /** Timeout for upload requests (FormData); default is often too short for large files or slow networks. */
 const UPLOAD_TIMEOUT_MS = 120000
 
-// Lazy import to avoid circular dependency
-let authStore: { clearAuth: () => Promise<void> } | null = null
-
-const getAuthStore = async () => {
-  if (!authStore) {
-    const { useAuthStore } = await import('@/store')
-    authStore = useAuthStore.getState()
-  }
-  return authStore
+function combineRequestUrl(baseURL: string | undefined, url: string | undefined): string {
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://')) return url
+  const base = (baseURL ?? '').replace(/\/$/, '')
+  const path = url.startsWith('/') ? url : `/${url}`
+  return `${base}${path}`
 }
 
 /**
@@ -40,7 +40,8 @@ class ApiClient {
     this.client.interceptors.request.use(
       async (config: InternalAxiosRequestConfig) => {
         try {
-          const token = await AsyncStorage.getItem('auth_token')
+          const fullUrl = combineRequestUrl(config.baseURL, config.url)
+          const token = await getBearerTokenForApiRequest(fullUrl, config.method)
           if (token && config.headers) {
             config.headers.Authorization = `Bearer ${token}`
           }
@@ -73,14 +74,12 @@ class ApiClient {
           // Handle specific error status codes
           switch (error.response.status) {
             case 401:
-              // Unauthorized - clear token and auth state
               try {
-                await AsyncStorage.removeItem('auth_token')
-                const store = await getAuthStore()
-                if (store) {
-                  await store.clearAuth()
+                const authHeader = error.config?.headers?.Authorization
+                await clearSessionForUnauthorizedRequest(authHeader)
+                if (__DEV__) {
+                  console.log('[api] 401 — cleared session for rejected token type')
                 }
-                console.log('Authentication expired - cleared auth state')
               } catch (clearError) {
                 console.error('Error clearing auth on 401:', clearError)
               }
