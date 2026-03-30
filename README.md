@@ -45,6 +45,18 @@ pnpm install
 npm install
 ```
 
+## Required first step (native bindings)
+
+Because this app uses native bindings/modules, run a clean prebuild before starting iOS or Android development:
+
+```bash
+pnpm prebuild --clean
+# or
+npx expo prebuild --clean
+```
+
+This regenerates native projects and ensures bindings are synced with current dependencies.
+
 ---
 
 ## Environment variables
@@ -79,6 +91,12 @@ EXPO_PUBLIC_PUSHER_CLUSTER=your_cluster
 ---
 
 ## Running the app
+
+Run this first (required for native bindings):
+
+```bash
+pnpm prebuild --clean
+```
 
 ### Start Metro (development server)
 
