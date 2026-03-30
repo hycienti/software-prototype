@@ -13,33 +13,45 @@ const DEFAULT_AVATAR =
 const hubCards = [
   {
     title: 'Professional Profile',
-    subtitle: 'Bio, credentials, and achievements',
+    subtitle: 'Bio, credentials, and verification',
     icon: 'person' as const,
-    href: '/profile',
+    href: '/(therapist-settings)/professional-profile',
   },
   {
     title: 'Practice Settings',
-    subtitle: 'Rates, specialties, and schedule',
+    subtitle: 'Rates, specialties, and payout setup',
     icon: 'tune' as const,
-    href: '/(therapist-tabs)/schedule',
+    href: '/(therapist-settings)/settings',
+  },
+  {
+    title: 'Availability',
+    subtitle: 'Recurring and one-off session windows',
+    icon: 'event-available' as const,
+    href: '/(therapist-settings)/availability',
   },
   {
     title: 'Payment & Payouts',
-    subtitle: 'Bank and crypto linkage',
+    subtitle: 'Balance and withdrawal history',
     icon: 'account-balance-wallet' as const,
     href: '/(therapist-tabs)/wallet',
   },
   {
+    title: 'Notifications',
+    subtitle: 'Session and account alerts',
+    icon: 'notifications' as const,
+    href: '/(therapist-settings)/notifications',
+  },
+  {
     title: 'Security & Login',
-    subtitle: 'Password and authentication',
+    subtitle: 'OTP sign-in and privacy',
     icon: 'lock' as const,
-    href: '/profile',
+    href: '/(therapist-settings)/security',
   },
   {
     title: 'Help & Support',
     subtitle: 'FAQs and contact support',
     icon: 'help' as const,
-    href: '/profile',
+    href: '/(therapist-settings)/help-support',
   },
 ];
 
